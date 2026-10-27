@@ -1,0 +1,20 @@
+# Secretos: nunca en el repo ni en su historia. .env.example sí se versiona.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Entornos virtuales: se crean fuera del repo; esto cubre los descuidos.
+.venv/
+venv/
+__pycache__/
+node_modules/
+
+# Datos crudos: se documentan en docs/data/, no se versionan.
+docs/data/raw/
+
+# Sistema y editores
+.DS_Store
+*.swp
