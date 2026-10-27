@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — phase 2 of 6.** The skeleton and a versioned synthetic dataset exist. There is no ingest adapter, no rule and no report yet: the command exits with a clear message instead of pretending to audit.
+> **Under construction — phase 3 of 6.** The skeleton, the dataset and a preview of the report exist. There is no ingest adapter, no rule and no generated report yet: the command exits with a clear message instead of pretending to audit.
 
 ## Why
 
@@ -29,7 +29,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 | 0 | Product, architecture, data model, rules, requirements, ADR | **done** |
 | 1 | Architecture skeleton, ports and canonical model | **done** |
 | 2 | Ortelis dataset, versioned, with golden numbers | **done** |
-| 3 | Site shell and demo page designed against a mock | pending |
+| 3 | Site shell and demo page designed against a mock | **done** |
 | 4 | Ingest adapters and journey reconstruction | pending |
 | 5 | Rules R01–R05 and impact quantification | pending |
 | 6 | Report rendered from the engine and published | pending |
@@ -50,7 +50,8 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 | `src/` | CLI, domain, ports and adapters |
 | `tests/` | Boundary test and walking-skeleton test |
 
-The published demo lives in the sibling `site/` repository, which today shows an under-construction landing.
+The published report lives in the sibling `site/` repository, which today carries a
+preview built on a mock, still marked under construction.
 
 ## Language
 

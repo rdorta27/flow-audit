@@ -4,9 +4,9 @@ Flow-Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Status: under construction — phase 2 of 6.** The skeleton, the model and the dataset
-> exist. There is no analysis and no report yet; the demo described below is the target of
-> phases 3 to 6.
+> **Status: under construction — phase 3 of 6.** The skeleton, the model, the dataset and
+> a preview of the report exist. There is no analysis and no generated report yet; the
+> demo described below is the target of phases 4 to 6.
 
 ## The problem
 
@@ -92,24 +92,24 @@ The dataset is synthetic and coherent: orders, state transitions, process timers
 
 ### A demo order
 
-`ORD-1042` orders `SkyHome 100` for an address on the edge of a beam. The play-by-play
+`ORD-1005` orders `SkyHome 200` for an address on the edge of a beam. The play-by-play
 the report must show:
 
 | At | System | What happens | Finding |
 |---|---|---|---|
-| 09:14 | CAT | Offer validated; spec has no `capacity_profile` | — |
-| 09:15 | BPM | Manual capacity check task created | R02 |
-| 11:40 | BPM | Analyst assigns a beam by hand | R02 |
-| 11:41 | OMS | Order decomposed into `SO-7781` and two work orders | — |
-| 13:02 | PROV | First activation attempt fails: `HUB_TIMEOUT` | — |
-| 13:02 | PROV | No retry is scheduled | R01 |
-| +2 days | OMS | Analyst retries; a second `SO-7790` is created | R04 |
-| +2 days | BPM | The 48 h activation timer expires with no compensation | R03 |
-| +2.5 days | PROV | Second attempt succeeds | — |
-| +3 days | — | Nobody can join the four records without a spreadsheet | R05 |
+| 0 h | CAT | Offer validated; spec has no `capacity_profile` | — |
+| +3 min | BPM | Manual capacity check task created | R02 |
+| +2 h | BPM | Analyst assigns a beam by hand | R02 |
+| +2 h | OMS | Order decomposed into `SO-20005` and a work order | — |
+| +3 h | BPM | Installation completed | — |
+| +9 h | PROV | First activation attempt fails: `HUB_TIMEOUT` | — |
+| +9 h | PROV | No retry is scheduled | R01 |
+| +69 h | OMS | Manual retry creates a second order, `SO-30005` | R04 |
+| +69 h | PROV | Second attempt succeeds | — |
 
-One order, five findings, 60 hours of wall-clock time for a job that should take one.
-That is the demo.
+Three findings on one order, 69 hours of wall-clock time for a job that should take one.
+The report adds the other two in aggregate: the 48 h timer that leaves 50 orders stuck
+(R03) and the records that only a time window can join (R05).
 
 ## Commercial shape
 

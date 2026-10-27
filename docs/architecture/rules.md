@@ -99,9 +99,9 @@ the expired timer and the absence of any subsequent event.
 
 ## R04 — OMS retry duplicates service orders
 
-**Signal.** Two service orders with the same parent order and the same spec are created
-within `duplicate_window_minutes` (default 10), and the second one originates from a
-retry rather than from a second line item.
+**Signal.** Two service orders share the same parent order and the same spec, and the
+second one is created within `duplicate_window_minutes` (default 10) of a retry attempt
+on the first. It comes from a replay, not from a second line item.
 
 **Evidence.** Both service orders, the retry marker on the OMS call, and the duplicated
 provisioning attempts.

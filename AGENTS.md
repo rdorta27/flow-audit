@@ -1,7 +1,7 @@
 # AGENTS
 
-- This repo is at **phase 2**: skeleton, model and a versioned synthetic dataset. There
-  is no ingest, no rule and no report yet; do not add them ahead of their phase.
+- This repo is at **phase 3**: skeleton, dataset and a report preview in the site. There
+  is no ingest, no rule and no generated report yet; do not add them ahead of their phase.
 - Read `README.md`, then `docs/product.md`, then `docs/architecture/`.
 - `domain/` has no I/O: rules and reconstruction must be testable without files.
 - A new finding is a new rule under `domain/rules/`; never hardcode it in the renderer.

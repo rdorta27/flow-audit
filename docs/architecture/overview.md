@@ -1,7 +1,7 @@
 # Architecture
 
-> **Under construction — phase 2.** The skeleton and the dataset exist; the analysis does
-> not. Adapters and rules are still empty. Complements [product](../product.md).
+> **Under construction — phase 3.** The skeleton, the dataset and the report preview
+> exist; the analysis does not. Adapters and rules are still empty. Complements [product](../product.md).
 
 ## Shape
 
