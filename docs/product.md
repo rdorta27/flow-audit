@@ -1,6 +1,6 @@
 # Product
 
-Flow-Audit is a workbench for auditing the end-to-end order flow of a BSS stack. It reads evidence exported from the systems involved — product catalog, order management (OMS), process orchestration (BPM) and provisioning — reconstructs how every order travelled through them, detects where it broke, quantifies what that break costs, and produces a report that can be handed to a client.
+Flow Audit is a workbench for auditing the end-to-end order flow of a BSS stack. It reads evidence exported from the systems involved — product catalog, order management (OMS), process orchestration (BPM) and provisioning — reconstructs how every order travelled through them, detects where it broke, quantifies what that break costs, and produces a report that can be handed to a client.
 
 It does not implement, configure or monitor those systems. It observes them.
 
@@ -24,7 +24,7 @@ Audits today are interviews and spreadsheets. The evidence is scattered, the fou
 | Vendor audit suite | Audits its own stack, priced for the operator, unusable by a consultancy on a client's systems |
 | Custom scripts per engagement | Works once; nothing is reusable, reviewable or comparable |
 
-Flow-Audit sits between the spreadsheet and the platform: the evidence discipline of a
+Flow Audit sits between the spreadsheet and the platform: the evidence discipline of a
 tool, the portability of a document.
 
 ## Who it is for

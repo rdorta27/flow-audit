@@ -10,7 +10,7 @@
 The shape follows the constraint, not the fashion: audit evidence is client-confidential and usually cannot leave a laptop, and the deliverable of an audit is a document, not a service. See [ADR 0001](../decisions/0001-local-first-cli-static-report.md).
 
 ```
-data/demo/ortelis/            Flow-Audit
+data/demo/ortelis/            Flow Audit
   catalog.json                 ┌───────────────────────────────────────────┐
   oms_orders.csv          ────▶│ ingest → reconstruct → detect → quantify  │───▶ out/
   bpm_history.jsonl            │   │          │           │         │     │      report.html
