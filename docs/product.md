@@ -4,9 +4,9 @@ Flow-Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Status: under construction — phase 1 of 6.** The skeleton and the model exist. There
-> is no dataset, no analysis and no report yet; the demo described below is the target of
-> phases 2 to 6.
+> **Status: under construction — phase 2 of 6.** The skeleton, the model and the dataset
+> exist. There is no analysis and no report yet; the demo described below is the target of
+> phases 3 to 6.
 
 ## The problem
 

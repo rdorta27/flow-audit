@@ -1,6 +1,7 @@
 # Data model
 
-Status: the types are implemented in phase 1; reconstruction and impact arrive later.
+Status: types implemented in phase 1, dataset generated in phase 2; reconstruction and
+impact arrive in later phases.
 
 Three models, deliberately separate: **catalog** (what can be sold), **orders** (what was sold) and **events** (what happened).
 

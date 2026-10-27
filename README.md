@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — phase 1 of 6.** The skeleton and the canonical model exist. There is no dataset, no ingest adapter, no rule and no report yet: the command exits with a clear message instead of pretending to audit.
+> **Under construction — phase 2 of 6.** The skeleton and a versioned synthetic dataset exist. There is no ingest adapter, no rule and no report yet: the command exits with a clear message instead of pretending to audit.
 
 ## Why
 
@@ -28,7 +28,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 |---|---|---|
 | 0 | Product, architecture, data model, rules, requirements, ADR | **done** |
 | 1 | Architecture skeleton, ports and canonical model | **done** |
-| 2 | Ortelis dataset, versioned, with golden numbers | pending |
+| 2 | Ortelis dataset, versioned, with golden numbers | **done** |
 | 3 | Site shell and demo page designed against a mock | pending |
 | 4 | Ingest adapters and journey reconstruction | pending |
 | 5 | Rules R01–R05 and impact quantification | pending |
@@ -46,7 +46,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 | `docs/decisions/` | ADRs, one decision per file |
 | `docs/requirements/` | [MVP requirements](docs/requirements/mvp.md) |
 | `docs/glossary/` | [BSS order-flow terms](docs/glossary/bss.md) |
-| `data/demo/` | Synthetic evidence for the Ortelis demo (phase 2) |
+| `data/demo/` | Versioned synthetic evidence: four exports, config and expected numbers |
 | `src/` | CLI, domain, ports and adapters |
 | `tests/` | Boundary test and walking-skeleton test |
 

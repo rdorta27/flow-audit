@@ -1,0 +1,35 @@
+{
+  "orders": 5000,
+  "service_orders": 5020,
+  "work_orders": 5000,
+  "processes": 5020,
+  "attempts": 5400,
+  "attempts_by_state": {
+    "failed": 400,
+    "pending": 50,
+    "succeeded": 4950
+  },
+  "findings": {
+    "R01": {
+      "affected_orders": 400,
+      "share_of_orders": 0.08
+    },
+    "R02": {
+      "affected_orders": 5000,
+      "share_of_orders": 1
+    },
+    "R03": {
+      "affected_orders": 150,
+      "stuck_orders": 50,
+      "share_of_orders": 0.03
+    },
+    "R04": {
+      "affected_orders": 20,
+      "share_of_orders": 0.004
+    },
+    "R05": {
+      "affected_orders": 300,
+      "share_of_orders": 0.06
+    }
+  }
+}

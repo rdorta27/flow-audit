@@ -1,8 +1,9 @@
 {
   "tasks": {
-    "check": "deno check src/cli/main.ts src/adapters/clock/system_clock.ts tests/",
+    "check": "deno check src/cli/main.ts src/cli/generate_dataset.ts src/adapters/clock/system_clock.ts tests/",
     "test": "deno test --allow-read",
-    "audit": "deno run --allow-read src/cli/main.ts"
+    "audit": "deno run --allow-read src/cli/main.ts",
+    "dataset": "deno run --allow-write src/cli/generate_dataset.ts data/demo"
   },
   "fmt": {
     "lineWidth": 100,

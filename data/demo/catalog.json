@@ -1,0 +1,147 @@
+{
+  "specs": [
+    {
+      "specId": "SPEC-SKYHOME-50",
+      "name": "SkyHome 50 technical spec",
+      "serviceType": "residential-satellite-internet",
+      "attributes": [
+        {
+          "name": "terminal_model",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "PROV"
+          ]
+        },
+        {
+          "name": "qos_profile",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "PROV",
+            "OMS"
+          ]
+        },
+        {
+          "name": "installation_type",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "BPM"
+          ]
+        }
+      ]
+    },
+    {
+      "specId": "SPEC-SKYHOME-100",
+      "name": "SkyHome 100 technical spec",
+      "serviceType": "residential-satellite-internet",
+      "attributes": [
+        {
+          "name": "terminal_model",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "PROV"
+          ]
+        },
+        {
+          "name": "qos_profile",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "PROV",
+            "OMS"
+          ]
+        },
+        {
+          "name": "installation_type",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "BPM"
+          ]
+        }
+      ]
+    },
+    {
+      "specId": "SPEC-SKYHOME-200",
+      "name": "SkyHome 200 technical spec",
+      "serviceType": "residential-satellite-internet",
+      "attributes": [
+        {
+          "name": "terminal_model",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "PROV"
+          ]
+        },
+        {
+          "name": "qos_profile",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "PROV",
+            "OMS"
+          ]
+        },
+        {
+          "name": "installation_type",
+          "type": "string",
+          "required": true,
+          "usedBy": [
+            "BPM"
+          ]
+        }
+      ]
+    }
+  ],
+  "offers": [
+    {
+      "offerId": "OFFER-SKYHOME-50",
+      "name": "SkyHome 50",
+      "family": "SkyHome",
+      "status": "active",
+      "versions": [
+        {
+          "version": "v1",
+          "validFrom": "2026-01-01T00:00:00.000Z",
+          "validTo": null,
+          "priceUsd": 79,
+          "specId": "SPEC-SKYHOME-50"
+        }
+      ]
+    },
+    {
+      "offerId": "OFFER-SKYHOME-100",
+      "name": "SkyHome 100",
+      "family": "SkyHome",
+      "status": "active",
+      "versions": [
+        {
+          "version": "v1",
+          "validFrom": "2026-01-01T00:00:00.000Z",
+          "validTo": null,
+          "priceUsd": 129,
+          "specId": "SPEC-SKYHOME-100"
+        }
+      ]
+    },
+    {
+      "offerId": "OFFER-SKYHOME-200",
+      "name": "SkyHome 200",
+      "family": "SkyHome",
+      "status": "active",
+      "versions": [
+        {
+          "version": "v1",
+          "validFrom": "2026-01-01T00:00:00.000Z",
+          "validTo": null,
+          "priceUsd": 229,
+          "specId": "SPEC-SKYHOME-200"
+        }
+      ]
+    }
+  ]
+}

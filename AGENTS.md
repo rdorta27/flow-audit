@@ -1,7 +1,7 @@
 # AGENTS
 
-- This repo is at **phase 1**: skeleton, ports and model only. `data/` and the analysis
-  arrive in later phases; do not add rules, adapters or findings ahead of their phase.
+- This repo is at **phase 2**: skeleton, model and a versioned synthetic dataset. There
+  is no ingest, no rule and no report yet; do not add them ahead of their phase.
 - Read `README.md`, then `docs/product.md`, then `docs/architecture/`.
 - `domain/` has no I/O: rules and reconstruction must be testable without files.
 - A new finding is a new rule under `domain/rules/`; never hardcode it in the renderer.

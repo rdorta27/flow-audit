@@ -106,6 +106,9 @@ export interface ServiceOrder {
   orderRef: string;
   specId: string;
   state: OrderState;
+  createdAt: string;
+  /** Terminal assigned to the service. PROV attempts link back through it. */
+  terminalSerial?: string;
 }
 
 export interface WorkOrder {
@@ -113,6 +116,7 @@ export interface WorkOrder {
   soRef: string;
   kind: "installation" | "activation" | "recovery";
   state: string;
+  createdAt: string;
 }
 
 export interface ProcessInstance {
@@ -123,6 +127,19 @@ export interface ProcessInstance {
   state: string;
   startedAt: string;
   endedAt: string | null;
+}
+
+export interface Activity {
+  processId: string;
+  /** 1-based order inside the process. */
+  sequence: number;
+  kind: "task" | "timer" | "gateway";
+  name: string;
+  actor: Actor;
+  startedAt: string;
+  endedAt: string | null;
+  /** True when a timer fired. An expired timer with no handler is R03. */
+  timerExpired?: boolean;
 }
 
 export interface ProvisioningAttempt {

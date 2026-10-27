@@ -1,0 +1,18 @@
+{
+  "currency": "USD",
+  "ordersPerMonth": 5000,
+  "loadedHourUsd": 45,
+  "rates": {
+    "manualMinutes": 5,
+    "dailyFollowupMinutes": 15,
+    "cleanupMinutes": 90,
+    "investigationMinutes": 45,
+    "duplicateActivationCostUsd": 12,
+    "arpuUsd": 65
+  },
+  "thresholds": {
+    "retryWindowHours": 24,
+    "stuckAfterHours": 72,
+    "duplicateWindowMinutes": 10
+  }
+}

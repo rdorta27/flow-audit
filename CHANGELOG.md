@@ -1,12 +1,16 @@
 # Changelog
 
-No releases yet. The project is under construction: phases 0 and 1 are
+No releases yet. The project is under construction: phases 0, 1 and 2 are
 done, the rest is still to be built.
 
 ## Unreleased
 
 ### Added
 
+- Deterministic Ortelis dataset: 5,000 orders in a fixed September 2026 window.
+- Versioned exports in `data/demo/`: catalog, OMS, BPM, provisioning, config and expected numbers.
+- `deno task dataset` regenerates the dataset from a fixed seed.
+- Invariant suite covering the data-model rules and the five defect cohorts.
 - Deno toolchain pinned in `mise.toml`, with `check`, `test` and `audit` tasks.
 - Hexagonal skeleton: `domain`, `ports`, `adapters`, `app` and `cli`.
 - Canonical model types: events, catalog, orders, journeys, impact and findings.
