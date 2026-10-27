@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-**Status:** phase 0 — product and architecture defined. The site is under construction; the demo runs against a fictional operator, `Ortelis Satellite`.
+> **Under construction — phase 0 of 5.** Nothing runs yet: there is no `src/`, no dataset and no demo report. This repository currently holds the product definition, the architecture, the data model, the rule catalogue and the requirements that the next phases implement.
 
 ## Why
 
@@ -22,31 +22,33 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 - **Quantify** hours and USD from visible, configurable rates.
 - **Report** one self-contained HTML file with flow map, state machine, timeline and heat map.
 
+## Where we are
+
+| Phase | Deliverable | State |
+|---|---|---|
+| 0 | Product, architecture, data model, rules, requirements, ADR | **done** |
+| 1 | Domain model and the synthetic Ortelis dataset | pending |
+| 2 | Ingest adapters and journey reconstruction | pending |
+| 3 | Rules R01–R05 and impact quantification | pending |
+| 4 | Report renderer with the four visuals | pending |
+| 5 | Published demo on the site | pending |
+
 ## Repository
 
 | Path | Contents |
 |---|---|
 | `docs/product.md` | What the product is, for whom, what it does and does not do |
-| `docs/architecture/` | Shape, pipeline, stack, [data model](docs/architecture/data-model.md) |
+| `docs/architecture/overview.md` | Shape, pipeline, stack, limits |
+| `docs/architecture/data-model.md` | Entities, events, correlation, invariants |
+| `docs/architecture/rules.md` | The five findings: signal, evidence, impact formula |
 | `docs/decisions/` | ADRs, one decision per file |
 | `docs/requirements/` | [MVP requirements](docs/requirements/mvp.md) |
 | `docs/glossary/` | [BSS order-flow terms](docs/glossary/bss.md) |
-| `data/demo/` | Synthetic evidence for the Ortelis Satellite demo |
+| `data/demo/` | Synthetic evidence for the Ortelis demo (phase 1) |
 | `src/` | CLI, domain, adapters (phase 1) |
 | `tests/` | Tests (phase 1) |
 
-The published demo lives in the sibling `site/` repository.
-
-## Build plan
-
-| Phase | Deliverable |
-|---|---|
-| 0 | Product, architecture, data model, ADR, requirements |
-| 1 | Domain model and the synthetic Ortelis dataset |
-| 2 | Ingest adapters and journey reconstruction |
-| 3 | Rules R01–R05 and impact quantification |
-| 4 | Report renderer with the four visuals |
-| 5 | Under-construction landing, then the published demo |
+The published demo lives in the sibling `site/` repository, which today shows an under-construction landing.
 
 ## Language
 

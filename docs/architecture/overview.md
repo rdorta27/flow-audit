@@ -1,6 +1,7 @@
 # Architecture
 
-Status: proposed, phase 0. Complements [product](../product.md).
+> **Under construction — phase 0.** Nothing is implemented. This describes the shape
+> that phases 1 to 4 will build; no `src/` exists yet. Complements [product](../product.md).
 
 ## Shape
 
@@ -82,6 +83,50 @@ site/              under construction, later the built demo report
 2. **New finding** → new rule under `domain/rules/`, no pipeline change.
 3. **New output** → new renderer under `adapters/report/` implementing the same port.
 4. **New client** → new dataset under `data/`, same rules.
+
+## One audit, step by step
+
+| # | Step | Who | Output |
+|---|---|---|---|
+| 1 | Scope: period, product family, systems and owners | Consultant + client | `config.json` |
+| 2 | Export one read-only file per system | Client | `raw/` |
+| 3 | Map columns to the canonical envelope | Consultant | `mapping.yml` per system |
+| 4 | Ingest and validate | Tool | normalized `dataset/` |
+| 5 | Reconstruct journeys and list correlation gaps | Tool | `journeys.json` |
+| 6 | Run rules and quantify with the client's rates | Tool | `findings.json` |
+| 7 | Review each finding's evidence, accept or downgrade | Consultant | reviewed findings |
+| 8 | Render and hand over | Tool | `report.html` |
+| 9 | Archive dataset, rules and config for the next audit | Consultant | versioned folder |
+
+No credentials are needed: the tool reads exports, it does not connect to systems.
+
+## Testing strategy
+
+| Level | What it proves |
+|---|---|
+| Unit | Each rule fires and stays quiet on a fixture pair (positive, negative) |
+| Golden dataset | The Ortelis dataset produces the documented counts and shares |
+| Property | No event is lost: every event lands in exactly one journey or in the orphan list |
+| Snapshot | The same dataset, config and rules produce the same `findings.json` |
+| Render | The report opens offline and every evidence link resolves |
+
+No test touches the network.
+
+## Privacy and security
+
+- No network calls, no telemetry, no accounts, no update check.
+- Evidence lives in memory; files are written only where the user asks.
+- Real exports are redacted by adapter configuration before the normalized dataset is written.
+- The report contains customer identifiers: it is marked confidential and loads no external asset.
+- No secrets, tokens or client names in the repository or its history.
+
+## Limits
+
+- Four systems and one flow (order-to-activate); other flows need their own rules.
+- Time-window correlation is a fallback: conclusions about traceability are conservative.
+- Rules find patterns, not root causes; the recommendation stays with the consultant.
+- Export formats must be documented; live connectors are not in the MVP.
+- 5,000 orders per month fit in memory; streaming is deliberately postponed.
 
 ## Open questions
 

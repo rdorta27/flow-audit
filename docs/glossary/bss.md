@@ -28,3 +28,12 @@ Terms as this project uses them. One meaning per term.
 | **Rule** | A declared condition over journeys that produces a finding. |
 | **Impact** | Hours and USD attributable to a finding, computed from configurable rates. |
 | **Weak link** | A correlation resolved by a time window instead of a declared key. Counted as a gap. |
+| **Orphan** | An event that cannot be joined to any order. Kept and counted, never dropped. |
+| **SLA** | The time an order is allowed to take before it is late. Compared against the journey, not against system uptime. |
+| **Timer** | A BPM event that fires after a duration. When it expires without a handler, the order falls out of the flow (R03). |
+| **Compensation** | The BPM activity that undoes or repairs a failed step. Its absence is what turns an error into a stuck order. |
+| **Business key** | The non-technical reference a process is started with. Often the only link BPM has to the order. |
+| **Rework** | Work done twice on the same order: a second activation, a duplicated service order, a manual correction. |
+| **Order aging** | Time since submission, split into work, wait and gap. The demo's headline number. |
+| **ARPU** | Average revenue per user. Used only to report revenue at risk, never added to cost. |
+| **Run hash** | Fingerprint of dataset, config and rules. Makes two audits comparable and a re-run verifiable. |

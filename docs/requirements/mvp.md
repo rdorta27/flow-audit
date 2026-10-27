@@ -32,6 +32,25 @@ One self-contained `report.html`, no external assets, with summary, flow swimlan
 
 **Accepted when:** the file opens offline, renders the four visuals and every finding links to its evidence.
 
+## R6 — Reproducible run
+
+The same dataset, configuration and rule version produce the same `findings.json`; the
+report prints the run hash so two audits can be compared.
+
+**Accepted when:** two runs from different directories produce byte-identical
+`findings.json`, and the hash appears in the report footer.
+
+## Non-functional
+
+| Requirement | Target |
+|---|---|
+| Offline | No network call at runtime, including no font or CDN request |
+| Dependencies | Zero runtime dependencies |
+| Performance | 5,000 orders ingested, reconstructed and reported in under 10 s on a laptop |
+| Determinism | UTC timestamps, sorted output, fixed decimal formatting |
+| Portability | The report is one file under 2 MB and opens in any current browser |
+| Accessibility | Severity is never encoded by colour alone; text carries the same information |
+
 ## Out of scope for the MVP
 
 Adapters for real system exports, streaming for large datasets, the `serve` UI, PDF export, rule authoring by non-developers, multi-client management.

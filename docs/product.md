@@ -4,11 +4,28 @@ Flow-Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
+> **Status: under construction — phase 0 of 5.** Only the definition exists. There is
+> no code, no dataset and no report yet; the demo described below is the target of
+> phases 1 to 4.
+
 ## The problem
 
 An order in a telecom BSS crosses four systems that were bought, versioned and operated by different teams. Nobody owns the whole path, so nobody can answer, with evidence, where orders get stuck, how long they wait, how many are fixed by hand, or what that costs per month.
 
 Audits today are interviews and spreadsheets. The evidence is scattered, the four systems do not share an identifier, and the report ends up as opinions in a deck. Two audits of the same stack produce different conclusions.
+
+## Alternatives
+
+| Alternative | Where it falls short |
+|---|---|
+| Spreadsheet plus interviews | No trace, no reproducibility; the numbers depend on who asked the questions |
+| APM and observability | Shows service latency, not that a business order waited three days for a manual check |
+| ETL plus BI dashboards | Moves data and draws charts, but does not interpret order semantics or quantify findings |
+| Vendor audit suite | Audits its own stack, priced for the operator, unusable by a consultancy on a client's systems |
+| Custom scripts per engagement | Works once; nothing is reusable, reviewable or comparable |
+
+Flow-Audit sits between the spreadsheet and the platform: the evidence discipline of a
+tool, the portability of a document.
 
 ## Who it is for
 
@@ -16,6 +33,12 @@ Audits today are interviews and spreadsheets. The evidence is scattered, the fou
 - **Transformation and internal audit teams** at operators that need a repeatable baseline before and after a change.
 
 The buyer is the consultancy, not the operator: it is a tool that makes their delivery cheaper, not a system they operate.
+
+| Role | What they need |
+|---|---|
+| **Engagement lead** (buyer) | A defensible report in days, with numbers the client cannot argue with |
+| **Audit analyst** (daily user) | Ingest exports, re-run the audit, inspect evidence per finding |
+| **Client sponsor** (reader) | The map, the cost and the three things to fix first |
 
 ## What it does
 
@@ -66,6 +89,33 @@ The dataset is synthetic and coherent: orders, state transitions, process timers
 | R03 | BPM timer expires without compensation | 3% stuck in "pending activation" |
 | R04 | OMS retry duplicates service orders | 5% of retries, double activation |
 | R05 | No end-to-end correlation id | ~45 min per incident to investigate |
+
+### A demo order
+
+`ORD-1042` orders `SkyHome 100` for an address on the edge of a beam. The play-by-play
+the report must show:
+
+| At | System | What happens | Finding |
+|---|---|---|---|
+| 09:14 | CAT | Offer validated; spec has no `capacity_profile` | — |
+| 09:15 | BPM | Manual capacity check task created | R02 |
+| 11:40 | BPM | Analyst assigns a beam by hand | R02 |
+| 11:41 | OMS | Order decomposed into `SO-7781` and two work orders | — |
+| 13:02 | PROV | First activation attempt fails: `HUB_TIMEOUT` | — |
+| 13:02 | PROV | No retry is scheduled | R01 |
+| +2 days | OMS | Analyst retries; a second `SO-7790` is created | R04 |
+| +2 days | BPM | The 48 h activation timer expires with no compensation | R03 |
+| +2.5 days | PROV | Second attempt succeeds | — |
+| +3 days | — | Nobody can join the four records without a spreadsheet | R05 |
+
+One order, five findings, 60 hours of wall-clock time for a job that should take one.
+That is the demo.
+
+## Commercial shape
+
+Sold per engagement, not as SaaS: the consultancy licenses the toolkit, runs it on the
+client's exports and delivers a white-labelled report. The evidence never leaves the
+consultant's machine, which is what makes the engagement approvable.
 
 ## Deliverables of one audit
 

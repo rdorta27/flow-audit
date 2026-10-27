@@ -93,6 +93,44 @@ type OrderJourney = {
 
 Segments are what the timeline visual draws: the report shows time spent **waiting**, not time spent working.
 
+## Invariants
+
+The dataset must satisfy these, and phase 1 tests them:
+
+1. Every `ServiceOrder` has exactly one parent `Order` reachable by `order_ref`.
+2. Every `WorkOrder` has exactly one parent `ServiceOrder`.
+3. Every `ProcessInstance` maps to one `ServiceOrder`, directly or through a business key.
+4. Every `ProvisioningAttempt` carries a terminal serial; `so_ref` is optional, and its absence is itself a finding (R05).
+5. Events of one entity are monotonic in `at`; equal timestamps are ordered by `event_id`.
+6. A terminal state (`ACTIVE`, `CANCELLED`, `FAILED`) has no later state event, only corrections recorded as new events.
+7. Every order ends in a terminal state or is deliberately stuck for the demo; there is no unexplained third case.
+8. Offer versions of the same offer do not overlap in time.
+9. No event is lost: ingested events = events in journeys + orphans.
+10. No event carries a real customer's data.
+
+## Worked example
+
+`OrderJourney` for the demo order described in [product](../product.md):
+
+```json
+{
+  "order_ref": "ORD-1042",
+  "correlation": { "strong": false, "gaps": ["PROV ACT-5510 linked by serial SN-449120"] },
+  "segments": [
+    { "system": "CAT",  "from": "2026-09-02T09:14:00Z", "to": "2026-09-02T09:15:00Z", "kind": "work", "state": "VALIDATED" },
+    { "system": "BPM",  "from": "2026-09-02T09:15:00Z", "to": "2026-09-02T11:40:00Z", "kind": "wait", "state": "MANUAL_CAPACITY_CHECK", "actor": "human" },
+    { "system": "OMS",  "from": "2026-09-02T11:41:00Z", "to": "2026-09-02T13:02:00Z", "kind": "work", "state": "DECOMPOSED" },
+    { "system": "PROV", "from": "2026-09-02T13:02:00Z", "to": "2026-09-04T18:20:00Z", "kind": "gap",  "state": "HUB_TIMEOUT" },
+    { "system": "BPM",  "from": "2026-09-04T18:20:00Z", "to": "2026-09-05T09:14:00Z", "kind": "wait", "state": "TIMER_EXPIRED" },
+    { "system": "PROV", "from": "2026-09-05T09:14:00Z", "to": "2026-09-05T09:31:00Z", "kind": "work", "state": "ACTIVE" }
+  ],
+  "findings": ["R01", "R02", "R03", "R04", "R05"]
+}
+```
+
+The gap is the point: two and a half days where the order was not waiting for a person
+and not being worked on by a system.
+
 ## Impact
 
 Impact is never stored in the data; it is computed at audit time from config:
