@@ -1,6 +1,6 @@
 # Data model
 
-Status: proposed, phase 0. Complements [architecture](overview.md).
+Status: the types are implemented in phase 1; reconstruction and impact arrive later.
 
 Three models, deliberately separate: **catalog** (what can be sold), **orders** (what was sold) and **events** (what happened).
 

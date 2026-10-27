@@ -1,12 +1,18 @@
 # Changelog
 
-No releases yet. The project is under construction: everything below is
-documentation for phases still to be built.
+No releases yet. The project is under construction: phases 0 and 1 are
+done, the rest is still to be built.
 
 ## Unreleased
 
 ### Added
 
+- Deno toolchain pinned in `mise.toml`, with `check`, `test` and `audit` tasks.
+- Hexagonal skeleton: `domain`, `ports`, `adapters`, `app` and `cli`.
+- Canonical model types: events, catalog, orders, journeys, impact and findings.
+- Boundary test that keeps `domain/` free of I/O and the project free of runtime dependencies.
+- Walking-skeleton CLI that exits with code 2 and a clear message when no evidence source exists.
+- ADR 0002: hexagonal layout and the dependency rule.
 - Product definition: problem, buyer, scope, demo, success criteria.
 - Architecture overview: local-first CLI, pipeline, stack, limits.
 - Data model: catalog, orders, events, correlation and impact.

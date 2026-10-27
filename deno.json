@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "check": "deno check src/cli/main.ts src/adapters/clock/system_clock.ts tests/",
+    "test": "deno test --allow-read",
+    "audit": "deno run --allow-read src/cli/main.ts"
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "exclude": ["docs/**", "README.md", "AGENTS.md", "CHANGELOG.md"]
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}

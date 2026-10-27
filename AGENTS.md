@@ -1,8 +1,7 @@
 # AGENTS
 
-- This repo is **phase 0: documentation only**. Do not scaffold `src/`, `data/` or
-  `tests/` before their phase starts (see the table in `README.md`); the architecture is
-  the deliverable for now.
+- This repo is at **phase 1**: skeleton, ports and model only. `data/` and the analysis
+  arrive in later phases; do not add rules, adapters or findings ahead of their phase.
 - Read `README.md`, then `docs/product.md`, then `docs/architecture/`.
 - `domain/` has no I/O: rules and reconstruction must be testable without files.
 - A new finding is a new rule under `domain/rules/`; never hardcode it in the renderer.

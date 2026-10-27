@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — phase 0 of 6.** Nothing runs yet: there is no `src/`, no dataset and no demo report. This repository currently holds the product definition, the architecture, the data model, the rule catalogue and the requirements that the next phases implement.
+> **Under construction — phase 1 of 6.** The skeleton and the canonical model exist. There is no dataset, no ingest adapter, no rule and no report yet: the command exits with a clear message instead of pretending to audit.
 
 ## Why
 
@@ -27,7 +27,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 | Phase | Deliverable | State |
 |---|---|---|
 | 0 | Product, architecture, data model, rules, requirements, ADR | **done** |
-| 1 | Architecture skeleton, ports and canonical model | pending |
+| 1 | Architecture skeleton, ports and canonical model | **done** |
 | 2 | Ortelis dataset, versioned, with golden numbers | pending |
 | 3 | Site shell and demo page designed against a mock | pending |
 | 4 | Ingest adapters and journey reconstruction | pending |
@@ -38,6 +38,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 
 | Path | Contents |
 |---|---|
+| `deno.json`, `mise.toml` | Tasks (`check`, `test`, `audit`) and pinned Deno |
 | `docs/product.md` | What the product is, for whom, what it does and does not do |
 | `docs/architecture/overview.md` | Shape, pipeline, stack, limits |
 | `docs/architecture/data-model.md` | Entities, events, correlation, invariants |
@@ -46,8 +47,8 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 | `docs/requirements/` | [MVP requirements](docs/requirements/mvp.md) |
 | `docs/glossary/` | [BSS order-flow terms](docs/glossary/bss.md) |
 | `data/demo/` | Synthetic evidence for the Ortelis demo (phase 2) |
-| `src/` | CLI, domain, adapters (phase 1) |
-| `tests/` | Tests (phase 1) |
+| `src/` | CLI, domain, ports and adapters |
+| `tests/` | Boundary test and walking-skeleton test |
 
 The published demo lives in the sibling `site/` repository, which today shows an under-construction landing.
 
