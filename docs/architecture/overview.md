@@ -1,7 +1,7 @@
 # Architecture
 
 > **Under construction — phase 0.** Nothing is implemented. This describes the shape
-> that phases 1 to 4 will build; no `src/` exists yet. Complements [product](../product.md).
+> that phases 1 to 6 will build; no `src/` exists yet. Complements [product](../product.md).
 
 ## Shape
 

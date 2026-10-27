@@ -1,6 +1,6 @@
 # Rule catalogue
 
-Status: designed, not implemented (phase 3). The rules below are the five
+Status: designed, not implemented (phase 5). The rules below are the five
 findings the demo reports. Each one must be defensible: a signal, the
 evidence that proves it and a formula that turns it into hours and USD.
 

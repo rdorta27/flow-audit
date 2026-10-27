@@ -18,3 +18,5 @@ documentation for phases still to be built.
 ### Changed
 
 - README now states the phase and what runs today (nothing).
+- Renumbered the roadmap: architecture and model (1), dataset (2), site (3), ingest (4),
+  rules (5), report and publish (6).

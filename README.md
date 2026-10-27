@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — phase 0 of 5.** Nothing runs yet: there is no `src/`, no dataset and no demo report. This repository currently holds the product definition, the architecture, the data model, the rule catalogue and the requirements that the next phases implement.
+> **Under construction — phase 0 of 6.** Nothing runs yet: there is no `src/`, no dataset and no demo report. This repository currently holds the product definition, the architecture, the data model, the rule catalogue and the requirements that the next phases implement.
 
 ## Why
 
@@ -27,11 +27,12 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 | Phase | Deliverable | State |
 |---|---|---|
 | 0 | Product, architecture, data model, rules, requirements, ADR | **done** |
-| 1 | Domain model and the synthetic Ortelis dataset | pending |
-| 2 | Ingest adapters and journey reconstruction | pending |
-| 3 | Rules R01–R05 and impact quantification | pending |
-| 4 | Report renderer with the four visuals | pending |
-| 5 | Published demo on the site | pending |
+| 1 | Architecture skeleton, ports and canonical model | pending |
+| 2 | Ortelis dataset, versioned, with golden numbers | pending |
+| 3 | Site shell and demo page designed against a mock | pending |
+| 4 | Ingest adapters and journey reconstruction | pending |
+| 5 | Rules R01–R05 and impact quantification | pending |
+| 6 | Report rendered from the engine and published | pending |
 
 ## Repository
 
@@ -44,7 +45,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 | `docs/decisions/` | ADRs, one decision per file |
 | `docs/requirements/` | [MVP requirements](docs/requirements/mvp.md) |
 | `docs/glossary/` | [BSS order-flow terms](docs/glossary/bss.md) |
-| `data/demo/` | Synthetic evidence for the Ortelis demo (phase 1) |
+| `data/demo/` | Synthetic evidence for the Ortelis demo (phase 2) |
 | `src/` | CLI, domain, adapters (phase 1) |
 | `tests/` | Tests (phase 1) |
 
