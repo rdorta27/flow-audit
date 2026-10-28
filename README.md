@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — phase 3 of 6.** The skeleton, the dataset and a preview of the report exist. There is no ingest adapter, no rule and no generated report yet: the command exits with a clear message instead of pretending to audit.
+> **Under construction — version 0.1.0, milestone M0.** The skeleton, the dataset and a preview of the report exist. There is no ingest adapter, no rule and no generated report yet: the command exits with a clear message instead of pretending to audit.
 
 ## Why
 
@@ -24,15 +24,29 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 
 ## Where we are
 
-| Phase | Deliverable | State |
+What runs today (version 0.1.0):
+
+- `deno task check` passes.
+- `deno task test` passes 26 tests: dataset invariants, export stability, the boundary rule and the walking skeleton.
+- `deno task audit` exits with code 2: no evidence source exists yet.
+
+The plan is in [`../specs/flow-audit_BACKLOG.md`](../specs/flow-audit_BACKLOG.md):
+
+| Milestone | Goal | State |
 |---|---|---|
-| 0 | Product, architecture, data model, rules, requirements, ADR | **done** |
-| 1 | Architecture skeleton, ports and canonical model | **done** |
-| 2 | Ortelis dataset, versioned, with golden numbers | **done** |
-| 3 | Site shell and demo page designed against a mock | **done** |
-| 4 | Ingest adapters and journey reconstruction | pending |
-| 5 | Rules R01–R05 and impact quantification | pending |
-| 6 | Report rendered from the engine and published | pending |
+| — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
+| M0 | Validate the integration candidate (bss-oss-rust): Docker, auth, contracts, license | in progress |
+| M1 | First read-only adapter (TMF622) | planned |
+| M2 | Canonical model and correlation | planned |
+| M3 | First deterministic rule (R04) | planned |
+| M4 | Reproducible JSON report, then HTML | planned |
+| M5 | Demonstration readiness | planned |
+
+## Versions
+
+`core` sets the version numbers (semver). The sibling `site/` repository tags a release
+only when it publishes that same `core` version, with the same number; site-only fixes
+are not tagged. Both repositories start aligned at `0.1.0`.
 
 ## Repository
 
@@ -55,4 +69,4 @@ preview built on a mock, still marked under construction.
 
 ## Language
 
-Code, documentation and the generated report are in English. Commercial and technical presentations are in Spanish.
+This version is English only: code, documentation, CLI and the generated report. Spanish and Portuguese output come later. The site is already published in English, Spanish and Portuguese. Commercial and technical presentations are in Spanish.

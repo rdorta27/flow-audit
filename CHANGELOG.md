@@ -1,9 +1,21 @@
 # Changelog
 
-No releases yet. The project is under construction: phases 0, 1 and 2 are
-done, the rest is still to be built.
+Versions follow semver. `core` sets the numbers; the `site` repository reuses the same
+tag when it publishes that version.
 
 ## Unreleased
+
+### Changed
+
+- The plan moves from six phases to milestones M0–M5 (`../specs/flow-audit_BACKLOG.md`):
+  validate one integration candidate, one read-only adapter, correlation, one rule, one report.
+- Status lines in README, AGENTS and docs now name the version and milestone.
+- This version is declared English only; Spanish and Portuguese output are deferred.
+
+## 0.1.0 — 2026-10-28
+
+Baseline before milestone M0. Old tags `0.1.0` and `0.2.0` were removed; this release
+replaces them and is aligned with `site` 0.1.0.
 
 ### Added
 
@@ -28,6 +40,7 @@ done, the rest is still to be built.
 ### Changed
 
 - README now states the phase and what runs today (nothing).
+- Renamed the product to Flow Audit.
 - Renumbered the roadmap: architecture and model (1), dataset (2), site (3), ingest (4),
   rules (5), report and publish (6).
 - Aligned the demo order and the R04 signal with the generated dataset.

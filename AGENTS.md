@@ -1,7 +1,10 @@
 # AGENTS
 
-- This repo is at **phase 3**: skeleton, dataset and a report preview in the site. There
-  is no ingest, no rule and no generated report yet; do not add them ahead of their phase.
+- This repo is at **version 0.1.0, milestone M0**: skeleton, dataset and a report preview
+  in the site. There is no ingest, no rule and no generated report yet; do not add them
+  ahead of their milestone. The plan is `../specs/flow-audit_BACKLOG.md`.
+- This version is English only: code, docs, CLI and report. Spanish and Portuguese output
+  come later (backlog L-01).
 - Read `README.md`, then `docs/product.md`, then `docs/architecture/`.
 - `domain/` has no I/O: rules and reconstruction must be testable without files.
 - A new finding is a new rule under `domain/rules/`; never hardcode it in the renderer.

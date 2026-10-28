@@ -1,7 +1,7 @@
 # Data model
 
-Status: types implemented in phase 1, dataset generated in phase 2; reconstruction and
-impact arrive in later phases.
+Status: types implemented and dataset generated (version 0.1.0); correlation arrives in
+milestone M2 and impact in M4.
 
 Three models, deliberately separate: **catalog** (what can be sold), **orders** (what was sold) and **events** (what happened).
 

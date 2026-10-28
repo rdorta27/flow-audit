@@ -1,6 +1,6 @@
 # Architecture
 
-> **Under construction — phase 3.** The skeleton, the dataset and the report preview
+> **Under construction — version 0.1.0, milestone M0.** The skeleton, the dataset and the report preview
 > exist; the analysis does not. Adapters and rules are still empty. Complements [product](../product.md).
 
 ## Shape
