@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { Finding, ImpactConfig, OrderJourney } from "../domain/model.ts";
 
 /** Everything a renderer is allowed to see. No analysis happens down here. */

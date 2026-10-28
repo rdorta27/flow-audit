@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { assert, assertEquals } from "./assert.ts";
 
 const DOMAIN = new URL("../src/domain/", import.meta.url);

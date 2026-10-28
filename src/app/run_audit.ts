@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { Finding, OrderJourney } from "../domain/model.ts";
 import type { Clock } from "../ports/clock.ts";
 import type { CatalogSource } from "../ports/catalog_source.ts";

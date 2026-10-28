@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { SystemId } from "../domain/model.ts";
 
 /** A row as it came from an export, before normalization. */

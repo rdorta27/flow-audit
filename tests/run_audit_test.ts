@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { NoEvidenceSourceError, runAudit } from "../src/app/run_audit.ts";
 import type { RawRecord } from "../src/ports/evidence_source.ts";
 import { assert, assertEquals } from "./assert.ts";

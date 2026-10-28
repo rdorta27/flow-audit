@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { EXPECTED, generateDemoDataset } from "../src/dataset/generator.ts";
 import { OMS_COLUMNS, serializeDataset } from "../src/adapters/export/serializers.ts";
 import { assert, assertEquals } from "./assert.ts";

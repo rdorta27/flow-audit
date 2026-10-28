@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { NoEvidenceSourceError, runAudit } from "../app/run_audit.ts";
 import { systemClock } from "../adapters/clock/system_clock.ts";
 import type { AuditOptions } from "../app/run_audit.ts";

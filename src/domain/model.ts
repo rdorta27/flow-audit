@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Domain model: the contracts every other layer depends on.
  *

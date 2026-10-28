@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { EXPECTED, generateDemoDataset, IMPACT_CONFIG } from "../dataset/generator.ts";
 import { serializeDataset, serializeJson } from "../adapters/export/serializers.ts";
 

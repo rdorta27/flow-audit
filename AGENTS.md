@@ -11,6 +11,8 @@
 - Every rule follows the contract in `docs/architecture/rules.md`: signal, evidence, formula.
 - The report is one self-contained file: no CDN, no external fonts, no build step.
 - Only synthetic data is committed. Client evidence never enters the repo or its history.
+- The engine is MIT. Never vendor, copy or import third-party code; the systems it reads
+  are reached over HTTP only (`THIRD-PARTY.md`). The boundary is a test, not a promise.
 - Impact rates are configuration, not constants: every number in the report must be replaceable.
 - Tests: `deno test`. Run them before proposing a change.
 - Commits: the `commit-msg` hook enforces the format (`<type>: <summary>`, why + `Changes:`).

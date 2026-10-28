@@ -15,6 +15,10 @@ node_modules/
 # Datos crudos: se documentan en docs/data/, no se versionan.
 docs/data/raw/
 
+# Capturas de sistemas de terceros: nunca se commitean (THIRD-PARTY.md).
+data/raw/
+*.capture.json
+
 # Sistema y editores
 .DS_Store
 *.swp

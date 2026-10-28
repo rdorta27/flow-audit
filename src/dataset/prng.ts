@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /** Deterministic PRNG: the dataset must be identical on every machine and run. */
 export function mulberry32(seed: number): () => number {
   let state = seed >>> 0;

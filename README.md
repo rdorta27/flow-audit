@@ -70,3 +70,18 @@ preview built on a mock, still marked under construction.
 ## Language
 
 This version is English only: code, documentation, CLI and the generated report. Spanish and Portuguese output come later. The site is already published in English, Spanish and Portuguese. Commercial and technical presentations are in Spanish.
+
+## License
+
+The engine is MIT: see [`LICENSE`](LICENSE). It has no runtime dependencies, and every
+file under `src/` and `tests/` carries the SPDX identifier.
+
+What it reads is not MIT and is not distributed here. The systems used to validate an
+integration are read over HTTP and keep their own licenses:
+[`THIRD-PARTY.md`](THIRD-PARTY.md) lists them and states the boundary, and
+[`TRADEMARKS.md`](TRADEMARKS.md) covers the name and the TM Forum marks.
+
+The generic engine is open. Client adapters, mappings, rules and datasets stay private per
+engagement, which is the part a client pays for. `tests/license_boundary_test.ts` enforces
+the boundary: no vendored code, no remote import, no third-party capture committed, and an
+SPDX header on every source file.
