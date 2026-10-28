@@ -12,8 +12,8 @@ export interface RawRecord {
 }
 
 /**
- * One export per system. Adapters implement this in phase 4; nothing in the
- * domain knows whether the rows come from a file, a stream or a test double.
+ * One export per system. Adapters implement this in milestone M1; nothing in
+ * the domain knows whether the rows come from a file, a stream or a test double.
  */
 export interface EvidenceSource {
   readonly name: string;

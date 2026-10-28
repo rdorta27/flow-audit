@@ -96,7 +96,7 @@ Segments are what the timeline visual draws: the report shows time spent **waiti
 
 ## Invariants
 
-The dataset must satisfy these, and phase 2 tests them:
+The dataset must satisfy these, and `tests/dataset_test.ts` checks them:
 
 1. Every `ServiceOrder` has exactly one parent `Order` reachable by `order_ref`.
 2. Every `WorkOrder` has exactly one parent `ServiceOrder`.

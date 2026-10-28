@@ -1,7 +1,8 @@
 # Architecture
 
 > **Under construction — version 0.1.0, milestone M0.** The skeleton, the dataset and the report preview
-> exist; the analysis does not. Adapters and rules are still empty. Complements [product](../product.md).
+> exist; the analysis does not. Adapters are partial and rules are still empty. Complements
+> [product](../product.md).
 
 ## Shape
 
@@ -35,14 +36,14 @@ Analysis and presentation are separated on purpose: the same findings must be re
 
 Hexagonal, with the domain at the center and no I/O inside it.
 
-| Layer | Contents | Depends on |
+| Layer | Today | Planned |
 |---|---|---|
-| `domain/` | Canonical model, journey reconstruction, rule engine, impact math | nothing |
-| `ports/` | `EvidenceSource`, `CatalogSource`, `ReportRenderer`, `Clock` | domain |
-| `adapters/ingest/` | CSV, JSON, JSONL readers per system | ports |
-| `adapters/report/` | HTML renderer, SVG diagrams, JSON writer | ports |
-| `app/` | `runAudit(config)` use case, configuration | domain, ports |
-| `cli/` | Argument parsing, exit codes, progress | app |
+| `domain/` | Canonical model types: events, catalog, orders, journeys, findings, impact | Reconstruction (M2), rules (M3), impact math (M4) |
+| `ports/` | `EvidenceSource`, `CatalogSource`, `ReportRenderer`, `Clock` | — |
+| `adapters/` | `clock/`, `export/`, and empty `ingest/` and `report/` | Ingest readers (M1), HTML renderer (M4) |
+| `app/` | `runAudit()` walking skeleton; returns no findings | Pipeline wiring (M1–M4) |
+| `cli/` | `audit` and `dataset` commands, exit codes | — |
+| `dataset/` | Deterministic generator: 5,000 orders from a fixed seed | — |
 
 Rules are data plus a predicate in `domain/rules/`: they declare an id, a severity, the evidence they select and the impact formula. Adding a finding means adding a rule, not touching the pipeline.
 
@@ -63,11 +64,12 @@ Rejected for now: a browser-only app (can't handle large exports) and a hosted s
 core/
   docs/            product, architecture, data model, decisions, requirements, glossary
   src/
-    domain/        model, rules, impact
-    ports/
-    adapters/      ingest/, report/
-    app/
-    cli/
+    domain/        model (reconstruction and rules arrive in M2 and M3)
+    ports/         four interfaces
+    adapters/      clock/, export/ (ingest/ and report/ arrive in M1 and M4)
+    app/           runAudit() use case
+    cli/           audit and dataset commands
+    dataset/       deterministic generator
   data/demo/       synthetic evidence for Ortelis Satellite
   tests/
 site/              under construction, later the built demo report

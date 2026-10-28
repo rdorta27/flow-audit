@@ -1,6 +1,6 @@
 # MVP requirements
 
-Status: phase 0. Derived from [product](../product.md). No OpenSpec in this repo: this is the source of truth until it changes.
+Status: written at milestone M0. Derived from [product](../product.md). No OpenSpec in this repo: this is the source of truth until it changes.
 
 ## R1 — Ingest the four systems
 

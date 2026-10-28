@@ -26,15 +26,16 @@ export class NoEvidenceSourceError extends Error {
   constructor() {
     super(
       "no evidence source configured. This is a walking skeleton: the ingest " +
-        "adapters arrive in phase 4, so there is nothing to audit yet.",
+        "adapters arrive in milestone M1, so there is nothing to audit yet.",
     );
     this.name = "NoEvidenceSourceError";
   }
 }
 
 /**
- * The only entry point of the application. Phase 1 wires the pipeline and
- * stops at ingestion; reconstruction and rules arrive in phases 4 and 5.
+ * The only entry point of the application. The walking skeleton wires the
+ * pipeline and stops at ingestion; reconstruction and rules arrive in
+ * milestones M2 and M3.
  */
 export async function runAudit(
   _options: AuditOptions,

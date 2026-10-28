@@ -22,7 +22,7 @@ no boundaries. Rejected: nothing stops the report from recalculating impact.
 document. Rejected: the first hurried change breaks it and nobody notices.
 
 **C. Hexagonal layout with a test that enforces the boundary.** `domain/` holds the
-model and (from phase 5) the rules; `ports/` holds the interfaces; `adapters/` holds
+model and (from milestone M3) the rules; `ports/` holds the interfaces; `adapters/` holds
 files, HTML and the clock; `app/` holds the use case; `cli/` parses arguments.
 
 ## Decision
@@ -42,6 +42,6 @@ import only from `src/domain/`, and `deno.json` must declare no runtime dependen
 
 ## Evidence
 
-- Phase 1 ships the skeleton: `src/domain/model.ts`, four ports, one use case, one CLI.
+- Milestone M0 ships the skeleton: `src/domain/model.ts`, four ports, one use case, one CLI.
 - `deno task test` runs the boundary test; `deno task check` types every module.
 - The design matches the shape already described in [architecture](../architecture/overview.md).

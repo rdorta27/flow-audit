@@ -27,7 +27,8 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 What runs today (version 0.1.0):
 
 - `deno task check` passes.
-- `deno task test` passes 26 tests: dataset invariants, export stability, the boundary rule and the walking skeleton.
+- `deno task test` passes 34 tests: dataset invariants, export stability, the hexagonal
+  and license boundaries and the walking skeleton.
 - `deno task audit` exits with code 2: no evidence source exists yet.
 
 The plan is in [`../specs/flow-audit_BACKLOG.md`](../specs/flow-audit_BACKLOG.md):
@@ -61,8 +62,8 @@ are not tagged. Both repositories start aligned at `0.1.0`.
 | `docs/requirements/` | [MVP requirements](docs/requirements/mvp.md) |
 | `docs/glossary/` | [BSS order-flow terms](docs/glossary/bss.md) |
 | `data/demo/` | Versioned synthetic evidence: four exports, config and expected numbers |
-| `src/` | CLI, domain, ports and adapters |
-| `tests/` | Boundary test and walking-skeleton test |
+| `src/` | CLI, domain, ports, adapters, dataset generator |
+| `tests/` | Dataset, serializers, the two boundaries and the walking skeleton |
 
 The published report lives in the sibling `site/` repository, which today carries a
 preview built on a mock, still marked under construction.

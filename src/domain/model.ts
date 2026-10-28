@@ -3,8 +3,8 @@
  * Domain model: the contracts every other layer depends on.
  *
  * This directory has no I/O and imports nothing from outside itself. Rules,
- * reconstruction and impact math live here from phase 5 on; until then these
- * are types only.
+ * reconstruction and impact math live here from milestone M2 on; until then
+ * these are types only.
  */
 
 export type SystemId = "CAT" | "OMS" | "BPM" | "PROV";

@@ -13,7 +13,7 @@ Options:
   --lang <lang>    Report language: en (default) or es.
   -h, --help       Show this help.
 
-Status: walking skeleton. The ingest adapters arrive in phase 4, so the
+Status: walking skeleton. The ingest adapters arrive in milestone M1, so the
 command currently exits with a clear message instead of pretending to audit.`;
 
 class UsageError extends Error {}
