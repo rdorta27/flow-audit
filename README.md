@@ -27,9 +27,14 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 What runs today (version 0.1.0):
 
 - `deno task check` passes.
-- `deno task test` passes 34 tests: dataset invariants, export stability, the hexagonal
-  and license boundaries and the walking skeleton.
+- `deno task test` passes 49 tests: dataset invariants, export stability, the hexagonal
+  and license boundaries, the walking skeleton and the TMF stub.
 - `deno task audit` exits with code 2: no evidence source exists yet.
+- `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs
+  (TMF622/641/640) on `127.0.0.1:8081`. Every response carries
+  `X-Flow-Audit-Source: simulated`. It is a test source for the M1 adapter — known
+  defects, golden numbers, no real system behind it — not a product simulator; see
+  [architecture](docs/architecture/overview.md#the-tmf-stub).
 
 Milestone M0 has produced no engine code yet. It tested a third-party TMF system,
 bss-oss-rust, locally and outside both repositories: it runs, access works, and its

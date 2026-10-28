@@ -58,6 +58,22 @@ Rules are data plus a predicate in `domain/rules/`: they declare an id, a severi
 
 Rejected for now: a browser-only app (can't handle large exports) and a hosted service (evidence cannot leave the client).
 
+## The TMF stub
+
+`deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped JSON on
+`127.0.0.1:8081` (M0-11): `productOrder`, `serviceOrder` and `serviceActivation`. The
+code lives in `src/stub/`, outside the hexagon — the domain imports nothing from it; the
+stub uses the domain types to read the dataset. It exists so the M1 adapter has a source
+with the standard shape (camelCase, items with explicit item-to-item references,
+activations linked to their service order, `offset`/`limit` pagination with
+`X-Total-Count`, JSON error bodies) and the dataset's known defects with golden numbers.
+Every response is marked `X-Flow-Audit-Source: simulated`, resources carry each entity's
+state at the end of the dataset window (derived from the exports; the mapping is
+documented in the stub source), and the event history itself stays in the file exports.
+It is a test source, not a product simulator. The integration candidate checked in M0-04
+speaks a weaker TMF than this; its deviations are recorded as its dialect in
+[data-model](data-model.md).
+
 ## Layout
 
 ```
@@ -70,6 +86,7 @@ core/
     app/           runAudit() use case
     cli/           audit and dataset commands
     dataset/       deterministic generator
+    stub/          read-only TMF-shaped HTTP view of the dataset (M0-11, test source)
   data/demo/       synthetic evidence for Ortelis Satellite
   tests/
 site/              under construction, later the built demo report

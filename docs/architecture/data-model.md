@@ -150,3 +150,25 @@ Example: R02 fires on 100% of 5,000 orders at 5 minutes each → 417 h/month →
 ## Raw data
 
 Exports are not versioned: `docs/data/raw/` is ignored. Only the synthetic demo dataset is committed, and it contains no real customer data.
+
+## The bss-oss-rust dialect
+
+The candidate evaluated in M0-04 speaks a weaker TMF than the stub serves. The adapter
+maps this dialect; the stub does not imitate it. Observed at commit `c65aacd6` (full
+contract and captures in `../../sandbox/bss-oss/setup/CONTRACTS.md`, outside the
+repositories per ADR 0004):
+
+| Standard shape (the stub serves this) | bss-oss-rust (observed) |
+|---|---|
+| camelCase (`orderDate`, `relatedParty`) | snake_case (`order_date`, `external_id`) |
+| `productOrderItem` / `serviceOrderItem` always present | items accepted on create, never returned |
+| `serviceOrderItem.productOrderItem`: explicit item link | free-text `external_id` on the service order, client-written |
+| activation → service order explicit (`serviceOrder`) | link stored in the database, never returned |
+| `offset`/`limit` + `X-Total-Count` | no pagination, no filters, unbounded lists |
+| detail expands its items | detail ≡ list row |
+| states progress (in the dataset) | no PATCH: state frozen at creation |
+| 401 in JSON | 401 in plain text, the rest JSON |
+
+Consequence for correlation: in the dialect, the product order → service order link is a
+Flow Audit convention with confidence `inferred`, and activation links are `missing`;
+against the stub the item-level link is `explicit`.

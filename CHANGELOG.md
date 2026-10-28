@@ -5,6 +5,19 @@ tag when it publishes that version.
 
 ## Unreleased
 
+### Added
+
+- `deno task stub` (M0-11): the synthetic dataset served as read-only, standard-TMF-shaped
+  APIs — `productOrder`, `serviceOrder` and `serviceActivation` on loopback — with
+  `offset`/`limit` pagination, `X-Total-Count`, a `?state` filter, JSON error bodies, 405
+  on any non-GET method and an optional bearer check (`STUB_BEARER_TOKEN`); every response
+  is marked `X-Flow-Audit-Source: simulated`. The stub lives in `src/stub/` (the domain
+  imports nothing from it), reads `data/demo/` with domain types, and serves each
+  resource's state at the end of the dataset window, derived from the exports; the event
+  history stays in the file exports. The R04 duplicate cohort is visible as two service
+  orders over one product order item, and the weak-link attempts (R05) as activations
+  with no service order.
+
 ### Changed
 
 - The plan moves from six phases to milestones M0–M5 (`../specs/flow-audit_BACKLOG.md`):
