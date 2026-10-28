@@ -11,6 +11,11 @@ tag when it publishes that version.
   validate one integration candidate, one read-only adapter, correlation, one rule, one report.
 - Status lines in README, AGENTS and docs now name the version and milestone.
 - This version is declared English only; Spanish and Portuguese output are deferred.
+- The README reports M0 progress: bss-oss-rust was tested locally (M0-02, M0-03, M0-04,
+  M0-09) and its contract is too weak to be the primary source. The primary source will
+  be a TMF stub in this repository over the synthetic dataset, in the standard TMF shape
+  and labelled simulated (M0-11); bss-oss-rust stays an optional local dialect check and
+  Openslice moves to later. The engine itself is unchanged.
 
 ## 0.1.0 — 2026-10-28
 
