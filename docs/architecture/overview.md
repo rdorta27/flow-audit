@@ -1,6 +1,6 @@
 # Architecture
 
-> **Under construction — version 0.1.0, milestone M0.** The skeleton, the dataset and the report preview
+> **Under construction — version 0.2.0, milestone M1.** The skeleton, the dataset and the report preview
 > exist; the analysis does not. Adapters are partial and rules are still empty. Complements
 > [product](../product.md).
 

@@ -5,6 +5,15 @@ tag when it publishes that version.
 
 ## Unreleased
 
+## 0.2.0 — 2026-10-29
+
+Closes milestone M0 ([ADR 0003](docs/decisions/0003-tmf-stub-as-primary-source-and-typescript-adapters.md)):
+the sources are validated and the decision is recorded. The primary source for
+development, tests and the public demo is the TMF stub in `src/stub/` over the synthetic
+dataset, labelled simulated; bss-oss-rust stays an optional, local-only dialect check
+(M1-04) and its unresolved license does not block the demo; Openslice moves to Later. No
+ingest adapter, rule or generated report yet — that is M1 onward.
+
 ### Added
 
 - `deno task stub` (M0-11): the synthetic dataset served as read-only, standard-TMF-shaped
@@ -17,6 +26,7 @@ tag when it publishes that version.
   history stays in the file exports. The R04 duplicate cohort is visible as two service
   orders over one product order item, and the weak-link attempts (R05) as activations
   with no service order.
+- ADR 0003: the TMF stub is the primary source; adapters in TypeScript.
 
 ### Changed
 
@@ -25,10 +35,11 @@ tag when it publishes that version.
 - Status lines in README, AGENTS and docs now name the version and milestone.
 - This version is declared English only; Spanish and Portuguese output are deferred.
 - The README reports M0 progress: bss-oss-rust was tested locally (M0-02, M0-03, M0-04,
-  M0-09) and its contract is too weak to be the primary source. The primary source will
-  be a TMF stub in this repository over the synthetic dataset, in the standard TMF shape
+  M0-09) and its contract is too weak to be the primary source. The primary source is
+  a TMF stub in this repository over the synthetic dataset, in the standard TMF shape
   and labelled simulated (M0-11); bss-oss-rust stays an optional local dialect check and
   Openslice moves to later. The engine itself is unchanged.
+- Milestone M0 is closed; M1 starts: the first read-only adapter over the stub.
 
 ## 0.1.0 — 2026-10-28
 

@@ -1,6 +1,6 @@
 # Data model
 
-Status: types implemented and dataset generated (version 0.1.0); correlation arrives in
+Status: types implemented and dataset generated (version 0.2.0); correlation arrives in
 milestone M2 and impact in M4.
 
 Three models, deliberately separate: **catalog** (what can be sold), **orders** (what was sold) and **events** (what happened).

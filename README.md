@@ -4,7 +4,9 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — version 0.1.0, milestone M0.** The skeleton, the dataset and a preview of the report exist. There is no ingest adapter, no rule and no generated report yet: the command exits with a clear message instead of pretending to audit.
+> **Under construction — version 0.2.0, milestone M1.** The dataset, the simulated TMF
+> stub and a preview of the report exist. There is no ingest adapter, no rule and no
+> generated report yet: the command exits with a clear message instead of pretending to audit.
 
 ## Why
 
@@ -24,7 +26,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 
 ## Where we are
 
-What runs today (version 0.1.0):
+What runs today (version 0.2.0):
 
 - `deno task check` passes.
 - `deno task test` passes 49 tests: dataset invariants, export stability, the hexagonal
@@ -36,21 +38,21 @@ What runs today (version 0.1.0):
   defects, golden numbers, no real system behind it — not a product simulator; see
   [architecture](docs/architecture/overview.md#the-tmf-stub).
 
-Milestone M0 has produced no engine code yet. It tested a third-party TMF system,
+Milestone M0 is closed (ADR 0003). It tested a third-party TMF system,
 bss-oss-rust, locally and outside both repositories: it runs, access works, and its
 contracts are captured (M0-02, M0-03, M0-04, M0-09). Its contract is weak (no item links,
-free-text references, no pagination, no history), so the primary source will be a TMF
+free-text references, no pagination, no history), so the primary source is a TMF
 stub of our own in this repository, serving the synthetic dataset in the standard TMF
 shape and labelled simulated (M0-11). bss-oss-rust stays an optional, local-only dialect
 check. Its license review waits for the author's answers (M0-05) and no longer blocks the
-public demo.
+public demo, which runs on the stub.
 
 The plan is in [`../specs/flow-audit_BACKLOG.md`](../specs/flow-audit_BACKLOG.md):
 
 | Milestone | Goal | State |
 |---|---|---|
 | — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
-| M0 | Validate the sources: bss-oss-rust tested locally; TMF stub over the synthetic dataset next | in progress |
+| M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.2.0) |
 | M1 | First read-only adapter (TMF622) | planned |
 | M2 | Canonical model and correlation | planned |
 | M3 | First deterministic rule (R04) | planned |

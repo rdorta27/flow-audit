@@ -1,8 +1,8 @@
 # AGENTS
 
-- This repo is at **version 0.1.0, milestone M0**: skeleton, dataset and a report preview
-  in the site. There is no ingest, no rule and no generated report yet; do not add them
-  ahead of their milestone. The plan is `../specs/flow-audit_BACKLOG.md`.
+- This repo is at **version 0.2.0, milestone M1**: dataset, simulated TMF stub and a
+  report preview in the site. There is no ingest adapter, no rule and no generated report
+  yet; do not add them ahead of their milestone. The plan is `../specs/flow-audit_BACKLOG.md`.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).
 - Read `README.md`, then `docs/product.md`, then `docs/architecture/`.
@@ -27,5 +27,6 @@
 | Entities, events, invariants | `docs/architecture/data-model.md` |
 | Findings, evidence, impact | `docs/architecture/rules.md` |
 | Why local-first CLI | `docs/decisions/0001-local-first-cli-static-report.md` |
+| Why the source is our TMF stub (simulated) | `docs/decisions/0003-tmf-stub-as-primary-source-and-typescript-adapters.md` |
 | MVP requirements | `docs/requirements/mvp.md` |
 | Vocabulary | `docs/glossary/bss.md` |
