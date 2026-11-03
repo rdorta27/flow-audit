@@ -4,6 +4,15 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## Unreleased
+
+- The story of one order in plain language (`journeys[].story`, M4-04), in the HTML report and
+  in `deno task explain --order <ref>`.
+- Net total: each order counted once, with the overlaps listed (M4-05).
+- Derived order state and a `disagrees` flag (M2-06); optional fields on activation attempts
+  (M2-07).
+- The dataset's triple duplicate moved from ORD-1005 to ORD-1017.
+
 ## 0.3.3 — 2026-11-03
 
 - `deno task audit --source stub --out out` writes `findings.json` and a self-contained
