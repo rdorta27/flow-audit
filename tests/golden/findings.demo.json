@@ -4,7 +4,7 @@
   "run": {
     "id": "<run>",
     "generated_at": "<time>",
-    "inputs_hash": "16e384b8b09a420ed80986b345eb99c5d7cb2280c37358f3c34a3a4ffd4acac9",
+    "inputs_hash": "6697f260993847681ab1b892cce1b2ea222aa1d9853fb155bdf550a53083c5f7",
     "config_hash": "d3cdb513cc14f476244c57b733437bda558df9629118e9c5ee5e795d12c46001",
     "rules_hash": "47aac6ef77567d17c45407f2e9bb024bab8902bd3949a9892ab0694262d1449f"
   },
@@ -19,7 +19,7 @@
       "records": 5000,
       "rows_read": 5000,
       "rows_discarded": 0,
-      "sha256": "cbac3f6f9a14d3eaf24f9a790e5b441aae3ac27ce3b0d60fb8c2fc4d02401bff"
+      "sha256": "17e7c79902b9fadfc24ff8470a277cf710e67e8d56d49bb782ecde3e78ca73dc"
     },
     {
       "system": "OMS",
@@ -28,10 +28,10 @@
       "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder",
       "simulated": true,
       "evidence_kind": "snapshot",
-      "records": 5020,
-      "rows_read": 5020,
+      "records": 5021,
+      "rows_read": 5021,
       "rows_discarded": 0,
-      "sha256": "6caca13466bbaea8bcf75a4c1fdc655072661c56bfc13f832ad69155012e4dd4"
+      "sha256": "f01f613adf7326d011ab0567d0d43d0dd6a696e9f6d3943b863579c0ab8aadfd"
     },
     {
       "system": "PROV",
@@ -40,10 +40,10 @@
       "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation",
       "simulated": true,
       "evidence_kind": "snapshot",
-      "records": 5400,
-      "rows_read": 5400,
+      "records": 5390,
+      "rows_read": 5390,
       "rows_discarded": 0,
-      "sha256": "3d9ea88e01d2c0b338a6784540d5c953b44ee9c1deaf317992c28263a85a854a"
+      "sha256": "b8e17a7cc449230b6d5c0b63f3788d6ad45366e83f27c9be96f3d15fe79ef3c0"
     }
   ],
   "labels": {
@@ -72,7 +72,7 @@
   "correlation": {
     "links": {
       "service_order->order": {
-        "explicit": 5020,
+        "explicit": 5021,
         "inferred": 0,
         "ambiguous": 0,
         "missing": 0,
@@ -93,7 +93,7 @@
         "conflicting": 0
       },
       "attempt->service_order": {
-        "explicit": 5100,
+        "explicit": 5090,
         "inferred": 0,
         "ambiguous": 0,
         "missing": 300,
@@ -125,7 +125,7 @@
       "position": 2,
       "read": true,
       "source_kind": "tmf-api",
-      "records": 10020,
+      "records": 10021,
       "coverage": 1,
       "cannot_observe": [
         "when each state change happened: the source is a snapshot, not a history"
@@ -155,8 +155,8 @@
       "position": 4,
       "read": true,
       "source_kind": "tmf-api",
-      "records": 5400,
-      "coverage": 0.94,
+      "records": 5390,
+      "coverage": 0.9318,
       "cannot_observe": [
         "when each attempt changed state: the source is a snapshot, not a history"
       ],
@@ -338,7 +338,9 @@
           "event_ids": [
             "SO-20005",
             "SO-30005",
-            "ACT-80005"
+            "SO-35005",
+            "ACT-80005",
+            "ACT-85005"
           ],
           "records": [
             {
@@ -357,12 +359,22 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
             },
             {
+              "system": "OMS",
+              "external_id": "SO-35005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
               "system": "PROV",
               "external_id": "ACT-80005",
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-85005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1005-1; the duplicate reached activation"
+          "note": "3 service orders over item ORD-1005-1; the duplicate reached activation"
         },
         {
           "order_ref": "ORD-1006",

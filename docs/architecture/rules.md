@@ -71,7 +71,7 @@ hours = affected × manual_minutes / 60
 usd   = hours × loaded_hour_usd
 ```
 
-**Demo.** `capacity_profile` missing; 100% of 5,000 orders, 5 minutes each = 417 h.
+**Demo.** `capacity_profile` missing on the first offer version; 4,167 of 5,000 orders (83%), 5 minutes each = 347 h. Orders on the second version (833) get an automatic check.
 
 **Known limits.** A manual task can be deliberate (engineering approval). Only count
 it when it exists *because* an attribute is missing, not when it has another purpose.

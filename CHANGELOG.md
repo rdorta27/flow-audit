@@ -4,6 +4,16 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## Unreleased
+
+- `deno task audit --source stub --out out` writes `findings.json` and a self-contained
+  `report.html` (M4-02, M4-03); goldens in `tests/golden/`.
+- Unknown TMF states read as `UNMAPPED` and keep `rawState`; `REJECTED` is apart from
+  `FAILED` (M2-05).
+- Dataset v2 (M6-01): healthy noise, a second offer version that carries
+  `capacity_profile`, permanent errors and replaced orders. R02 now touches 4,167 orders
+  (347 h, USD 15,626); the demo total is USD 54,358 and 1,202.6 h. R04 is unchanged.
+
 ## 0.3.2 — 2026-11-03
 
 - `deno task audit --source stub` reads the TMF stub, joins the records and runs the rule
