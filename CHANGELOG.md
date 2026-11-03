@@ -5,6 +5,10 @@ tag when it publishes that version.
 
 ## Unreleased
 
+- M1-05b: `src/adapters/ingest/tmf640_source.ts` reads provisioning activation attempts. An
+  attempt with no link to its service order is kept, not rejected: that gap is what R05
+  reports. `deno task read` now also counts activations and the unlinked ones.
+
 - M1-02: every record carries `provenance` (its id in the source, the endpoint read, when it
   was read and whether the source labels itself simulated), so a finding can point at its
   proof. Read time is the observation time, taken per page from an injectable clock.

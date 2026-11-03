@@ -109,13 +109,19 @@ Deno.test("read summary counts orders, service orders and the duplicated cohort"
     ((input: string | URL | Request, init?: RequestInit) =>
       handle(new Request(String(input), init))) as typeof fetch;
 
+  const { Tmf640ServiceActivationSource } = await import(
+    "../src/adapters/ingest/tmf640_source.ts"
+  );
   const summary = await summarize(
     new Tmf622ProductOrderSource({ baseUrl: BASE, fetch: viaStub }),
     new Tmf641ServiceOrderSource({ baseUrl: BASE, fetch: viaStub }),
+    new Tmf640ServiceActivationSource({ baseUrl: BASE, fetch: viaStub }),
   );
   assertEquals(summary, {
     productOrders: EXPECTED.orders,
     serviceOrders: EXPECTED.service_orders,
     productOrdersWithSeveralServiceOrders: 20,
+    activations: EXPECTED.attempts,
+    activationsWithoutServiceOrder: 300,
   });
 });

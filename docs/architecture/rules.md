@@ -116,7 +116,7 @@ one service order per line, and each line has its own item id, so it does not fi
 | Level | Signal | Source |
 |---|---|---|
 | `strong` | two service order items reference the same product order item | the TMF stub, and any server that sends the item link |
-| `weak` | two service orders share the same free-text `external_id` | bss-oss-rust dialect (M1-04, Later); a convention, not a contract |
+| `weak` | two service orders share the same free-text `external_id` | a server that sends no item link, such as bss-oss-rust (a dialect reader, M1-04, was discarded); a convention, not a contract |
 | `history` | a second service order is created within `duplicate_window_minutes` of a retry attempt on the first | event exports (M5-02); the richer variant, with the retry marker and the attempts |
 
 Demo 1 implements `strong` only.
