@@ -28,7 +28,9 @@ engine. The 20 duplicated orders show up as a count, not as a finding.
    read from the simulated server, with its cost in USD and the formula.
 2. **Client-ready** — read the files a real client exports and also detect R01, R02 and R05.
 
-Next card: M1-02, keep where each record came from. The plan is in
+Done in Demo 1 so far: both readers, provenance on every record, the reviewed model and the
+written spec of R04. Next card: M2-02, join each order with its service orders and say how
+confident each link is. The plan is in
 [`../specs/backlog.md`](../specs/backlog.md).
 
 ## Why
@@ -52,7 +54,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 Commands available in version 0.2.0:
 
 - `deno task check` passes.
-- `deno task test` passes 67 tests: dataset invariants, export stability, the hexagonal
+- `deno task test` passes 69 tests: dataset invariants, export stability, the hexagonal
   and license boundaries, the walking skeleton, the TMF stub and the readers.
 - `deno task audit` exits with code 2: no evidence source exists yet.
 - `deno task read` reads product orders (TMF622) and service orders (TMF641) from the stub
