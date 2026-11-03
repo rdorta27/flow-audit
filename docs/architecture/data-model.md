@@ -69,6 +69,19 @@ type Event = {
 
 **Rule:** an event without `order_ref` is still kept, and its missing link is itself evidence (R05).
 
+### Two times, two kinds of evidence
+
+`at` is when the thing **happened**. When it was **observed** is a separate fact, kept in
+`provenance.retrieved_at` together with the source id, the endpoint and whether the source
+is simulated. Never fill one from the other.
+
+An API such as TMF returns a **snapshot**: the state of a resource when it was read, with no
+record of how it got there. An event export is a **history**: transitions with their own
+timestamps. `provenance.kind` says which, and a rule that needs durations or transitions
+(R01, R03) must refuse `snapshot` evidence instead of guessing. R04 needs neither: two
+service orders over one product order item (`product_order_item_ref`) is visible in a
+snapshot.
+
 ## Correlation
 
 Four identifiers, none shared by all four systems:

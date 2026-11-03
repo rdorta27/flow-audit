@@ -48,6 +48,7 @@ export abstract class TmfListSource implements EvidenceSource {
             endpoint: page.endpoint,
             retrievedAt: page.retrievedAt,
             simulated: page.simulated,
+            kind: "snapshot",
           },
         };
       }

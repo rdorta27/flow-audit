@@ -37,10 +37,35 @@ export function isTerminal(state: OrderState): boolean {
   return TERMINAL_STATES.includes(state);
 }
 
+/**
+ * Where a record came from (M1-02), kept on the entities so a finding can point at its
+ * proof. The source system is the entity's own system; this holds the rest.
+ *
+ * Two different times exist and must not be mixed: the time the thing **happened**
+ * (`Event.at`, `Order.submittedAt`, `ServiceOrder.createdAt`) and the time it was
+ * **observed** (`retrievedAt`, below).
+ */
+export interface Provenance {
+  /** The record's own id in the source system, for example `ORD-1005`. */
+  externalId: string;
+  /** What was read: the collection URL for an API, the file path for an export. */
+  endpoint: string;
+  /** When it was read, ISO 8601 UTC. Observation time, never the time the event happened. */
+  retrievedAt: string;
+  /** True when the source labels itself simulated (the TMF stub does). */
+  simulated: boolean;
+  /**
+   * `snapshot`: the state of a resource when it was read, with no record of how it got there
+   * (an API). `history`: transitions with their own timestamps (an event export). A rule that
+   * needs durations or transitions must refuse `snapshot` evidence rather than guess.
+   */
+  kind: "snapshot" | "history";
+}
+
 /** The only ingestible unit: append-only, immutable, system-agnostic. */
 export interface Event {
   eventId: string;
-  /** ISO 8601, UTC. */
+  /** When it happened (occurrence time), ISO 8601 UTC. Observation time is in `provenance`. */
   at: string;
   system: SystemId;
   entity: EntityKind;
@@ -51,6 +76,7 @@ export interface Event {
   orderRef?: string;
   soRef?: string;
   attrs?: Record<string, unknown>;
+  provenance?: Provenance;
 }
 
 // Catalog -------------------------------------------------------------------
@@ -100,6 +126,7 @@ export interface Order {
   state: OrderState;
   offerId: string;
   offerVersion: string;
+  provenance?: Provenance;
 }
 
 export interface ServiceOrder {
@@ -110,6 +137,12 @@ export interface ServiceOrder {
   createdAt: string;
   /** Terminal assigned to the service. PROV attempts link back through it. */
   terminalSerial?: string;
+  /**
+   * The product order item this service order decomposes. R04 keys on it: two service
+   * orders over one item is a duplicate, two over different items is a multi-line order.
+   */
+  productOrderItemRef?: string;
+  provenance?: Provenance;
 }
 
 export interface WorkOrder {

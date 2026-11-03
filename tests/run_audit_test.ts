@@ -29,7 +29,13 @@ Deno.test("walking skeleton reads every record and returns no findings yet", asy
       source: "oms.csv",
       line: 2,
       value: { order_ref: "ORD-1" },
-      provenance: { externalId: "ORD-1", endpoint: "oms.csv", retrievedAt: NOW, simulated: false },
+      provenance: {
+        externalId: "ORD-1",
+        endpoint: "oms.csv",
+        retrievedAt: NOW,
+        simulated: false,
+        kind: "history",
+      },
     },
     {
       system: "PROV",
@@ -41,6 +47,7 @@ Deno.test("walking skeleton reads every record and returns no findings yet", asy
         endpoint: "prov.jsonl",
         retrievedAt: NOW,
         simulated: false,
+        kind: "history",
       },
     },
   ];

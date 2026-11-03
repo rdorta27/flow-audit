@@ -291,6 +291,7 @@ Deno.test("every record carries its provenance: id, endpoint, read time, simulat
   for (const row of rows) {
     assertEquals(row.provenance.endpoint, `${BASE}/tmf-api/productOrdering/v4/productOrder`);
     assertEquals(row.provenance.simulated, false);
+    assertEquals(row.provenance.kind, "snapshot");
   }
   // One timestamp per page, not per record: the read time of the response that carried it.
   assertEquals(rows.map((r) => r.provenance.retrievedAt), [stamps[0], stamps[0], stamps[1]]);
