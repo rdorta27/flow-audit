@@ -137,6 +137,12 @@ lossy (an API state stands for the later part of the lifecycle, so `IN_PROGRESS`
 unknown state never fails the read: the record maps to `UNMAPPED` (`unmapped` for an attempt) and keeps the source text in `rawState`; correlation counts these by system and state, and no rule counts them as failed or active. TMF `rejected` stays `REJECTED`, apart from `failed`. Fields the API does not carry are marked, not
 invented: `offerVersion` and `specId` are `"unknown"` and an attempt's `serial` is empty.
 
+An attempt may also carry optional detail (M2-07), filled only when the source has it: `attemptNo`, `operation` (`activate`, `suspend`, `deactivate`, `modify`), `requestId`, `callbackAt` (TMF640 `callbackDate`) and `outcome` (`succeeded`, `failed`, `timeout`, `pending`; a `timeout` is an unknown outcome, a `failed` a known one). Nothing requires them and a value outside the lists is left out, not guessed. No rule uses them yet.
+
+### Derived order state
+
+`src/domain/order_state.ts` (M2-06) derives a state per product order item from its service orders (`active`, `partial`, `failed`, `in_progress`, `unknown`) and combines the items into one for the order. Active and failed service orders over one item give `partial`. `disagrees` is true when the order's own state (`ACTIVE`, `FAILED`, `PARTIAL`, or an in-flight state) contradicts the derived one; states that claim nothing comparable (`CANCELLED`, `HELD`, `UNMAPPED`...) never disagree. It is informational: `deno task read` prints the count, and no cost or finding comes from it.
+
 `OrderJourney` is the reconstruction result:
 
 ```ts

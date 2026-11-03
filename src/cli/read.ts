@@ -10,6 +10,7 @@
 
 import { mapActivation, mapProductOrder, mapServiceOrder } from "../adapters/ingest/tmf_mapping.ts";
 import { correlate, summarizeLinks } from "../domain/correlation.ts";
+import { deriveOrderStates } from "../domain/order_state.ts";
 import { createTmfSources, tmfConfigFromEnvOrStub } from "../adapters/ingest/tmf_sources.ts";
 import { TmfError } from "../adapters/ingest/tmf_client.ts";
 import type { EvidenceSource } from "../ports/evidence_source.ts";
@@ -22,6 +23,8 @@ export interface ReadSummary {
   productOrdersWithSeveralServiceOrders: number;
   /** How sure each join is, by kind of link (M2-02). */
   links: ReturnType<typeof summarizeLinks>;
+  /** Orders whose own state disagrees with their service orders (M2-06); informational. */
+  ordersWithInconsistentState: number;
 }
 
 export async function summarize(
@@ -44,6 +47,7 @@ export async function summarize(
     productOrdersWithSeveralServiceOrders:
       result.orders.filter((entry) => entry.serviceOrders.length > 1).length,
     links: summarizeLinks(result.links),
+    ordersWithInconsistentState: deriveOrderStates(result).filter((s) => s.disagrees).length,
   };
 }
 
@@ -83,6 +87,10 @@ async function main(): Promise<number> {
         .map(([confidence, n]) => `${confidence} ${n.toLocaleString("en-US")}`);
       console.log(`  ${label.padEnd(32)}${counts.join(" · ") || "none"}`);
     }
+    console.log(
+      `\n${summary.ordersWithInconsistentState.toLocaleString("en-US")} orders whose state ` +
+        "disagrees with their service orders (informational, not a finding)",
+    );
     console.log("\nCounts only: this is not an audit and reports no findings.");
     return 0;
   } catch (error) {
