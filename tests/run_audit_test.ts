@@ -8,7 +8,7 @@ const clock = { nowIso: () => "2026-09-01T00:00:00Z" };
 Deno.test("audit fails with a clear message when no evidence source exists", async () => {
   let caught: unknown;
   try {
-    await runAudit({ lang: "en" }, { clock });
+    await runAudit({}, { clock });
   } catch (error) {
     caught = error;
   }
@@ -59,7 +59,7 @@ Deno.test("walking skeleton reads every record and returns no findings yet", asy
     },
   };
 
-  const result = await runAudit({ lang: "en" }, { clock, evidence });
+  const result = await runAudit({}, { clock, evidence });
 
   assertEquals(result.eventCount, 2);
   assertEquals(result.journeys, []);

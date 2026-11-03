@@ -1,6 +1,6 @@
 # AGENTS
 
-- This repo is at **version 0.3.0, milestone Demo 1** (next: Client-ready). It has the synthetic
+- This repo is at **version 0.3.1, milestone Demo 1** (next: Client-ready). It has the synthetic
   dataset, the simulated TMF stub, readers for product orders (TMF622), service orders (TMF641)
   and activations (TMF640) in `src/adapters/ingest/`, the correlation with per-link confidence
   and time segments (`src/domain/correlation.ts`, `segments.ts`), and rule R04

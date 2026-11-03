@@ -5,6 +5,17 @@ tag when it publishes that version.
 
 ## Unreleased
 
+## 0.3.1 — 2026-11-03
+
+A corrections release: nothing new in the engine, and the public texts now say what is true.
+
+- Costs: one set of figures everywhere. R01 USD 12,750; R03 now has a cost (USD 14,267 plus
+  USD 3,250 of revenue at risk, apart); total USD 57,482 a month. `docs/product.md` and
+  `docs/architecture/rules.md` (R03's formula and `days_stuck`) agree with the site.
+- CLI: `--lang` removed from `deno task audit`; the engine is English only (backlog L-01).
+- Docs: the R04 figure (USD 1,590), `AGENTS.md` and the README describe what exists today;
+  finished cards moved to `../specs/done/`.
+
 - Docs: R04's Demo 1 cost is USD 1,590 (decision (b): duplicate activations counted from the
   correlated activations) in `docs/architecture/rules.md` and the backlog; USD 1,350 is only
   the figure for a source without activations. `AGENTS.md` and the README describe what

@@ -7,7 +7,6 @@ import type { EvidenceSource } from "../ports/evidence_source.ts";
 export interface AuditOptions {
   /** Directory with the four exports. */
   dataset?: string;
-  lang: "en" | "es";
 }
 
 export interface AuditDeps {

@@ -4,7 +4,7 @@ Flow Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Status: under construction — version 0.3.0, milestone Demo 1.** The model, the dataset,
+> **Status: under construction — version 0.3.1, milestone Demo 1.** The model, the dataset,
 > the simulated TMF stub and a preview of the report exist. There is no analysis and no
 > generated report yet; the demo described below is the target of the Demo 1 and Client-ready milestones.
 
@@ -84,14 +84,14 @@ The dataset is synthetic and coherent: orders, state transitions, process timers
 
 | # | Finding | Rough impact | Est. cost per month |
 |---|---|---|---|
-| R01 | Provisioning fallout with no automatic retry | 8% of orders, 2.5 days to recover | ~USD 11,250 (400 orders × 2.5 days × 15 min follow-up) |
+| R01 | Provisioning fallout with no automatic retry | 8% of orders, 2.5 days to recover | ~USD 12,750 (400 orders × (5 min + 2.5 days × 15 min follow-up)) |
 | R02 | Missing catalog attribute forces a manual capacity check | 100% of orders, ~5 min each | ~USD 18,750 (5,000 orders × 5 min) |
-| R03 | BPM timer expires without compensation | 3% stuck in "pending activation" | ~USD 3,250 revenue at risk (50 stuck × ARPU 65), reported apart from cost |
+| R03 | BPM timer expires without compensation | 3% stuck in "pending activation" | ~USD 14,267 (50 stuck × (5 min + ~25 days × 15 min)); plus USD 3,250 revenue at risk (50 stuck × ARPU 65), reported apart |
 | R04 | OMS retry duplicates service orders | 5% of retries, double activation | ~USD 1,590 (20 orders × (90 min clean-up + USD 12 duplicate activation)) |
 | R05 | No end-to-end correlation id | ~45 min per incident to investigate | ~USD 10,125 (300 incidents × 45 min) |
 
 Labour at the loaded rate of USD 45/hour, all inputs from `data/demo/config.json`. That
-is roughly **USD 41,700 a month in operating cost plus USD 3,250 of revenue at risk** for
+is roughly **USD 57,482 a month in operating cost plus USD 3,250 of revenue at risk** for
 a 5,000-order operator. These are illustrative figures; the engine computes them from the
 evidence from milestone M2 on, and the report shows each formula next to its number.
 

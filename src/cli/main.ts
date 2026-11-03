@@ -6,11 +6,10 @@ import type { AuditOptions } from "../app/run_audit.ts";
 const USAGE = `flow-audit — audit the order-to-activate flow of a BSS
 
 Usage:
-  deno task audit [--dataset <dir>] [--lang en|es]
+  deno task audit [--dataset <dir>]
 
 Options:
   --dataset <dir>  Directory with the four exports (CAT, OMS, BPM, PROV).
-  --lang <lang>    Report language: en (default) or es.
   -h, --help       Show this help.
 
 Status: walking skeleton. The ingest adapters arrive in milestone M1, so the
@@ -23,7 +22,7 @@ interface ParsedArgs extends AuditOptions {
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
-  const parsed: ParsedArgs = { lang: "en", help: false };
+  const parsed: ParsedArgs = { help: false };
 
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
@@ -36,14 +35,6 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
         const value = argv[++index];
         if (!value) throw new UsageError("--dataset needs a directory");
         parsed.dataset = value;
-        break;
-      }
-      case "--lang": {
-        const value = argv[++index];
-        if (value !== "en" && value !== "es") {
-          throw new UsageError("--lang must be en or es");
-        }
-        parsed.lang = value;
         break;
       }
       default:
@@ -71,7 +62,7 @@ export async function main(argv: readonly string[]): Promise<number> {
 
   try {
     const result = await runAudit(
-      { dataset: options.dataset, lang: options.lang },
+      { dataset: options.dataset },
       { clock: systemClock },
     );
     console.log(

@@ -88,12 +88,13 @@ and the order's age.
 **Impact.**
 
 ```
-hours = stuck × (followup_minutes + days_stuck × daily_followup_minutes) / 60
+hours = stuck × (manual_minutes + days_stuck × daily_followup_minutes) / 60
+                                   // days_stuck: from the timer expiry to the end of the audited period
 usd   = hours × loaded_hour_usd
 revenue_at_risk = stuck × arpu_usd      // reported separately, never added to cost
 ```
 
-**Demo.** 3% (150 orders) hit the timer; one third (50) never close on their own.
+**Demo.** 3% (150 orders) hit the timer; one third (50) never close on their own. They have been stuck about 25 days at the end of September: 50 × (5 + 25 × 15) min = 317 h, USD 14,267.
 
 **Known limits.** A long-running but healthy process must not be flagged. Require both
 the expired timer and the absence of any subsequent event.
