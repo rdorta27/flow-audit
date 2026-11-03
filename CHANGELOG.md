@@ -4,7 +4,7 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
-## Unreleased
+## 0.3.3 — 2026-11-03
 
 - `deno task audit --source stub --out out` writes `findings.json` and a self-contained
   `report.html` (M4-02, M4-03); goldens in `tests/golden/`.
