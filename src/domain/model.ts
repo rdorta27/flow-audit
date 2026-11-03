@@ -349,7 +349,7 @@ export interface Confidence {
 export interface Finding {
   /** The rule, for example `R04`. */
   id: string;
-  /** The rule and its version, for example `R04@1`. */
+  /** The rule and its version, for example `R04@2`. */
   ruleVersion: string;
   title: string;
   /** One sentence a non-specialist understands. */
@@ -367,6 +367,8 @@ export interface Finding {
   confidence: Confidence;
   /** False when the finding stays out of the net total (R05, D-11). */
   inTotal: boolean;
+  /** Rule-specific counts (R04@2): groups, extras, cause, reached activation. */
+  breakdown?: Record<string, number>;
   cost: Cost;
   recommendation: string;
 }

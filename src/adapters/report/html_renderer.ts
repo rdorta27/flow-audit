@@ -81,7 +81,16 @@ ${unmeasured ? `<ul class="note">${unmeasured}</ul>` : ""}
   } · ${esc(f.confidence.level)} · inferred links ${pct(f.confidence.inferredLinkShare)}${
     f.inTotal ? "" : " · not in the total"
   }</p>
-<details><summary>Evidence: ${num(f.evidence.length)} of ${
+${
+    f.breakdown
+      ? `<p class="note">${
+        Object.entries(f.breakdown).map(([k, v]) =>
+          `${esc(k.replace(/([A-Z])/g, " $1").toLowerCase())} ${num(v)}`
+        )
+          .join(" · ")
+      }</p>\n`
+      : ""
+  }<details><summary>Evidence: ${num(f.evidence.length)} of ${
     num(f.evidenceTotal)
   } orders shown</summary><ul>${sample}</ul></details>
 ${risk}<p><strong>What to do.</strong> ${esc(f.recommendation)}</p>

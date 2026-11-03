@@ -61,7 +61,7 @@ Commands available today:
 - `deno task test` passes: dataset invariants, export stability, the hexagonal and license
   boundaries, the TMF stub, the readers, the join, R04, the findings schema and its validator.
 - `deno task audit --source stub` (start `deno task stub` first) prints counts, links and
-  `R04@1 · 20 orders · 30 h · USD 1,590`, and with `--out out` writes the two report files; without a source it exits with code 2.
+  `R04@2 · 20 orders · 30 h · USD 1,590`, and with `--out out` writes the two report files; without a source it exits with code 2.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts
   (TMF640) from the stub and prints counts. Start `deno task stub` first. It is a data check, not an audit.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs

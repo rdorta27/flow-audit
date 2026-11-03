@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
- * R04, retry duplicates service orders (M3-02), rule version `R04@1`.
+ * R04, duplicate service order (M3-02, M3-08), rule version `R04@2`.
  *
  * Fires when two or more service orders decompose the same product order item. It is a
  * pure function: it reads what correlation already joined and invents no rate.
@@ -15,18 +15,20 @@ import {
   type Finding,
   type ImpactConfig,
   type Provenance,
+  type ProvisioningAttempt,
   type RecordRef,
+  type ServiceOrder,
   type Severity,
   type SystemId,
 } from "../model.ts";
-import type { Link } from "../correlation.ts";
+import type { Link, Linked } from "../correlation.ts";
 import type { OrderCharge } from "../totals.ts";
 
 export const R04_ID = "R04";
-export const R04_VERSION = "R04@1";
+export const R04_VERSION = "R04@2";
 
-export const R04_FORMULA = "hours = duplicates × cleanup_minutes / 60; " +
-  "amount = hours × loaded_hour_usd + duplicates_that_reached_activation × duplicate_activation_cost_usd";
+export const R04_FORMULA = "hours = groups × cleanup_minutes / 60; " +
+  "amount = hours × loaded_hour_usd + groups_that_reached_activation × duplicate_activation_cost_usd";
 
 function recordRef(system: SystemId, provenance: Provenance | undefined): RecordRef[] {
   return provenance
@@ -41,6 +43,64 @@ export function severityFor(shareOfOrders: number, hoursMonth: number): Severity
   return "medium";
 }
 
+export type R04Cause = "retry_new_order" | "parallel_duplicate";
+
+/** One product order item with two or more live service orders. */
+export interface R04Group {
+  orderRef: string;
+  item: string;
+  /** Oldest first: the first is the original, the rest are the extras. */
+  serviceOrders: Linked<ServiceOrder>[];
+  /** `needs_review`: the service orders differ in spec, so it may be an amendment. */
+  verdict: "duplicate" | "needs_review";
+  /** Why the extras exist; only for a duplicate. */
+  cause?: R04Cause;
+  extras: string[];
+  attempts: Linked<ProvisioningAttempt>[];
+}
+
+/**
+ * Groups an order's live service orders by item and classifies each group. A cancelled
+ * order replaced by a new one is deliberate, and a state we could not read is neither live
+ * nor dead, so neither counts. A spec of "unknown" (a source that sends none) cannot show a
+ * difference, so only two different known specs make a group `needs_review`. The action of
+ * a service order is not modelled yet, so it is not compared.
+ */
+export function groupsR04(entry: CorrelatedOrder): R04Group[] {
+  const live = entry.serviceOrders.filter((l) =>
+    l.item.state !== "CANCELLED" && l.item.state !== "UNMAPPED"
+  );
+  const byItem = new Map<string, typeof live>();
+  for (const linked of live) {
+    const item = linked.item.productOrderItemRef;
+    if (item === undefined) continue; // cannot be evaluated; never guessed
+    byItem.set(item, [...(byItem.get(item) ?? []), linked]);
+  }
+  const groups: R04Group[] = [];
+  for (const [item, unsorted] of byItem) {
+    if (unsorted.length < 2) continue;
+    const sos = [...unsorted].sort((a, b) =>
+      a.item.createdAt.localeCompare(b.item.createdAt) || a.item.soRef.localeCompare(b.item.soRef)
+    );
+    const specs = new Set(sos.map((l) => l.item.specId).filter((id) => id !== "unknown"));
+    const extras = sos.slice(1).map((l) => l.item.soRef);
+    const attempts = entry.attempts.filter((a) => extras.includes(a.link.toId ?? ""));
+    const duplicate = specs.size <= 1;
+    groups.push({
+      orderRef: entry.order.orderRef,
+      item,
+      serviceOrders: sos,
+      verdict: duplicate ? "duplicate" : "needs_review",
+      cause: duplicate
+        ? (sos[0].item.state === "FAILED" ? "retry_new_order" : "parallel_duplicate")
+        : undefined,
+      extras,
+      attempts,
+    });
+  }
+  return groups;
+}
+
 /** Returns null when no order is affected. */
 export function detectR04(
   orders: readonly CorrelatedOrder[],
@@ -49,40 +109,40 @@ export function detectR04(
   const evidence: EvidenceRef[] = [];
   let duplicates = 0;
   let reachedActivation = 0;
+  let activationAttempts = 0;
+  let extraServiceOrders = 0;
+  let retryNewOrder = 0;
+  let parallelDuplicate = 0;
+  let needsReview = 0;
   let activationsObserved = false;
   const links: Link[] = [];
 
   for (const entry of orders) {
-    // A cancelled order replaced by a new one is deliberate, and a state we could not read
-    // is neither live nor dead, so neither counts.
-    const live = entry.serviceOrders.filter((l) =>
-      l.item.state !== "CANCELLED" && l.item.state !== "UNMAPPED"
-    );
-    const byItem = new Map<string, typeof live>();
-    for (const linked of live) {
-      const item = linked.item.productOrderItemRef;
-      if (item === undefined) continue; // cannot be evaluated; never guessed
-      byItem.set(item, [...(byItem.get(item) ?? []), linked]);
-    }
     if (entry.attempts.length > 0) activationsObserved = true;
-    for (const [item, group] of byItem) {
-      if (group.length < 2) continue;
+    for (const g of groupsR04(entry)) {
+      if (g.verdict === "needs_review") {
+        needsReview++;
+        continue;
+      }
       duplicates++;
-      const ids = group.map((l) => l.item.soRef).sort();
-      const extra = group.slice(1).map((l) => l.item.soRef);
-      const attempts = entry.attempts.filter((a) => extra.includes(a.link.toId ?? ""));
-      if (attempts.length > 0) reachedActivation++;
-      links.push(...group.map((l) => l.link), ...attempts.map((a) => a.link));
+      extraServiceOrders += g.extras.length;
+      if (g.cause === "retry_new_order") retryNewOrder++;
+      else parallelDuplicate++;
+      if (g.attempts.length > 0) reachedActivation++;
+      activationAttempts += g.attempts.length;
+      const ids = g.serviceOrders.map((l) => l.item.soRef);
+      links.push(...g.serviceOrders.map((l) => l.link), ...g.attempts.map((a) => a.link));
       evidence.push({
-        orderRef: entry.order.orderRef,
-        eventIds: [...ids, ...attempts.map((a) => a.item.attemptId)],
+        orderRef: g.orderRef,
+        eventIds: [...ids, ...g.attempts.map((a) => a.item.attemptId)],
         records: [
           ...recordRef("OMS", entry.order.provenance),
-          ...group.flatMap((l) => recordRef("OMS", l.item.provenance)),
-          ...attempts.flatMap((a) => recordRef("PROV", a.item.provenance)),
+          ...g.serviceOrders.flatMap((l) => recordRef("OMS", l.item.provenance)),
+          ...g.attempts.flatMap((a) => recordRef("PROV", a.item.provenance)),
         ],
-        note: `${group.length} service orders over item ${item}` +
-          (attempts.length > 0 ? "; the duplicate reached activation" : ""),
+        note: `${g.serviceOrders.length} service orders over item ${g.item} ` +
+          `(${g.extras.length} extra, ${g.cause})` +
+          (g.attempts.length > 0 ? "; a duplicate reached activation" : ""),
       });
     }
   }
@@ -127,9 +187,9 @@ export function detectR04(
   return {
     id: R04_ID,
     ruleVersion: R04_VERSION,
-    title: "A retry duplicates service orders",
-    plainSummary: "When activation failed, someone retried by hand and the order manager " +
-      "created a second service order for the same line.",
+    title: "Duplicate service order",
+    plainSummary: "A second service order exists for the same order line. When activation " +
+      "failed, a retry created a new order instead of reusing the first.",
     where: "OMS",
     severity: severityFor(share, hours),
     status: "detected",
@@ -140,6 +200,15 @@ export function detectR04(
     evidenceTotal: evidence.length,
     confidence: { level: inferred === 0 ? "confirmed" : "possible", inferredLinkShare },
     inTotal: true,
+    breakdown: {
+      groups: duplicates,
+      extraServiceOrders,
+      retryNewOrder,
+      parallelDuplicate,
+      needsReview,
+      reachedActivation,
+      activationAttempts,
+    },
     cost: {
       currency: config.currency,
       kind: "one_off",
@@ -160,7 +229,7 @@ export function detectR04(
 }
 
 /**
- * What R04 charges to each duplicated item, for the net total (M4-05). Same counts and rates
+ * What R04 charges to each duplicated item, for the net total (M4-05). Same groups and rates
  * as `detectR04`, so the charges add up to the finding's cost.
  */
 export function chargesR04(
@@ -169,26 +238,15 @@ export function chargesR04(
 ): OrderCharge[] {
   const charges: OrderCharge[] = [];
   for (const entry of orders) {
-    const live = entry.serviceOrders.filter((l) =>
-      l.item.state !== "CANCELLED" && l.item.state !== "UNMAPPED"
-    );
-    const byItem = new Map<string, typeof live>();
-    for (const linked of live) {
-      const item = linked.item.productOrderItemRef;
-      if (item === undefined) continue;
-      byItem.set(item, [...(byItem.get(item) ?? []), linked]);
-    }
-    for (const group of byItem.values()) {
-      if (group.length < 2) continue;
-      const extra = group.slice(1).map((l) => l.item.soRef);
-      const reached = entry.attempts.some((a) => extra.includes(a.link.toId ?? ""));
+    for (const g of groupsR04(entry)) {
+      if (g.verdict !== "duplicate") continue;
       const hours = config.rates.cleanupMinutes / 60;
       charges.push({
         ruleId: R04_ID,
-        orderRef: entry.order.orderRef,
+        orderRef: g.orderRef,
         hours,
         amount: hours * config.loadedHourUsd +
-          (reached ? config.rates.duplicateActivationCostUsd : 0),
+          (g.attempts.length > 0 ? config.rates.duplicateActivationCostUsd : 0),
       });
     }
   }

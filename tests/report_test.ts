@@ -64,7 +64,7 @@ Deno.test("the engine's report validates, and the serializer maps to snake_case"
   const file = toFileShape(report) as Json;
   assertEquals(validateReport(file, configJson), []);
   assertEquals(file.schema_version, "findings/1");
-  assertEquals(file.findings[0].rule_version, "R04@1");
+  assertEquals(file.findings[0].rule_version, "R04@2");
   assertEquals(file.findings[0].cost.amount_month, 1590);
   assertEquals(file.findings[0].cost.revenue_at_risk.basis, null);
   assertEquals(file.sources[0].rows_read, 5000);

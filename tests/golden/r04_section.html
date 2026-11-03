@@ -1,13 +1,14 @@
-<article class="card finding" id="R04" data-rule="R04@1">
-<header><h3>R04 · A retry duplicates service orders</h3>
+<article class="card finding" id="R04" data-rule="R04@2">
+<header><h3>R04 · Duplicate service order</h3>
 <p class="chips"><span class="chip s-oms" title="OMS">Order manager</span> <span class="sev sev-medium">medium</span></p></header>
-<p>When activation failed, someone retried by hand and the order manager created a second service order for the same line.</p>
+<p>A second service order exists for the same order line. When activation failed, a retry created a new order instead of reusing the first.</p>
 <p class="cost"><span class="big">USD 1,590</span> · 30 h · one off</p>
-<p class="formula"><code>hours = duplicates × cleanup_minutes / 60; amount = hours × loaded_hour_usd + duplicates_that_reached_activation × duplicate_activation_cost_usd</code></p>
+<p class="formula"><code>hours = groups × cleanup_minutes / 60; amount = hours × loaded_hour_usd + groups_that_reached_activation × duplicate_activation_cost_usd</code></p>
 <table><thead><tr><th>Term</th><th class="n">Amount</th><th>Basis</th></tr></thead><tbody><tr><td>Clean-up of duplicate service orders</td><td class="n">USD 1,350</td><td>rate assumption, observed 20</td></tr><tr><td>Duplicate activations</td><td class="n">USD 240</td><td>rate assumption, observed 20</td></tr></tbody></table>
 
 <details open><summary>Inputs (rates you can change)</summary><ul><li><code>rates.cleanup_minutes</code> = 90</li><li><code>loaded_hour_usd</code> = 45</li><li><code>rates.duplicate_activation_cost_usd</code> = 12</li></ul></details>
 <p>20 orders affected (0.4%) · evidence strong · confirmed · inferred links 0%</p>
-<details><summary>Evidence: 20 of 20 orders shown</summary><ul><li><code>ORD-1000</code> 2 service orders over item ORD-1000-1; the duplicate reached activation</li><li><code>ORD-1001</code> 2 service orders over item ORD-1001-1; the duplicate reached activation</li><li><code>ORD-1002</code> 2 service orders over item ORD-1002-1; the duplicate reached activation</li><li><code>ORD-1003</code> 2 service orders over item ORD-1003-1; the duplicate reached activation</li><li><code>ORD-1004</code> 2 service orders over item ORD-1004-1; the duplicate reached activation</li></ul></details>
+<p class="note">groups 20 · extra service orders 21 · retry new order 20 · parallel duplicate 0 · needs review 0 · reached activation 20 · activation attempts 21</p>
+<details><summary>Evidence: 20 of 20 orders shown</summary><ul><li><code>ORD-1000</code> 2 service orders over item ORD-1000-1 (1 extra, retry_new_order); a duplicate reached activation</li><li><code>ORD-1001</code> 2 service orders over item ORD-1001-1 (1 extra, retry_new_order); a duplicate reached activation</li><li><code>ORD-1002</code> 2 service orders over item ORD-1002-1 (1 extra, retry_new_order); a duplicate reached activation</li><li><code>ORD-1003</code> 2 service orders over item ORD-1003-1 (1 extra, retry_new_order); a duplicate reached activation</li><li><code>ORD-1004</code> 2 service orders over item ORD-1004-1 (1 extra, retry_new_order); a duplicate reached activation</li></ul></details>
 <p><strong>What to do.</strong> Make the retry reuse the existing service order, and confirm in billing the orders whose duplicate reached activation.</p>
 </article>

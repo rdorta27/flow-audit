@@ -6,7 +6,7 @@
     "generated_at": "<time>",
     "inputs_hash": "0e18a362633b18939e17e37ea020931e12b6190d2ada80a94e26088b4cc0628d",
     "config_hash": "d3cdb513cc14f476244c57b733437bda558df9629118e9c5ee5e795d12c46001",
-    "rules_hash": "47aac6ef77567d17c45407f2e9bb024bab8902bd3949a9892ab0694262d1449f"
+    "rules_hash": "34fd9a2e5aa6ac89cf0773a0c0aab37ad09cfcbf6dad55b5b9484ca6364d1c74"
   },
   "sources": [
     {
@@ -168,9 +168,9 @@
   "findings": [
     {
       "id": "R04",
-      "rule_version": "R04@1",
-      "title": "A retry duplicates service orders",
-      "plain_summary": "When activation failed, someone retried by hand and the order manager created a second service order for the same line.",
+      "rule_version": "R04@2",
+      "title": "Duplicate service order",
+      "plain_summary": "A second service order exists for the same order line. When activation failed, a retry created a new order instead of reusing the first.",
       "where": "OMS",
       "severity": "medium",
       "status": "detected",
@@ -207,7 +207,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1000-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1000-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1001",
@@ -238,7 +238,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1001-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1001-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1002",
@@ -269,7 +269,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1002-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1002-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1003",
@@ -300,7 +300,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1003-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1003-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1004",
@@ -331,7 +331,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1004-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1004-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1005",
@@ -362,7 +362,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1005-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1005-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1006",
@@ -393,7 +393,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1006-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1006-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1007",
@@ -424,7 +424,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1007-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1007-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1008",
@@ -455,7 +455,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1008-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1008-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1009",
@@ -486,7 +486,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1009-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1009-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1010",
@@ -517,7 +517,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1010-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1010-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1011",
@@ -548,7 +548,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1011-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1011-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1012",
@@ -579,7 +579,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1012-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1012-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1013",
@@ -610,7 +610,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1013-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1013-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1014",
@@ -641,7 +641,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1014-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1014-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1015",
@@ -672,7 +672,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1015-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1015-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1016",
@@ -703,7 +703,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1016-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1016-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1017",
@@ -746,7 +746,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "3 service orders over item ORD-1017-1; the duplicate reached activation"
+          "note": "3 service orders over item ORD-1017-1 (2 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1018",
@@ -777,7 +777,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1018-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1018-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1019",
@@ -808,7 +808,7 @@
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1019-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1019-1 (1 extra, retry_new_order); a duplicate reached activation"
         }
       ],
       "evidence_total": 20,
@@ -817,6 +817,15 @@
         "inferred_link_share": 0
       },
       "in_total": true,
+      "breakdown": {
+        "groups": 20,
+        "extra_service_orders": 21,
+        "retry_new_order": 20,
+        "parallel_duplicate": 0,
+        "needs_review": 0,
+        "reached_activation": 20,
+        "activation_attempts": 21
+      },
       "cost": {
         "currency": "USD",
         "kind": "one_off",
@@ -824,7 +833,7 @@
         "normalisation": null,
         "hours_month": 30,
         "amount_month": 1590,
-        "formula": "hours = duplicates × cleanup_minutes / 60; amount = hours × loaded_hour_usd + duplicates_that_reached_activation × duplicate_activation_cost_usd",
+        "formula": "hours = groups × cleanup_minutes / 60; amount = hours × loaded_hour_usd + groups_that_reached_activation × duplicate_activation_cost_usd",
         "inputs": [
           {
             "key": "rates.cleanup_minutes",

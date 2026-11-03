@@ -38,16 +38,16 @@ Deno.test("the pipeline over the stub gives exactly one finding, R04, USD 1,590"
   assertEquals(result.findings.length, 1);
   const finding = result.findings[0];
   assertEquals(finding.id, "R04");
-  assertEquals(finding.ruleVersion, "R04@1");
+  assertEquals(finding.ruleVersion, "R04@2");
   assertEquals(finding.affectedOrders, EXPECTED.findings.R04.affected_orders);
   assertEquals(finding.cost.hoursMonth, 30);
   assertEquals(finding.cost.amountMonth, 1590);
   assertEquals(result.report.totals.gross, { hours: 30, amount: 1590 });
   assertEquals(result.report.run.generatedAt, "2026-09-01T00:00:00Z");
-  assert(progress.some((m) => m.includes("R04@1")), "progress should name the rule");
+  assert(progress.some((m) => m.includes("R04@2")), "progress should name the rule");
   assertEquals(
     summaryLines(result).at(-1),
-    "R04@1 \u00b7 20 orders \u00b7 30 h \u00b7 USD 1,590",
+    "R04@2 \u00b7 20 orders \u00b7 30 h \u00b7 USD 1,590",
   );
 });
 

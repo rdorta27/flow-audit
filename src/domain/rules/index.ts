@@ -12,7 +12,7 @@ import { chargesR04, detectR04, R04_ID, R04_VERSION } from "./r04.ts";
 export interface Rule {
   /** For example `R04`. */
   id: string;
-  /** For example `R04@1`; changes whenever the rule's logic or formula changes. */
+  /** For example `R04@2`; changes whenever the rule's logic or formula changes. */
   version: string;
   /** Returns null when the rule finds nothing to report. */
   detect(orders: readonly CorrelatedOrder[], config: ImpactConfig): Finding | null;

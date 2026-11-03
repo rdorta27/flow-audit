@@ -39,7 +39,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 
 | Key | Meaning |
 |---|---|
-| `id`, `rule_version` | The rule (`R04`) and its version (`R04@1`). |
+| `id`, `rule_version` | The rule (`R04`) and its version (`R04@2`). |
 | `title`, `plain_summary` | The name, and one sentence a non-specialist understands. |
 | `where` | The system or seam where it happens, for example `OMS` or `OMS→PROV`. |
 | `severity` | `critical`, `high` or `medium`, derived from impact (`rules.md`). |
@@ -48,6 +48,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `evidence_level` | `strong`, `weak` or `history` (see the rule). |
 | `evidence[]`, `evidence_total` | A sample of **at most 20 orders** (`EVIDENCE_SAMPLE_MAX`), each with `order_ref`, `event_ids`, `records[]` (`system`, `external_id`, `endpoint`) and an optional `note`; `evidence_total` is how many orders the rule found. |
 | `confidence` | `level` (`confirmed` when every link the evidence rests on is explicit, else `possible`) and `inferred_link_share`. |
+| `breakdown` | Optional, rule-specific counts. R04: `groups`, `extra_service_orders`, `retry_new_order`, `parallel_duplicate`, `needs_review`, `reached_activation`, `activation_attempts`. |
 | `in_total` | Whether the finding counts in `totals`. R05 is `false` (D-11). |
 | `cost` | See below. |
 | `recommendation` | What to do about it. |
@@ -263,8 +264,8 @@ sample up to twenty. A test validates this exact block.
   "findings": [
     {
       "id": "R04",
-      "rule_version": "R04@1",
-      "title": "A retry duplicates service orders",
+      "rule_version": "R04@2",
+      "title": "Duplicate service order",
       "plain_summary": "When activation failed, someone retried by hand and the order manager created a second service order for the same line.",
       "where": "OMS",
       "severity": "medium",
@@ -302,7 +303,7 @@ sample up to twenty. A test validates this exact block.
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1000-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1000-1 (1 extra, retry_new_order); a duplicate reached activation"
         },
         {
           "order_ref": "ORD-1001",
@@ -333,7 +334,7 @@ sample up to twenty. A test validates this exact block.
               "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
             }
           ],
-          "note": "2 service orders over item ORD-1001-1; the duplicate reached activation"
+          "note": "2 service orders over item ORD-1001-1 (1 extra, retry_new_order); a duplicate reached activation"
         }
       ],
       "evidence_total": 20,

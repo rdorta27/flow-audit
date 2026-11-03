@@ -576,6 +576,10 @@ Deno.test("R04 finds exactly the 20 duplicated orders on the stub, USD 1,590", a
   assertEquals(finding.cost.hoursMonth, 30);
   assertEquals(finding.cost.amountMonth, 1590);
   assertEquals(finding.severity, "medium");
+  // M3-08: all 20 are retries of a FAILED original; ORD-1017 has a third order (21 extras).
+  assertEquals(finding.breakdown?.retryNewOrder, 20);
+  assertEquals(finding.breakdown?.parallelDuplicate, 0);
+  assertEquals(finding.breakdown?.extraServiceOrders, 21);
 });
 
 Deno.test("R04 does not fire on a multi-line order or when the first order was cancelled", () => {
@@ -589,4 +593,54 @@ Deno.test("R04 does not fire on a multi-line order or when the first order was c
   assertEquals(run([mk("S1", "i1"), mk("S2", "i2")]), null);
   assertEquals(run([mk("S1", "i1", "CANCELLED"), mk("S2", "i1")]), null);
   assertEquals(run([mk("S1", "i1"), mk("S2", "i1")])?.affectedOrders, 1);
+});
+
+// R04@2 (M3-08) ---------------------------------------------------------------------
+
+Deno.test("R04@2: three service orders over one item are 1 group and 2 extras", () => {
+  const sos = ["S1", "S2", "S3"].map((r, i) =>
+    so(r, "O1", {
+      productOrderItemRef: "i1",
+      state: i === 0 ? "FAILED" : "ACTIVE",
+      createdAt: `2026-09-0${i + 1}T00:00:00Z`,
+    })
+  );
+  const f = detectR04(
+    correlate({ orders: [order("O1")], serviceOrders: sos, attempts: [] }).orders,
+    R04_CONFIG,
+  )!;
+  assertEquals(f.ruleVersion, "R04@2");
+  assertEquals(f.affectedOrders, 1);
+  assertEquals(f.breakdown?.extraServiceOrders, 2);
+  assertEquals(f.breakdown?.retryNewOrder, 1);
+  assertEquals(f.breakdown?.parallelDuplicate, 0);
+});
+
+Deno.test("R04@2: a live original is a parallel duplicate; a different spec is needs_review", () => {
+  const run = (sos: ServiceOrder[]) =>
+    detectR04(
+      correlate({ orders: [order("O1")], serviceOrders: sos, attempts: [] }).orders,
+      R04_CONFIG,
+    );
+  const live = run([
+    so("S1", "O1", {
+      productOrderItemRef: "i1",
+      state: "ACTIVE",
+      createdAt: "2026-09-01T00:00:00Z",
+    }),
+    so("S2", "O1", {
+      productOrderItemRef: "i1",
+      state: "ACTIVE",
+      createdAt: "2026-09-02T00:00:00Z",
+    }),
+  ])!;
+  assertEquals(live.breakdown?.parallelDuplicate, 1);
+  // An amendment creates a service order with another spec: not counted, no finding.
+  assertEquals(
+    run([
+      so("S1", "O1", { productOrderItemRef: "i1", specId: "SPEC-A", state: "FAILED" }),
+      so("S2", "O1", { productOrderItemRef: "i1", specId: "SPEC-B", state: "ACTIVE" }),
+    ]),
+    null,
+  );
 });

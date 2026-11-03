@@ -99,7 +99,7 @@ revenue_at_risk = stuck × arpu_usd      // reported separately, never added to 
 **Known limits.** A long-running but healthy process must not be flagged. Require both
 the expired timer and the absence of any subsequent event.
 
-## R04 — A retry duplicates service orders
+## R04 — Duplicate service order
 
 **Rule version.** `R04@1` — the Demo 1 specification (M3-01). It reads snapshots, so it
 needs no event history.
@@ -134,12 +134,32 @@ hours = duplicates × cleanup_minutes / 60
 usd   = hours × loaded_hour_usd + duplicates × duplicate_activation_cost_usd
 ```
 
-`duplicates` counts the product order items with more than one service order, once each,
-however many extra orders they have. On the synthetic dataset, with the activations
-correlated, that is 30 h and **USD 1,590** (USD 1,350 of clean-up plus 20 × USD 12); Demo 1
-reports this figure. A source without activations cannot observe the second term: the
-finding reports only the first (USD 1,350), lists the second as **not observed in this
-source** and never estimates it.
+`duplicates` is the number of **groups**: product order items with more than one live
+service order, once each, however many extra orders they have. Cost stays per group (one
+clean-up per item), so it is unchanged from `R04@1`. The finding also reports, in
+`breakdown`: `extra_service_orders` (the extras, so three service orders over one item are 2),
+`retry_new_order` / `parallel_duplicate` / `needs_review` (groups by cause), and
+`activation_attempts` (attempts that ran on an extra service order) next to
+`reached_activation` (groups with at least one such attempt). On the synthetic dataset that is
+20 groups, 21 extras (ORD-1017 has three service orders), all `retry_new_order`, 30 h and
+**USD 1,590** (USD 1,350 of clean-up plus 20 × USD 12). A source without activations cannot
+observe the second term: the finding reports only the first (USD 1,350), lists the second as
+**not observed in this source** and never estimates it. A low/base/high range arrives with
+M5-07; until then the cost is one value, every term `basis: rate_assumption`.
+
+**R04@2 classification.** Service orders over one item are ordered by creation time; the first
+is the original.
+
+| Group | Meaning |
+|---|---|
+| `retry_new_order` | the original ended `FAILED` and a new service order was created: the demo's 20, what the rule exists to catch |
+| `parallel_duplicate` | the original is still live |
+| `needs_review` | the service orders have different known specs (for example an amendment): not counted, not priced; if no group is a duplicate there is no finding |
+
+A spec of `unknown` (a source that sends none) cannot show a difference. The action of a
+service order is not modelled yet, so it is not compared (M2-08/M2-10). The finding is titled
+"Duplicate service order", not "duplicate activation": the activation is a separate question,
+answered by `reached_activation`.
 
 **Severity.** Derived from impact, as for every rule: on the demo, 0.4% of orders and
 30 h/month, so `medium`.
@@ -155,7 +175,8 @@ with two service orders over one product order item. The rule must find exactly 
 | An earlier service order is `CANCELLED` and a new one replaces it | Does not fire: a cancellation followed by a new order is deliberate |
 | Service order with no `productOrderItem` link | Cannot be evaluated; the reader already rejects it (M1-05a) rather than guessing |
 | Two service orders created minutes apart by a legitimate split (for example a bundle) on the same item | Fires; cannot be told apart without the retry marker. The recommendation asks the client to confirm |
-| Many service orders on one item | One duplicate, not many; the count is per item |
+| Many service orders on one item | One group for cost; every extra is counted in `extra_service_orders` |
+| Service orders on one item with different specs | `needs_review`, not counted |
 
 **Known limits.** On snapshots the rule sees that a second order exists, not why it was
 created. Treat each finding as a candidate that the evidence supports, not as proof of a
