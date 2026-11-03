@@ -47,13 +47,13 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 - **Quantify** hours and USD from visible, configurable rates.
 - **Report** one self-contained HTML file with flow map, state machine, timeline and heat map.
 
-## Where we are
+## What runs today
 
-What runs today (version 0.2.0):
+Commands available in version 0.2.0:
 
 - `deno task check` passes.
-- `deno task test` passes 49 tests: dataset invariants, export stability, the hexagonal
-  and license boundaries, the walking skeleton and the TMF stub.
+- `deno task test` passes 67 tests: dataset invariants, export stability, the hexagonal
+  and license boundaries, the walking skeleton, the TMF stub and the readers.
 - `deno task audit` exits with code 2: no evidence source exists yet.
 - `deno task read` reads product orders (TMF622) and service orders (TMF641) from the stub
   and prints counts. Start `deno task stub` first. It is a data check, not an audit.
@@ -69,8 +69,8 @@ contracts are captured (M0-02, M0-03, M0-04, M0-09). Its contract is weak (no it
 free-text references, no pagination, no history), so the primary source is a TMF
 stub of our own in this repository, serving the synthetic dataset in the standard TMF
 shape and labelled simulated (M0-11). bss-oss-rust stays an optional, local-only dialect
-check. Its license review waits for the author's answers (M0-05) and no longer blocks the
-public demo, which runs on the stub.
+check. Its license stays unclear and the author is not contacted (D-02), so it is never
+redistributed or used in the public demo, which runs on the stub.
 
 The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 
