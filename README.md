@@ -4,9 +4,32 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — version 0.2.0, milestone Demo 1.** The dataset, the simulated TMF
-> stub and a preview of the report exist. There is a TMF622 product order reader, but no service order reader, no rule and no
-> generated report yet: the command exits with a clear message instead of pretending to audit.
+> **Under construction — version 0.2.0, milestone Demo 1.** The engine reads orders and
+> service orders from a simulated source, but detects nothing and produces no report yet:
+> `deno task audit` exits with a clear message instead of pretending to audit.
+
+## Where we are
+
+The full picture, in Spanish and with every card's status, is in
+[`../specs/estado.html`](../specs/estado.html) (open it in a browser). The short version:
+
+| Today | What it is | See it |
+|---|---|---|
+| Synthetic data | 5,000 made-up orders of a fictional operator, with the defects planted on purpose | `data/demo/` |
+| Simulated TMF server | Serves that data like a real system would, read-only | `deno task stub` |
+| Readers | Fetch product orders (TMF622) and service orders (TMF641) and print counts | `deno task read` |
+
+**Not yet:** no rule detects a problem, nothing computes a cost, no report comes out of the
+engine. The 20 duplicated orders show up as a count, not as a finding.
+
+**Where it goes:**
+
+1. **Demo 1** — one real report: finding R04 (a retry creates a second service order),
+   read from the simulated server, with its cost in USD and the formula.
+2. **Client-ready** — read the files a real client exports and also detect R01, R02 and R05.
+
+Next card: M1-02, keep where each record came from. The plan is in
+[`../specs/backlog.md`](../specs/backlog.md).
 
 ## Why
 

@@ -14,6 +14,8 @@
 - The engine is MIT. Never vendor, copy or import third-party code; the systems it reads
   are reached over HTTP only (`THIRD-PARTY.md`). The boundary is a test, not a promise.
 - Impact rates are configuration, not constants: every number in the report must be replaceable.
+- When you close a backlog card, update the "Where we are" section of `README.md` and
+  `../specs/estado.html` in the same change; `../specs/backlog.md` wins if they disagree.
 - Tests: `deno test`. Run them before proposing a change.
 - Commits: the `commit-msg` hook enforces the format (`<type>: <summary>`, why + `Changes:`).
 - Do not push, tag or publish without explicit approval.
