@@ -117,11 +117,11 @@ Deno.test("read summary counts orders, service orders and the duplicated cohort"
     new Tmf641ServiceOrderSource({ baseUrl: BASE, fetch: viaStub }),
     new Tmf640ServiceActivationSource({ baseUrl: BASE, fetch: viaStub }),
   );
-  assertEquals(summary, {
-    productOrders: EXPECTED.orders,
-    serviceOrders: EXPECTED.service_orders,
-    productOrdersWithSeveralServiceOrders: 20,
-    activations: EXPECTED.attempts,
-    activationsWithoutServiceOrder: 300,
-  });
+  assertEquals(summary.productOrders, EXPECTED.orders);
+  assertEquals(summary.serviceOrders, EXPECTED.service_orders);
+  assertEquals(summary.activations, EXPECTED.attempts);
+  assertEquals(summary.productOrdersWithSeveralServiceOrders, 20);
+  assertEquals(summary.links["service_order->order"].explicit, EXPECTED.service_orders);
+  assertEquals(summary.links["attempt->service_order"].explicit, EXPECTED.attempts - 300);
+  assertEquals(summary.links["attempt->service_order"].missing, 300);
 });

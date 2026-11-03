@@ -5,6 +5,16 @@ tag when it publishes that version.
 
 ## Unreleased
 
+- M2-02: `src/domain/correlation.ts` joins service orders, processes and activation attempts
+  to their orders, with a confidence per link (`explicit`, `inferred`, `ambiguous`,
+  `missing`, `conflicting`) and the unresolved records kept apart. `tmf_mapping.ts` maps TMF
+  records to the canonical model and translates states. `deno task read` prints how sure each
+  join is.
+- M2-03: tests for orphans, conflicting references, duplicate ids, inference by terminal
+  serial and input-order independence, on small cases and at full size.
+- M2-04: `src/domain/segments.ts` classifies an order's time as work, wait or gap, and
+  refuses snapshot evidence with a reason.
+
 - M1-05b: `src/adapters/ingest/tmf640_source.ts` reads provisioning activation attempts. An
   attempt with no link to its service order is kept, not rejected: that gap is what R05
   reports. `deno task read` now also counts activations and the unlinked ones.

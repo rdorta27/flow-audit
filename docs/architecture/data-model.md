@@ -92,7 +92,31 @@ Four identifiers, none shared by all four systems:
 | BPM | `BPM-` | sometimes only a business key (`order_ref`) |
 | PROV | `ACT-` + `sn` | `so_ref` when well integrated, otherwise only `sn` |
 
-Resolution order for each event: declared key → parent entity key → terminal serial → timestamp window (never silent: a time-based match is recorded as *weak* and counted as a correlation gap).
+Every join carries how sure it is, and anything short of `explicit` is counted as a
+correlation gap (`src/domain/correlation.ts`):
+
+| Confidence | Meaning | Example |
+|---|---|---|
+| `explicit` | The record names its parent and the parent exists | a service order whose item points at `ORD-1005-1` |
+| `inferred` | No reference, but exactly one candidate fits | an attempt with only a terminal serial that matches one service order |
+| `ambiguous` | Several candidates fit, or the id pointed at is not unique | a serial shared by two service orders; two orders with the same id |
+| `missing` | No reference and no candidate, or the reference points at nothing | an activation with no service order; a service order naming an order that is not in the data |
+| `conflicting` | Two references on one record disagree | `orderRef` says A but the order line belongs to B |
+
+Resolution order: declared key → the order line a service order points at → terminal serial
+(an empty serial is absent and never joins) → business key for a process. Matching by a time
+window is **not implemented**: it would hide wrong joins, so it waits for a source that
+needs it. Records that cannot be placed under exactly one order are kept in `unresolved`
+with the link that says why; nothing is dropped. Duplicate ids are reported, and every
+link that points at one is `ambiguous`. The result does not depend on input order.
+
+### TMF states
+
+Readers map TMF states to the canonical lifecycle in `tmf_mapping.ts`. The translation is
+lossy (an API state stands for the later part of the lifecycle, so `IN_PROGRESS` is
+`PROVISIONING` whether the order was installed or not) and the table is in that file. An
+unknown state is an error, never a default. Fields the API does not carry are marked, not
+invented: `offerVersion` and `specId` are `"unknown"` and an attempt's `serial` is empty.
 
 `OrderJourney` is the reconstruction result:
 
@@ -100,12 +124,26 @@ Resolution order for each event: declared key → parent entity key → terminal
 type OrderJourney = {
   order_ref: string;
   segments: Segment[];      // system, from, to, duration, kind: work | wait | gap
+  segments_unavailable?: string; // why segments is empty, for snapshot evidence
   findings: string[];       // rule ids that fired
   correlation: { strong: boolean; gaps: string[] };
 };
 ```
 
 Segments are what the timeline visual draws: the report shows time spent **waiting**, not time spent working.
+
+| Kind | What it is |
+|---|---|
+| `work` | A system is executing: a process task, or a provisioning attempt. A human task is `work` with `actor: human`; its queue time cannot be told apart from hands-on time |
+| `wait` | A process timer is running |
+| `gap` | No system has any record covering this time: nobody is known to be working |
+
+A gap is the finding-worthy one, but not proof of a fault: the data cannot say what was
+happening. Segments never overlap (when a task and an attempt start together the attempt is
+kept, because its state is the outcome), start when the order is submitted and end at the
+last record with an end time; records still running are returned as `open`. They need
+event history: snapshot evidence is refused with a reason (`segments_unavailable`) instead
+of guessed at.
 
 ## Invariants
 

@@ -17,7 +17,7 @@ The full picture, in Spanish and with every card's status, is in
 |---|---|---|
 | Synthetic data | 5,000 made-up orders of a fictional operator, with the defects planted on purpose | `data/demo/` |
 | Simulated TMF server | Serves that data like a real system would, read-only | `deno task stub` |
-| Readers | Fetch product orders (TMF622), service orders (TMF641) and activation attempts (TMF640) and print counts | `deno task read` |
+| Readers and join | Fetch product orders (TMF622), service orders (TMF641) and activation attempts (TMF640), join them and print counts and how sure each join is | `deno task read` |
 
 **Not yet:** no rule detects a problem, nothing computes a cost, no report comes out of the
 engine. The 20 duplicated orders show up as a count, not as a finding.
@@ -28,9 +28,10 @@ engine. The 20 duplicated orders show up as a count, not as a finding.
    read from the simulated server, with its cost in USD and the formula.
 2. **Client-ready** — read the files a real client exports and also detect R01, R02 and R05.
 
-Done in Demo 1 so far: the three readers (milestone M1 is closed), provenance on every record, the reviewed model and the
-written spec of R04. Next card: M2-02, join each order with its service orders and say how
-confident each link is. The plan is in
+Done in Demo 1 so far: the three readers (milestone M1 is closed), provenance on every record,
+the join of orders, service orders and activations with a confidence per link, the
+classification of time as work, wait or gap (milestone M2 is closed) and the written spec of
+R04. Next card: M3-02, implement R04. The plan is in
 [`../specs/backlog.md`](../specs/backlog.md).
 
 ## Why
@@ -54,7 +55,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 Commands available in version 0.2.0:
 
 - `deno task check` passes.
-- `deno task test` passes 73 tests: dataset invariants, export stability, the hexagonal
+- `deno task test` passes 91 tests: dataset invariants, export stability, the hexagonal
   and license boundaries, the walking skeleton, the TMF stub and the readers.
 - `deno task audit` exits with code 2: no evidence source exists yet.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts

@@ -126,6 +126,8 @@ export interface Order {
   state: OrderState;
   offerId: string;
   offerVersion: string;
+  /** Ids of the order lines, when the source exposes them. Service orders point at one. */
+  itemRefs?: string[];
   provenance?: Provenance;
 }
 
@@ -185,6 +187,7 @@ export interface ProvisioningAttempt {
   errorCode: string | null;
   startedAt: string;
   endedAt: string | null;
+  provenance?: Provenance;
 }
 
 // Reconstruction ------------------------------------------------------------
@@ -209,6 +212,8 @@ export interface CorrelationReport {
 export interface OrderJourney {
   orderRef: string;
   segments: Segment[];
+  /** Why `segments` is empty when the evidence cannot support it (a snapshot has no history). */
+  segmentsUnavailable?: string;
   /** Rule ids that fired on this journey. */
   findings: string[];
   correlation: CorrelationReport;
