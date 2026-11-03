@@ -5,6 +5,10 @@ tag when it publishes that version.
 
 ## Unreleased
 
+- `deno task read`: reads product orders and service orders from a TMF source and prints
+  counts, including how many product orders have more than one service order. A data check,
+  not an audit.
+
 - M1-01: `src/adapters/ingest/` reads TMF622 product orders over HTTP as an `EvidenceSource`:
   `GET` only, paginated, bearer token and limits from environment variables
   (`FLOW_AUDIT_TMF_*`), clear errors for HTTP failures, bad bodies, timeouts and

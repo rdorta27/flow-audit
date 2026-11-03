@@ -32,6 +32,8 @@ What runs today (version 0.2.0):
 - `deno task test` passes 49 tests: dataset invariants, export stability, the hexagonal
   and license boundaries, the walking skeleton and the TMF stub.
 - `deno task audit` exits with code 2: no evidence source exists yet.
+- `deno task read` reads product orders (TMF622) and service orders (TMF641) from the stub
+  and prints counts. Start `deno task stub` first. It is a data check, not an audit.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs
   (TMF622/641/640) on `127.0.0.1:8081`. Every response carries
   `X-Flow-Audit-Source: simulated`. It is a test source for the first adapter (M1-01) — known

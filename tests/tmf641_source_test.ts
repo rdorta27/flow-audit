@@ -98,3 +98,24 @@ Deno.test("against the TMF stub it reads all service orders, every item linked",
   const duplicated = [...perProductOrder.values()].filter((n) => n > 1).length;
   assertEquals(duplicated, 20, "the R04 cohort must be visible as 20 duplicated orders");
 });
+
+Deno.test("read summary counts orders, service orders and the duplicated cohort", async () => {
+  const { summarize } = await import("../src/cli/read.ts");
+  const { Tmf622ProductOrderSource } = await import("../src/adapters/ingest/tmf622_source.ts");
+  const data = await loadStubDataset(new URL("../data/demo/", import.meta.url));
+  const state = buildStubState(data.catalog, data.orders, data.serviceOrders, data.attempts);
+  const handle = createHandler({ state });
+  const viaStub =
+    ((input: string | URL | Request, init?: RequestInit) =>
+      handle(new Request(String(input), init))) as typeof fetch;
+
+  const summary = await summarize(
+    new Tmf622ProductOrderSource({ baseUrl: BASE, fetch: viaStub }),
+    new Tmf641ServiceOrderSource({ baseUrl: BASE, fetch: viaStub }),
+  );
+  assertEquals(summary, {
+    productOrders: EXPECTED.orders,
+    serviceOrders: EXPECTED.service_orders,
+    productOrdersWithSeveralServiceOrders: 20,
+  });
+});
