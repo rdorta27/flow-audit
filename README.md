@@ -6,8 +6,8 @@ It does not implement, configure or monitor those systems. It observes them.
 
 > **Under construction — on the way to 0.4.0 (Demo 1).** `deno task audit --source stub`
 > reads orders, service orders and activations from a simulated source, joins them and runs
-> rule R04 with its cost; the result has a documented, validated shape (`findings/1`), but
-> no `findings.json` or report file is written yet. `deno task explain` follows one
+> rule R04 with its cost; the result has a documented, validated shape (`findings/1`)
+> and is written to `out/findings.json` and a self-contained `out/report.html`. `deno task explain` follows one
 > duplicated order.
 
 ## Where we are
@@ -34,7 +34,7 @@ The full picture, in Spanish and with every card's status, is in
 Done in Demo 1 so far: the three readers (milestone M1 is closed), provenance on every record,
 the join of orders, service orders and activations with a confidence per link, the
 classification of time as work, wait or gap (milestone M2 is closed) and the written spec of
-R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. `deno task audit` now runs R04 and returns the findings schema (M3-06, M4-01); the demo data uses snake_case keys and CI runs on push. Next cards: M4-02 (JSON report) and M2-05. The plan is in
+R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. `deno task audit` now runs R04 and returns the findings schema (M3-06, M4-01); the demo data uses snake_case keys and CI runs on push. It now also writes `findings.json` and `report.html` (M4-02, M4-03), reads unknown states as `UNMAPPED` (M2-05) and uses dataset v2 (M6-01). Next cards: M4-04 (the story of one order) and M4-05 (net total). The plan is in
 [`../specs/backlog.md`](../specs/backlog.md); finished cards are in [`../specs/done/`](../specs/done/README.md).
 
 ## Why
@@ -61,7 +61,7 @@ Commands available today:
 - `deno task test` passes: dataset invariants, export stability, the hexagonal and license
   boundaries, the TMF stub, the readers, the join, R04, the findings schema and its validator.
 - `deno task audit --source stub` (start `deno task stub` first) prints counts, links and
-  `R04@1 · 20 orders · 30 h · USD 1,590`; without a source it exits with code 2.
+  `R04@1 · 20 orders · 30 h · USD 1,590`, and with `--out out` writes the two report files; without a source it exits with code 2.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts
   (TMF640) from the stub and prints counts. Start `deno task stub` first. It is a data check, not an audit.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs

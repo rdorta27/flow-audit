@@ -1,8 +1,8 @@
 # Architecture
 
 > **Under construction — on the way to 0.4.0, Demo 1.** The TMF readers, the join, rule R04 and
-> the in-memory findings schema run end to end through `deno task audit --source stub`; file
-> readers, the other rules and the report files do not exist yet. Complements
+> the findings schema run end to end through `deno task audit --source stub`, which writes
+> `findings.json` and `report.html`; file readers and the other rules do not exist yet. Complements
 > [product](../product.md).
 
 ## Shape
@@ -41,8 +41,8 @@ Hexagonal, with the domain at the center and no I/O inside it.
 |---|---|---|
 | `domain/` | Canonical model types: events, catalog, orders, journeys, findings, impact | Reconstruction (M2), rules (M3), impact math (M4) |
 | `ports/` | `EvidenceSource`, `CatalogSource`, `ReportRenderer`, `Clock` | — |
-| `adapters/` | `clock/`, `export/`, and empty `ingest/` and `report/` | Ingest readers (M1), HTML renderer (M4) |
-| `app/` | `runAudit()`: reads the TMF sources, maps, correlates, runs the rule registry and returns the `findings/1` report in memory | Writing files (M4-02, M4-03) |
+| `adapters/` | `clock/`, `export/`, TMF readers in `ingest/`, JSON and HTML renderers in `report/` | File readers (Client-ready) |
+| `app/` | `runAudit()`: reads the TMF sources, maps, correlates, runs the rule registry and returns the `findings/1` report; the CLI writes it with `--out` | — |
 | `cli/` | `audit` and `dataset` commands, exit codes | — |
 | `dataset/` | Deterministic generator: 5,000 orders from a fixed seed | — |
 
