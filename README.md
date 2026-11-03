@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — version 0.2.0, milestone M1.** The dataset, the simulated TMF
+> **Under construction — version 0.2.0, milestone Demo 1.** The dataset, the simulated TMF
 > stub and a preview of the report exist. There is no ingest adapter, no rule and no
 > generated report yet: the command exits with a clear message instead of pretending to audit.
 
@@ -34,7 +34,7 @@ What runs today (version 0.2.0):
 - `deno task audit` exits with code 2: no evidence source exists yet.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs
   (TMF622/641/640) on `127.0.0.1:8081`. Every response carries
-  `X-Flow-Audit-Source: simulated`. It is a test source for the M1 adapter — known
+  `X-Flow-Audit-Source: simulated`. It is a test source for the first adapter (M1-01) — known
   defects, golden numbers, no real system behind it — not a product simulator; see
   [architecture](docs/architecture/overview.md#the-tmf-stub).
 
@@ -53,11 +53,8 @@ The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 |---|---|---|
 | — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
 | M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.2.0) |
-| M1 | First read-only adapter (TMF622) | planned |
-| M2 | Canonical model and correlation | planned |
-| M3 | First deterministic rule (R04) | planned |
-| M4 | Reproducible JSON report, then HTML | planned |
-| M5 | Demonstration readiness | planned |
+| Demo 1 | One real report: R04 read from the TMF stub, with its cost in USD and formula | planned |
+| Client-ready | Audit a client's file exports through `mapping.yml`; R01, R02, R04, R05 | planned |
 
 ## Versions
 
