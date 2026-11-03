@@ -487,3 +487,59 @@ Deno.test("segments: snapshot evidence is refused with a reason, never guessed",
     classified.reason.includes("snapshot") && classified.reason.includes("http://api/productOrder"),
   );
 });
+
+// R04 (M3-02) -----------------------------------------------------------------------
+
+import { detectR04 } from "../src/domain/rules/r04.ts";
+
+const R04_CONFIG = {
+  currency: "USD" as const,
+  ordersPerMonth: 5000,
+  loadedHourUsd: 45,
+  rates: {
+    manualMinutes: 5,
+    dailyFollowupMinutes: 15,
+    cleanupMinutes: 90,
+    investigationMinutes: 45,
+    duplicateActivationCostUsd: 12,
+    arpuUsd: 65,
+  },
+  thresholds: { retryWindowHours: 24, stuckAfterHours: 72, duplicateWindowMinutes: 10 },
+};
+
+Deno.test("R04 finds exactly the 20 duplicated orders on the stub, USD 1,590", async () => {
+  const data = await loadStubDataset(new URL("../data/demo/", import.meta.url));
+  const handle = createHandler({
+    state: buildStubState(data.catalog, data.orders, data.serviceOrders, data.attempts),
+  });
+  const config = {
+    baseUrl: "http://127.0.0.1:8081",
+    fetch:
+      ((input: string | URL | Request, init?: RequestInit) =>
+        handle(new Request(String(input), init))) as typeof fetch,
+  };
+  const orders = (await collect(new Tmf622ProductOrderSource(config))).map(mapProductOrder);
+  const serviceOrders = (await collect(new Tmf641ServiceOrderSource(config))).map(mapServiceOrder);
+  const attempts = (await collect(new Tmf640ServiceActivationSource(config))).map(mapActivation);
+  const result = correlate({ orders, serviceOrders, attempts });
+
+  const finding = detectR04(result.orders, R04_CONFIG)!;
+  assertEquals(finding.affectedOrders, EXPECTED.findings.R04.affected_orders);
+  assertEquals(finding.evidence.length, 20);
+  assertEquals(finding.impact.hoursMonth, 30);
+  assertEquals(finding.impact.usdMonth, 1590);
+  assertEquals(finding.severity, "medium");
+});
+
+Deno.test("R04 does not fire on a multi-line order or when the first order was cancelled", () => {
+  const mk = (ref: string, item: string, state: ServiceOrder["state"] = "ACTIVE") =>
+    so(ref, "O1", { productOrderItemRef: item, state });
+  const run = (sos: ServiceOrder[]) =>
+    detectR04(
+      correlate({ orders: [order("O1")], serviceOrders: sos, attempts: [] }).orders,
+      R04_CONFIG,
+    );
+  assertEquals(run([mk("S1", "i1"), mk("S2", "i2")]), null);
+  assertEquals(run([mk("S1", "i1", "CANCELLED"), mk("S2", "i1")]), null);
+  assertEquals(run([mk("S1", "i1"), mk("S2", "i1")])?.affectedOrders, 1);
+});

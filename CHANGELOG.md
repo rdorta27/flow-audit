@@ -5,6 +5,10 @@ tag when it publishes that version.
 
 ## Unreleased
 
+- M3-02: `src/domain/rules/r04.ts` detects service orders duplicated over one product order
+  item (`R04@1`), skips cancelled ones, derives severity from impact and prices the cleanup
+  and duplicate activations from `ImpactConfig`. `deno task explain` writes a self-contained
+  page that follows one duplicated order through read, join, rule and cost.
 - M2-02: `src/domain/correlation.ts` joins service orders, processes and activation attempts
   to their orders, with a confidence per link (`explicit`, `inferred`, `ambiguous`,
   `missing`, `conflicting`) and the unresolved records kept apart. `tmf_mapping.ts` maps TMF

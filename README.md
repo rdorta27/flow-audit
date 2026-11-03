@@ -31,7 +31,7 @@ engine. The 20 duplicated orders show up as a count, not as a finding.
 Done in Demo 1 so far: the three readers (milestone M1 is closed), provenance on every record,
 the join of orders, service orders and activations with a confidence per link, the
 classification of time as work, wait or gap (milestone M2 is closed) and the written spec of
-R04. Next card: M3-02, implement R04. The plan is in
+R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. Next card: M4-01. The plan is in
 [`../specs/backlog.md`](../specs/backlog.md).
 
 ## Why
@@ -55,7 +55,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 Commands available in version 0.2.0:
 
 - `deno task check` passes.
-- `deno task test` passes 91 tests: dataset invariants, export stability, the hexagonal
+- `deno task test` passes 93 tests: dataset invariants, export stability, the hexagonal
   and license boundaries, the walking skeleton, the TMF stub and the readers.
 - `deno task audit` exits with code 2: no evidence source exists yet.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts

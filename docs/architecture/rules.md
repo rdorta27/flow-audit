@@ -1,6 +1,6 @@
 # Rule catalogue
 
-Status: designed, not implemented. R04 is the first rule planned (milestone Demo 1) and its
+Status: R04 is implemented (`src/domain/rules/r04.ts`, M3-02); the others are designed. R04 is the first rule (milestone Demo 1) and its
 Demo 1 specification is written below. The rules below are the five
 findings the demo reports. Each one must be defensible: a signal, the
 evidence that proves it and a formula that turns it into hours and USD.
