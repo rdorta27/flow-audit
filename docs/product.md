@@ -82,13 +82,31 @@ Satellite is a good carrier for the method because one order needs a beam with c
 
 The dataset is synthetic and coherent: orders, state transitions, process timers, provisioning attempts and catalog versions that produce the five demo findings. It ships with the repo so the audit can be re-run and reproduced.
 
-| # | Finding | Rough impact |
-|---|---|---|
-| R01 | Provisioning fallout with no automatic retry | 8% of orders, 2.5 days to recover |
-| R02 | Missing catalog attribute forces a manual capacity check | 100% of orders, ~5 min each |
-| R03 | BPM timer expires without compensation | 3% stuck in "pending activation" |
-| R04 | OMS retry duplicates service orders | 5% of retries, double activation |
-| R05 | No end-to-end correlation id | ~45 min per incident to investigate |
+| # | Finding | Rough impact | Est. cost per month |
+|---|---|---|---|
+| R01 | Provisioning fallout with no automatic retry | 8% of orders, 2.5 days to recover | ~USD 11,250 (400 orders × 2.5 days × 15 min follow-up) |
+| R02 | Missing catalog attribute forces a manual capacity check | 100% of orders, ~5 min each | ~USD 18,750 (5,000 orders × 5 min) |
+| R03 | BPM timer expires without compensation | 3% stuck in "pending activation" | ~USD 3,250 revenue at risk (50 stuck × ARPU 65), reported apart from cost |
+| R04 | OMS retry duplicates service orders | 5% of retries, double activation | ~USD 1,590 (20 orders × (90 min clean-up + USD 12 duplicate activation)) |
+| R05 | No end-to-end correlation id | ~45 min per incident to investigate | ~USD 10,125 (300 incidents × 45 min) |
+
+Labour at the loaded rate of USD 45/hour, all inputs from `data/demo/config.json`. That
+is roughly **USD 41,700 a month in operating cost plus USD 3,250 of revenue at risk** for
+a 5,000-order operator. These are illustrative figures; the engine computes them from the
+evidence from milestone M2 on, and the report shows each formula next to its number.
+
+R04 is more than a clean-up cost: a duplicated activation can also become a duplicated
+charge or a customer complaint. Billing accuracy stays out of scope, but the finding flags
+the orders whose duplicate reached activation so the client can check them in billing.
+
+### Beyond satellite
+
+The method is not specific to satellite. The same five findings appear in the stacks of
+Latin American mobile and fixed operators: R02 as an FTTH offer whose spec lacks the
+port or speed profile and is completed by hand; R01 and R03 as fiber or postpaid
+activations that fail or wait on a timer with nobody owning the retry; R04 as a portability
+or plan-change retry that creates a second service order; R05 as CRM, OMS and provisioning
+records that share no identifier.
 
 ### A demo order
 
@@ -113,9 +131,34 @@ The report adds the other two in aggregate: the 48 h timer that leaves 50 orders
 
 ## Commercial shape
 
-Sold per engagement, not as SaaS: the consultancy licenses the toolkit, runs it on the
-client's exports and delivers a white-labelled report. The evidence never leaves the
-consultant's machine, which is what makes the engagement approvable.
+> **Target shape, not a current offer.** Flow Audit is a proof of concept today (D-01);
+> nothing is sold yet and the public demo runs on simulated data.
+
+Sold per engagement, not as SaaS, in two stages:
+
+1. **Audit as a service (first).** The author delivers fixed-price audits directly, using
+   Flow Audit on the client's exports. Each engagement pays for itself and adds a real
+   case, a mapping and rules to the toolkit.
+2. **Toolkit licence (later).** Once the method is proven on real engagements, consultancies
+   license the toolkit, run it themselves and deliver a white-labelled report.
+
+In both stages the evidence never leaves the auditor's machine, which is what makes the
+engagement approvable.
+
+## Engagement
+
+What a client buys in one audit:
+
+| Step | What happens |
+|---|---|
+| Scoping (1–2 days) | Agree the flow, the period (typically one month) and which exports each system can provide |
+| Exports from the client | Order, service order, process and provisioning extracts (CSV, JSON or database dumps); no access to live systems |
+| Mapping and run (about 1 week) | Map the exports to the canonical model, run the rules, review each finding with the client's team |
+| Delivery | `report.html`, `findings.json`, the three fixes to do first and a read-out session |
+| Re-run (optional) | The same audit on a new export after the fixes, delivered as a diff |
+
+Pricing is a fixed fee per audit, set during scoping by the number of systems and the
+volume of orders.
 
 ## Deliverables of one audit
 
