@@ -4,10 +4,11 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — version 0.3.1, milestone Demo 1.** The engine reads orders,
-> service orders and activations from a simulated source, joins them and runs rule R04,
-> but produces no report yet: `deno task audit` exits with a clear message instead of
-> pretending to audit, and `deno task explain` shows R04 on one order.
+> **Under construction — on the way to 0.4.0 (Demo 1).** `deno task audit --source stub`
+> reads orders, service orders and activations from a simulated source, joins them and runs
+> rule R04 with its cost; the result has a documented, validated shape (`findings/1`), but
+> no `findings.json` or report file is written yet. `deno task explain` follows one
+> duplicated order.
 
 ## Where we are
 
@@ -19,10 +20,10 @@ The full picture, in Spanish and with every card's status, is in
 | Synthetic data | 5,000 made-up orders of a fictional operator, with the defects planted on purpose | `data/demo/` |
 | Simulated TMF server | Serves that data like a real system would, read-only | `deno task stub` |
 | Readers and join | Fetch product orders (TMF622), service orders (TMF641) and activation attempts (TMF640), join them and print counts and how sure each join is | `deno task read` |
-| Rule R04 | Finds the 20 duplicated orders and prices them at USD 1,590 (USD 1,350 clean-up + USD 240 duplicate activations) | `deno task explain` |
+| Rule R04 | Finds the 20 duplicated orders and prices them at USD 1,590 (USD 1,350 clean-up + USD 240 duplicate activations) | `deno task audit --source stub`, `deno task explain` |
 
-**Not yet:** only R04 exists, `deno task audit` does not run it, and no `findings.json` or
-report comes out of the engine.
+**Not yet:** only R04 exists, and no `findings.json` or report file comes out of the engine
+(M4-02, M4-03).
 
 **Where it goes:**
 
@@ -33,7 +34,7 @@ report comes out of the engine.
 Done in Demo 1 so far: the three readers (milestone M1 is closed), provenance on every record,
 the join of orders, service orders and activations with a confidence per link, the
 classification of time as work, wait or gap (milestone M2 is closed) and the written spec of
-R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. Next card: M3-06 (wire R04 into `deno task audit`). The plan is in
+R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. `deno task audit` now runs R04 and returns the findings schema (M3-06, M4-01); the demo data uses snake_case keys and CI runs on push. Next cards: M4-02 (JSON report) and M2-05. The plan is in
 [`../specs/backlog.md`](../specs/backlog.md); finished cards are in [`../specs/done/`](../specs/done/README.md).
 
 ## Why
@@ -54,12 +55,13 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 
 ## What runs today
 
-Commands available in version 0.3.1:
+Commands available today:
 
 - `deno task check` passes.
-- `deno task test` passes 93 tests: dataset invariants, export stability, the hexagonal
-  and license boundaries, the walking skeleton, the TMF stub and the readers.
-- `deno task audit` exits with code 2: no evidence source exists yet.
+- `deno task test` passes: dataset invariants, export stability, the hexagonal and license
+  boundaries, the TMF stub, the readers, the join, R04, the findings schema and its validator.
+- `deno task audit --source stub` (start `deno task stub` first) prints counts, links and
+  `R04@1 · 20 orders · 30 h · USD 1,590`; without a source it exits with code 2.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts
   (TMF640) from the stub and prints counts. Start `deno task stub` first. It is a data check, not an audit.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs

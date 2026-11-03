@@ -1,12 +1,13 @@
 # AGENTS
 
-- This repo is at **version 0.3.1, milestone Demo 1** (next: Client-ready). It has the synthetic
+- This repo is on the way to **0.4.0, Demo 1** (versions mark milestones, not semver). It has the synthetic
   dataset, the simulated TMF stub, readers for product orders (TMF622), service orders (TMF641)
   and activations (TMF640) in `src/adapters/ingest/`, the correlation with per-link confidence
   and time segments (`src/domain/correlation.ts`, `segments.ts`), and rule R04
-  (`src/domain/rules/r04.ts`: 20 duplicates, USD 1,590). There is no `findings.json`, no
-  generated report and no other rule yet; `deno task audit` still exits with code 2. Do not
-  add R01, R02, R03 or R05 ahead of their milestone. Next card: M3-06 (wire R04 into `deno task audit`). The plan is
+  (`src/domain/rules/r04.ts`: 20 duplicates, USD 1,590). `deno task audit --source stub` runs R04
+  and returns the `findings/1` schema (`docs/architecture/report-schema.md`); no file is
+  written yet (M4-02). Data files use snake_case keys (TS stays camelCase). Do not add R01,
+  R02, R03 or R05 ahead of their milestone. Next cards: M4-02 and M2-05. The plan is
   `../specs/backlog.md`.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).
