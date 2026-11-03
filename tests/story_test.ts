@@ -25,8 +25,9 @@ Deno.test("ORD-1005 reads as the five steps of the acceptance, in order", () => 
   assert(whats[at("activation attempt on SO-30005")].includes("succeeded"), "then succeeded");
   const dup = steps.find((s) => s.what.includes("second service order"))!;
   assertEquals(dup.finding, "R04");
-  // ORD-1005 was retried twice: both repeated service orders start the finding.
-  assertEquals(steps.filter((s) => s.finding !== null).length, 2);
+  // ORD-1005 has one repeated service order; the order with a third one is ORD-1017.
+  assertEquals(steps.filter((s) => s.finding !== null).length, 1);
+  assertEquals(whats.some((w) => w.includes("third service order")), false);
 });
 
 Deno.test("steps the source cannot show are listed as not observed, with a reason", () => {

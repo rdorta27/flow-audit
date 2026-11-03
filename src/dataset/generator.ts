@@ -74,7 +74,7 @@ const REUSED_SERIAL = { from: 3000, to: 3000 + REUSED_SERIAL_ORDERS };
 const MAINTENANCE = { from: 2000, to: 2000 + MAINTENANCE_FAILURE_ORDERS };
 const LONG_RUNNING = { from: 4700, to: 4700 + LONG_RUNNING_ORDERS };
 /** One of the planted duplicates gets a third service order. */
-const THREE_SO_INDEX = 5;
+const THREE_SO_INDEX = 17; // not ORD-1005, the order the site and the report tell as the story
 const STEP_MS = Math.floor((WINDOW_END - WINDOW_START) / ORDERS);
 const OFFER_V2_FROM = new Date(WINDOW_START + V2_FIRST_INDEX * STEP_MS - 2 * MINUTE)
   .toISOString();
