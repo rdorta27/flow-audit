@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
- * `deno task explain [out.html]`: writes one self-contained page that follows a single
+ * `deno task explain [out.html] [--order ORD-1005]`: writes one self-contained page that follows a single
  * duplicated order through the pipeline, with the real records the engine read (M3-02).
  * Read-only: it serves the synthetic dataset in process and never opens a network port.
  */
@@ -9,6 +9,7 @@ import { systemClock } from "../adapters/clock/system_clock.ts";
 import { createTmfSources } from "../adapters/ingest/tmf_sources.ts";
 import { runAudit } from "../app/run_audit.ts";
 import { configFromFile } from "../domain/data_files.ts";
+import { buildStory } from "../domain/story.ts";
 import type { RawRecord } from "../ports/evidence_source.ts";
 import { loadStubDataset } from "../stub/dataset.ts";
 import { buildStubState } from "../stub/mapping.ts";
@@ -113,7 +114,7 @@ function buildDiagram(entry: DiagramEntry, ref: string, note: string): string {
   };f.querySelectorAll("button").forEach(function(b){b.onclick=function(){var n=b.dataset.step;f.dataset.on=n;f.querySelectorAll("button").forEach(function(o){o.setAttribute("aria-pressed",o===b)});f.querySelector(".cap").textContent=c[n-1]}})})()</script></div>`;
 }
 
-export async function buildExplainPage(dataDir: URL): Promise<string> {
+export async function buildExplainPage(dataDir: URL, orderRef?: string): Promise<string> {
   const data = await loadStubDataset(dataDir);
   const handle = createHandler({
     state: buildStubState(data.catalog, data.orders, data.serviceOrders, data.attempts),
@@ -136,10 +137,30 @@ export async function buildExplainPage(dataDir: URL): Promise<string> {
   const { productOrders: rawOrders, serviceOrders: rawServices, activations: rawAttempts } =
     audit.records;
   const finding = audit.findings.find((f) => f.id === "R04");
-  if (!finding) throw new Error("no duplicated order in this data");
+  if (!finding && !orderRef) throw new Error("no duplicated order in this data");
 
-  const ref = finding.evidence[0].orderRef;
-  const entry = result.orders.find((o) => o.order.orderRef === ref)!;
+  const ref = orderRef ?? finding!.evidence[0].orderRef;
+  const entry = result.orders.find((o) => o.order.orderRef === ref);
+  if (!entry) throw new Error(`order ${ref} is not in this data`);
+  const steps = buildStory(entry, audit.findings);
+  const story = `<h2>The story</h2><ol class="story">${
+    steps.map((st) =>
+      `<li${st.observed ? "" : ' style="color:var(--mut);font-style:italic"'}>${
+        st.at ? `<small>${esc(st.at)}</small> ` : ""
+      }<b>${esc(st.system)}</b> ${esc(st.what)}${
+        st.observed
+          ? st.record ? ` <small>${esc(st.record.id)} · ${esc(st.record.endpoint)}</small>` : ""
+          : ` <small>(${esc(st.reason)})</small>`
+      }${st.finding ? ` <span class="tag">${esc(st.finding)}</span>` : ""}</li>`
+    ).join("")
+  }</ol>`;
+  const ev = finding?.evidence.find((e) => e.orderRef === ref);
+  if (!finding || !ev) {
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>One order, step by step</title>
+<style>:root{--mut:#666;--bad:#b3261e}body{font:16px/1.5 system-ui,sans-serif;max-width:860px;margin:0 auto;padding:24px 16px}small{color:var(--mut)}.tag{background:var(--bad);color:#fff;border-radius:4px;padding:0 6px;font-size:.8rem}</style></head><body>
+<h1>One order, step by step: ${esc(ref)}</h1>${story}</body></html>`;
+  }
   const soIds = new Set(entry.serviceOrders.map((l) => l.item.soRef));
   const pick = (rows: RawRecord[], id: (r: RawRecord) => string) =>
     rows.filter((r) => id(r) === ref || soIds.has(id(r)));
@@ -149,14 +170,13 @@ export async function buildExplainPage(dataDir: URL): Promise<string> {
     rawAttempts,
     (r) => String((r.value as { serviceOrder?: { id?: string } }).serviceOrder?.id ?? ""),
   );
-  const diagram = buildDiagram(entry, ref, finding.evidence[0].note ?? "");
+  const diagram = buildDiagram(entry, ref, ev.note ?? "");
   const box = (title: string, sub: string, body: string, cls = "") =>
     `<section class="box ${cls}"><h3>${esc(title)}</h3><p class="sub">${sub}</p>${body}</section>`;
   const rec = (r: RawRecord) =>
     `<details><summary>${esc(r.provenance.externalId)} <small>${
       esc(r.provenance.endpoint)
     }</small></summary><pre>${json(r.value)}</pre></details>`;
-  const ev = finding.evidence[0];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>One order, step by step</title>
 <style>
@@ -178,6 +198,7 @@ summary{cursor:pointer;margin:4px 0}small{color:var(--mut)}
 </style></head><body>
 <h1>One order, step by step: ${esc(ref)}</h1>
 <p>Real records from the test dataset (synthetic). Click the steps to walk through the flow; below is the JSON as it arrived.</p>
+${story}
 ${diagram}
 ${
     box(
@@ -237,10 +258,24 @@ ${
 }
 
 if (import.meta.main) {
-  const out = Deno.args[0] ?? "explain.html";
-  await Deno.writeTextFile(
-    out,
-    await buildExplainPage(new URL("../../data/demo/", import.meta.url)),
-  );
+  const args = [...Deno.args];
+  const at = args.indexOf("--order");
+  let order: string | undefined;
+  if (at >= 0) {
+    order = args[at + 1];
+    if (!order) {
+      console.error("explain: --order needs an order reference, for example ORD-1005");
+      Deno.exit(2);
+    }
+    args.splice(at, 2);
+  }
+  const out = args[0] ?? "explain.html";
+  const data = new URL("../../data/demo/", import.meta.url);
+  try {
+    await Deno.writeTextFile(out, await buildExplainPage(data, order));
+  } catch (error) {
+    console.error(`explain: ${(error as Error).message}`);
+    Deno.exit(1);
+  }
   console.log(`Wrote ${out}. Open it in a browser.`);
 }

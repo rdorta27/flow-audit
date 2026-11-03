@@ -129,9 +129,21 @@ function journeys(report: AuditReport): string {
           }</td><td>${esc(s.state)}</td></tr>`
         ).join("")
       }</tbody></table>`;
-    const story = j.story === null
-      ? `<p class="note">The plain-language story of this order is not generated in this version.</p>`
-      : `<p>${esc(j.story)}</p>`;
+    const story = `<ol class="story">${
+      j.story.map((st) =>
+        `<li${st.observed ? "" : ' class="missing"'}>${chip(st.system)} ${
+          st.at ? `<time>${esc(st.at)}</time> ` : ""
+        }${esc(st.what)}${
+          st.observed
+            ? st.record
+              ? ` <small class="muted">${esc(st.record.id)} · ${esc(st.record.endpoint)}</small>`
+              : ""
+            : ` <small class="muted">(${esc(st.reason ?? "not observed")})</small>`
+        }${
+          st.finding ? ` <span class="sev sev-medium">${esc(st.finding)} starts here</span>` : ""
+        }</li>`
+      ).join("")
+    }</ol>`;
     return `<article class="card"><h3>Order <code>${esc(j.orderRef)}</code></h3>
 <p>Findings: ${j.findings.map(esc).join(", ") || "none"}</p>${story}${body}${
       j.correlation.gaps.length
@@ -139,6 +151,31 @@ function journeys(report: AuditReport): string {
         : ""
     }</article>`;
   }).join("\n");
+}
+
+function totalsBlock(report: AuditReport, cur: string): string {
+  const { gross, net } = report.totals;
+  const rows = report.findings.map((f) =>
+    `<tr><td>${esc(f.id)} · ${esc(f.title)}</td><td class="n">${
+      hours(f.cost.hoursMonth)
+    }</td><td class="n">${esc(money(cur, f.cost.amountMonth))}</td></tr>`
+  ).join("");
+  const shared = Object.keys(report.overlap.byOrder).length;
+  const why = shared === 0
+    ? "No order is charged by more than one rule, so the net total equals the sum."
+    : `${num(shared)} order${shared === 1 ? " is" : "s are"} charged by more than one rule (${
+      report.overlap.pairs.map((p) => `${esc(p.rules.join(" and "))}: ${num(p.orders)}`).join("; ")
+    }). Each such order is counted once, at its largest charge; the ${
+      esc(money(cur, gross.amount - net.amount))
+    } difference is the smaller charges removed, order by order in <code>overlap.by_order</code>.`;
+  return `<table><thead><tr><th>Per rule</th><th class="n">Hours</th><th class="n">Cost</th></tr></thead><tbody>${rows}
+<tr><td>Sum of the rules (gross)</td><td class="n">${hours(gross.hours)}</td><td class="n">${
+    esc(money(cur, gross.amount))
+  }</td></tr>
+<tr><th>Net total, each order counted once</th><th class="n">${
+    hours(net.hours)
+  }</th><th class="n">${esc(money(cur, net.amount))}</th></tr></tbody></table>
+<p class="note">${why}</p>`;
 }
 
 function correlation(report: AuditReport): string {
@@ -227,10 +264,10 @@ export function renderHtml(report: AuditReport): string {
 <section aria-labelledby="kpi"><h2 id="kpi">At a glance</h2>
 <ul class="kpis">
 <li class="card"><span class="big">${
-    esc(money(cur, report.totals.gross.amount))
-  }</span><small>estimated cost</small></li>
+    esc(money(cur, report.totals.net.amount))
+  }</span><small>estimated cost, each order counted once</small></li>
 <li class="card"><span class="big">${
-    hours(report.totals.gross.hours)
+    hours(report.totals.net.hours)
   }</span><small>of manual work</small></li>
 <li class="card"><span class="big">${num(report.findings.length)}</span><small>finding${
     report.findings.length === 1 ? "" : "s"
@@ -239,11 +276,7 @@ export function renderHtml(report: AuditReport): string {
     num(report.sources.length)
   }</span><small>sources read</small></li>
 </ul>
-${
-    report.totals.net === null
-      ? `<p class="note">Net total (each order counted once) is not computed in this version; the total above adds every finding.</p>`
-      : `<p class="note">Net of overlap: ${esc(money(cur, report.totals.net.amount))}.</p>`
-  }
+${totalsBlock(report, cur)}
 </section>
 <section aria-labelledby="sum"><h2 id="sum">Executive summary</h2>${summary(report)}</section>
 <section aria-labelledby="find"><h2 id="find">Findings</h2>${

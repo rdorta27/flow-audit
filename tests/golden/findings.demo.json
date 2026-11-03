@@ -880,14 +880,18 @@
     }
   ],
   "overlap": {
-    "by_order": {}
+    "by_order": {},
+    "pairs": []
   },
   "totals": {
     "gross": {
       "hours": 30,
       "amount": 1590
     },
-    "net": null
+    "net": {
+      "hours": 30,
+      "amount": 1590
+    }
   },
   "journeys": [
     {
@@ -901,7 +905,86 @@
         "gaps": []
       },
       "segments_unavailable": "ORD-1000: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
-      "story": null
+      "story": [
+        {
+          "at": "2026-09-01T00:00:27.000Z",
+          "system": "OMS",
+          "what": "The order manager received the order.",
+          "record": {
+            "id": "ORD-1000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "CAT",
+          "what": "The product catalog was checked that the offer can be sold and activated.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T02:32:27.000Z",
+          "system": "OMS",
+          "what": "A service order (SO-20000) was created for line 1.",
+          "record": {
+            "id": "SO-20000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "BPM",
+          "what": "The process orchestrator ran its tasks for the order.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T07:07:57.000Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-20000 failed.",
+          "record": {
+            "id": "ACT-70000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-03T19:07:27.000Z",
+          "system": "OMS",
+          "what": "A second service order (SO-30000) was created for line 1, which already had one.",
+          "record": {
+            "id": "SO-30000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": "R04",
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-03T19:08:07.000Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-30000 succeeded.",
+          "record": {
+            "id": "ACT-80000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        }
+      ]
     },
     {
       "order_ref": "ORD-1001",
@@ -914,7 +997,86 @@
         "gaps": []
       },
       "segments_unavailable": "ORD-1001: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
-      "story": null
+      "story": [
+        {
+          "at": "2026-09-01T00:08:07.400Z",
+          "system": "OMS",
+          "what": "The order manager received the order.",
+          "record": {
+            "id": "ORD-1001",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "CAT",
+          "what": "The product catalog was checked that the offer can be sold and activated.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T02:05:07.400Z",
+          "system": "OMS",
+          "what": "A service order (SO-20001) was created for line 1.",
+          "record": {
+            "id": "SO-20001",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "BPM",
+          "what": "The process orchestrator ran its tasks for the order.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T09:55:37.400Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-20001 failed.",
+          "record": {
+            "id": "ACT-70001",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-03T21:55:07.400Z",
+          "system": "OMS",
+          "what": "A second service order (SO-30001) was created for line 1, which already had one.",
+          "record": {
+            "id": "SO-30001",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": "R04",
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-03T21:55:47.400Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-30001 succeeded.",
+          "record": {
+            "id": "ACT-80001",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        }
+      ]
     },
     {
       "order_ref": "ORD-1002",
@@ -927,7 +1089,86 @@
         "gaps": []
       },
       "segments_unavailable": "ORD-1002: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
-      "story": null
+      "story": [
+        {
+          "at": "2026-09-01T00:17:14.800Z",
+          "system": "OMS",
+          "what": "The order manager received the order.",
+          "record": {
+            "id": "ORD-1002",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "CAT",
+          "what": "The product catalog was checked that the offer can be sold and activated.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T01:58:14.800Z",
+          "system": "OMS",
+          "what": "A service order (SO-20002) was created for line 1.",
+          "record": {
+            "id": "SO-20002",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "BPM",
+          "what": "The process orchestrator ran its tasks for the order.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T12:01:44.800Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-20002 failed.",
+          "record": {
+            "id": "ACT-70002",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-04T00:01:14.800Z",
+          "system": "OMS",
+          "what": "A second service order (SO-30002) was created for line 1, which already had one.",
+          "record": {
+            "id": "SO-30002",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": "R04",
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-04T00:01:54.800Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-30002 succeeded.",
+          "record": {
+            "id": "ACT-80002",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        }
+      ]
     }
   ]
 }

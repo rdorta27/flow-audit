@@ -31,9 +31,9 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `correlation` | `links` (counts by kind and confidence, zeros included), `unresolved` (records not placed under exactly one order), `unmapped` (records whose state was not recognised; always 0 until M2-05). Counts by pair of systems are the `links` kinds. |
 | `systems[]` | One per `CAT`, `OMS`, `BPM`, `PROV`: `name`, `role`, `position` (1-based in the flow), `read`, `source_kind` (null if not read), `records`, `coverage` (share of orders with a record from that system, null when not read), `cannot_observe[]`, `findings[]` (rule ids whose evidence touches it). |
 | `findings[]` | See below. |
-| `overlap` | `by_order`: order id to the rule ids that touch it. `{}` until M4-05. |
-| `totals` | `gross`: `hours` and `amount` summed over findings with `in_total` true. `net`: same, each order counted once; `null` until M4-05. |
-| `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story` (`null` until M4-04). |
+| `overlap` | `by_order`: order id to the rule ids that charge it, only for orders charged by two or more rules (`{}` when none). `pairs[]`: `rules` (two ids) and `orders` (how many orders they share). |
+| `totals` | `gross`: `hours` and `amount` summed over findings with `in_total` true. `net`: the same with each order counted once, at its largest charge (`rules.md`, "Overlap"); equals `gross` when nothing overlaps. |
+| `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story[]`: the order step by step (`at`, `system`, `what` (one plain sentence), `record` (`id` and `endpoint`, or `null`), `finding` (the rule id that starts at this step, or `null`), `observed`, `reason` (why a step is not observed)). A step the source cannot show stays in the list with `observed` false. |
 
 ## Findings
 
@@ -80,8 +80,8 @@ input.
 
 ## Not in `findings/1` yet
 
-Overlap and the net total (M4-05), ranges (a later card), redaction of identifiers (a
-later card), catalog counts, `rules_versions` per source, and the order `story` (M4-04).
+Ranges (a later card), redaction of identifiers (a
+later card), catalog counts, `rules_versions` per source.
 Their keys either exist with an empty value, as listed above, or are added with a version
 bump of the schema.
 
@@ -405,14 +405,18 @@ sample up to twenty. A test validates this exact block.
     }
   ],
   "overlap": {
-    "by_order": {}
+    "by_order": {},
+    "pairs": []
   },
   "totals": {
     "gross": {
       "hours": 30,
       "amount": 1590
     },
-    "net": null
+    "net": {
+      "hours": 30,
+      "amount": 1590
+    }
   },
   "journeys": [
     {
@@ -426,7 +430,86 @@ sample up to twenty. A test validates this exact block.
         "gaps": []
       },
       "segments_unavailable": "ORD-1000: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
-      "story": null
+      "story": [
+      {
+            "at": "2026-09-01T00:00:27.000Z",
+            "system": "OMS",
+            "what": "The order manager received the order.",
+            "record": {
+                  "id": "ORD-1000",
+                  "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            "finding": null,
+            "observed": true,
+            "reason": null
+      },
+      {
+            "at": null,
+            "system": "CAT",
+            "what": "The product catalog was checked that the offer can be sold and activated.",
+            "record": null,
+            "finding": null,
+            "observed": false,
+            "reason": "not visible in this source"
+      },
+      {
+            "at": "2026-09-01T02:32:27.000Z",
+            "system": "OMS",
+            "what": "A service order (SO-20000) was created for line 1.",
+            "record": {
+                  "id": "SO-20000",
+                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            "finding": null,
+            "observed": true,
+            "reason": null
+      },
+      {
+            "at": null,
+            "system": "BPM",
+            "what": "The process orchestrator ran its tasks for the order.",
+            "record": null,
+            "finding": null,
+            "observed": false,
+            "reason": "not visible in this source"
+      },
+      {
+            "at": "2026-09-01T07:07:57.000Z",
+            "system": "PROV",
+            "what": "An activation attempt on SO-20000 failed.",
+            "record": {
+                  "id": "ACT-70000",
+                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            "finding": null,
+            "observed": true,
+            "reason": null
+      },
+      {
+            "at": "2026-09-03T19:07:27.000Z",
+            "system": "OMS",
+            "what": "A second service order (SO-30000) was created for line 1, which already had one.",
+            "record": {
+                  "id": "SO-30000",
+                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            "finding": "R04",
+            "observed": true,
+            "reason": null
+      },
+      {
+            "at": "2026-09-03T19:08:07.000Z",
+            "system": "PROV",
+            "what": "An activation attempt on SO-30000 succeeded.",
+            "record": {
+                  "id": "ACT-80000",
+                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            "finding": null,
+            "observed": true,
+            "reason": null
+      }
+]
     }
   ]
 }

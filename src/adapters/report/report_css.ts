@@ -15,6 +15,7 @@ h1,h2,h3{line-height:1.2}h2{margin-top:2rem;border-bottom:1px solid var(--line);
 code{font-family:var(--mono);font-size:.9em;overflow-wrap:anywhere}
 .brand{color:var(--fa);font-weight:700;margin:0}
 .muted,.note,small{color:var(--muted)}
+.story{padding-left:1.4rem}.story li{margin:.3rem 0}.story .missing{color:var(--muted);font-style:italic}
 .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.75rem 1rem;margin:.75rem 0}
 .labels{display:flex;flex-wrap:wrap;gap:.5rem}
 .label{border:1px solid var(--fa);color:var(--fa);border-radius:999px;padding:.1rem .6rem;font-size:.85rem}

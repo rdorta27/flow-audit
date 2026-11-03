@@ -20,6 +20,7 @@ import {
   type SystemId,
 } from "../model.ts";
 import type { Link } from "../correlation.ts";
+import type { OrderCharge } from "../totals.ts";
 
 export const R04_ID = "R04";
 export const R04_VERSION = "R04@1";
@@ -156,6 +157,42 @@ export function detectR04(
       "Make the retry reuse the existing service order, and confirm in billing the orders " +
       "whose duplicate reached activation.",
   };
+}
+
+/**
+ * What R04 charges to each duplicated item, for the net total (M4-05). Same counts and rates
+ * as `detectR04`, so the charges add up to the finding's cost.
+ */
+export function chargesR04(
+  orders: readonly CorrelatedOrder[],
+  config: ImpactConfig,
+): OrderCharge[] {
+  const charges: OrderCharge[] = [];
+  for (const entry of orders) {
+    const live = entry.serviceOrders.filter((l) =>
+      l.item.state !== "CANCELLED" && l.item.state !== "UNMAPPED"
+    );
+    const byItem = new Map<string, typeof live>();
+    for (const linked of live) {
+      const item = linked.item.productOrderItemRef;
+      if (item === undefined) continue;
+      byItem.set(item, [...(byItem.get(item) ?? []), linked]);
+    }
+    for (const group of byItem.values()) {
+      if (group.length < 2) continue;
+      const extra = group.slice(1).map((l) => l.item.soRef);
+      const reached = entry.attempts.some((a) => extra.includes(a.link.toId ?? ""));
+      const hours = config.rates.cleanupMinutes / 60;
+      charges.push({
+        ruleId: R04_ID,
+        orderRef: entry.order.orderRef,
+        hours,
+        amount: hours * config.loadedHourUsd +
+          (reached ? config.rates.duplicateActivationCostUsd : 0),
+      });
+    }
+  }
+  return charges;
 }
 
 function input(key: string, value: number): Cost["inputs"][number] {

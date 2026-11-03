@@ -184,6 +184,25 @@ usd   = hours × loaded_hour_usd
 **Known limits.** Time windows are a fallback, not proof. A weak link is reported as a
 correlation gap even when the match happens to be correct.
 
+## Overlap
+
+Rules can charge the same order (R01 and R03 both bill manual minutes and waiting days on a
+stuck order), so the sum of the findings (`totals.gross`) can count an order's hours more
+than once. `totals.net` counts each order once:
+
+1. For each order, a rule's charge is the sum of what that rule charges the order (one rule
+   charging two items of the order is still one rule).
+2. When two or more rules in the total charge the same order, only the **largest charge by
+   amount** stays. On a tie the **lowest rule id** stays (R01 before R03), so the result never
+   depends on the order the rules ran.
+3. `net = gross - the charges removed`; with no overlap it equals `gross` exactly.
+4. `overlap.by_order` lists the rules that charge each overlapped order and `overlap.pairs`
+   counts the orders each pair shares. A finding with `in_total` false takes no part.
+
+A rule supplies its per-order charges (`Rule.charges`) next to its finding; they add up to the
+finding's cost. This only removes double counting; it does not say which rule is the root cause
+(0.6.0). The report leads with per-rule figures and shows both totals with this explanation.
+
 ## Output
 
 Every rule returns the same `Finding` (`src/domain/model.ts`) and the file keeps one shape

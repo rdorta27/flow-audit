@@ -230,7 +230,10 @@ export function validateReport(report: unknown, config?: unknown): string[] {
   });
 
   const overlap = obj(report, "overlap", "report");
-  if (overlap) obj(overlap, "by_order", "overlap");
+  if (overlap) {
+    obj(overlap, "by_order", "overlap");
+    list(overlap, "pairs", "overlap");
+  }
   const totals = obj(report, "totals", "report");
   if (totals) {
     const gross = obj(totals, "gross", "totals");
@@ -244,11 +247,12 @@ export function validateReport(report: unknown, config?: unknown): string[] {
         err("totals.gross.hours", `must equal the sum of findings with in_total (${grossHours})`);
       }
     }
-    if (totals.net !== null) {
-      const net = obj(totals, "net", "totals");
-      if (net) {
-        num(net, "hours", "totals.net");
-        num(net, "amount", "totals.net");
+    const net = obj(totals, "net", "totals");
+    if (net) {
+      num(net, "hours", "totals.net");
+      num(net, "amount", "totals.net");
+      if (gross && isNum(net.amount) && isNum(gross.amount) && net.amount > gross.amount + 1e-6) {
+        err("totals.net.amount", "must not exceed totals.gross.amount");
       }
     }
   }
@@ -257,7 +261,16 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     if (!isObj(j)) return err(p, "must be an object");
     str(j, "order_ref", p);
     list(j, "segments", p);
-    if (j.story !== null && !isStr(j.story)) err(`${p}.story`, "must be a string or null");
+    list(j, "story", p).forEach((step, k) => {
+      const q = `${p}.story[${k}]`;
+      if (!isObj(step)) return err(q, "must be an object");
+      str(step, "what", q);
+      if (step.at !== null && !isStr(step.at)) err(`${q}.at`, "must be a string or null");
+      if (typeof step.observed !== "boolean") err(`${q}.observed`, "must be true or false");
+      if (step.finding !== null && !isStr(step.finding)) {
+        err(`${q}.finding`, "must be a string or null");
+      }
+    });
   });
   return errors;
 }

@@ -2,6 +2,8 @@
 import { mapActivation, mapProductOrder, mapServiceOrder } from "../adapters/ingest/tmf_mapping.ts";
 import { correlate, type CorrelationResult, summarizeLinks } from "../domain/correlation.ts";
 import { journeysWithSegments } from "../domain/segments.ts";
+import { buildStory } from "../domain/story.ts";
+import { computeTotals, type OrderCharge } from "../domain/totals.ts";
 import {
   type AuditReport,
   type Finding,
@@ -159,10 +161,14 @@ export async function runAudit(
   });
 
   const findings: Finding[] = [];
+  const charges: OrderCharge[] = [];
   for (const rule of RULES) {
     say(`running ${rule.version}`);
     const finding = rule.detect(correlation.orders, config);
-    if (finding) findings.push(finding);
+    if (finding) {
+      findings.push(finding);
+      charges.push(...rule.charges(correlation.orders, config));
+    }
   }
 
   const reportSources = await Promise.all([
@@ -212,7 +218,7 @@ export async function runAudit(
   const configHash = await sha256(canonical(config));
   const rulesHash = await sha256(RULES.map((r) => r.version).join("\n"));
   const simulated = reportSources.some((s) => s.simulated);
-  const inTotal = findings.filter((f) => f.inTotal);
+  const totals = computeTotals(findings, charges);
 
   const report: AuditReport = {
     schemaVersion: SCHEMA_VERSION,
@@ -240,15 +246,15 @@ export async function runAudit(
     },
     systems,
     findings,
-    overlap: { byOrder: {} },
-    totals: {
-      gross: {
-        hours: inTotal.reduce((sum, f) => sum + f.cost.hoursMonth, 0),
-        amount: inTotal.reduce((sum, f) => sum + f.cost.amountMonth, 0),
-      },
-      net: null,
-    },
-    journeys: journeys.map((j) => ({ ...j, story: null })),
+    overlap: totals.overlap,
+    totals: { gross: totals.gross, net: totals.net },
+    journeys: journeys.map((j) => ({
+      ...j,
+      story: buildStory(
+        correlation.orders.find((e) => e.order.orderRef === j.orderRef)!,
+        findings,
+      ),
+    })),
   };
 
   return {

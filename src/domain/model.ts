@@ -423,13 +423,32 @@ export interface ReportTotals {
 }
 
 export interface ReportOverlap {
-  /** Order -> rule ids that touch it. Empty until M4-05 computes it. */
+  /** Order -> the rule ids that charge it, only for orders touched by two or more rules. */
   byOrder: Record<string, string[]>;
+  /** Each pair of rules that share orders, and how many (M4-05). */
+  pairs: { rules: string[]; orders: number }[];
+}
+
+/** One step of the story of an order (M4-04). */
+export interface StoryStep {
+  /** When it happened, ISO 8601 UTC; null when the step is not observed. */
+  at: string | null;
+  system: SystemId;
+  /** One plain sentence, from a template per event kind. */
+  what: string;
+  /** The record that proves the step; null when none exists. */
+  record: { id: string; endpoint: string } | null;
+  /** The finding that starts at this step, if any. */
+  finding: string | null;
+  /** False when the step is inferred or missing from the source. */
+  observed: boolean;
+  /** Why the step is not observed; null when it is. */
+  reason: string | null;
 }
 
 export interface ReportJourney extends OrderJourney {
-  /** The order told as a short story (M4-04); null until then. */
-  story: string | null;
+  /** The order told step by step (M4-04). */
+  story: StoryStep[];
 }
 
 /** The whole report: this is `findings/1`. The file uses the snake_case form of these keys. */
@@ -444,8 +463,8 @@ export interface AuditReport {
   systems: ReportSystem[];
   findings: Finding[];
   overlap: ReportOverlap;
-  /** `gross` adds every finding in the total; `net` counts each order once (M4-05, null until then). */
-  totals: { gross: ReportTotals; net: ReportTotals | null };
+  /** `gross` adds every finding in the total; `net` counts each order once (M4-05). */
+  totals: { gross: ReportTotals; net: ReportTotals };
   journeys: ReportJourney[];
 }
 
