@@ -1,6 +1,6 @@
 # Rule catalogue
 
-Status: R04 is implemented (`src/domain/rules/r04.ts`, M3-02); the others are designed. R04 is the first rule (milestone Demo 1) and its
+Status: R04 is implemented (`src/domain/rules/r04.ts`, M3-02) and registered in `src/domain/rules/index.ts`; the others are designed. R04 is the first rule (milestone Demo 1) and its
 Demo 1 specification is written below. The rules below are the five
 findings the demo reports. Each one must be defensible: a signal, the
 evidence that proves it and a formula that turns it into hours and USD.
@@ -186,17 +186,9 @@ correlation gap even when the match happens to be correct.
 
 ## Output
 
-Every rule writes to `findings.json` with the same shape, so the report and the
-heat map do not depend on which rule fired:
-
-```json
-{
-  "id": "R01",
-  "severity": "critical",
-  "affected_orders": 400,
-  "share_of_orders": 0.08,
-  "evidence": [{ "order_ref": "ORD-1042", "event_ids": ["...", "..."] }],
-  "impact": { "hours_month": 167, "usd_month": 7515, "revenue_at_risk": 0 },
-  "recommendation": "Add an automatic retry with backoff before the order falls out to the manual queue."
-}
-```
+Every rule returns the same `Finding` (`src/domain/model.ts`) and the file keeps one shape
+for all of them: the `findings/1` schema, documented with a complete R04 example in
+[report-schema.md](report-schema.md). A finding carries its `cost` block: the formula
+written in this catalogue, the `config.json` inputs it used, the terms that add up to the
+amount (each with its `basis`), what could not be measured, and the revenue at risk, which
+is never added. The old per-rule example is replaced by the schema.

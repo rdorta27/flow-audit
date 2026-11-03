@@ -526,8 +526,8 @@ Deno.test("R04 finds exactly the 20 duplicated orders on the stub, USD 1,590", a
   const finding = detectR04(result.orders, R04_CONFIG)!;
   assertEquals(finding.affectedOrders, EXPECTED.findings.R04.affected_orders);
   assertEquals(finding.evidence.length, 20);
-  assertEquals(finding.impact.hoursMonth, 30);
-  assertEquals(finding.impact.usdMonth, 1590);
+  assertEquals(finding.cost.hoursMonth, 30);
+  assertEquals(finding.cost.amountMonth, 1590);
   assertEquals(finding.severity, "medium");
 });
 

@@ -5,23 +5,14 @@
  * Read-only: it serves the synthetic dataset in process and never opens a network port.
  */
 
-import { Tmf622ProductOrderSource } from "../adapters/ingest/tmf622_source.ts";
-import { Tmf640ServiceActivationSource } from "../adapters/ingest/tmf640_source.ts";
-import { Tmf641ServiceOrderSource } from "../adapters/ingest/tmf641_source.ts";
-import { mapActivation, mapProductOrder, mapServiceOrder } from "../adapters/ingest/tmf_mapping.ts";
-import { correlate } from "../domain/correlation.ts";
+import { systemClock } from "../adapters/clock/system_clock.ts";
+import { createTmfSources } from "../adapters/ingest/tmf_sources.ts";
+import { runAudit } from "../app/run_audit.ts";
 import type { ImpactConfig } from "../domain/model.ts";
-import { detectR04 } from "../domain/rules/r04.ts";
 import type { RawRecord } from "../ports/evidence_source.ts";
 import { loadStubDataset } from "../stub/dataset.ts";
 import { buildStubState } from "../stub/mapping.ts";
 import { createHandler } from "../stub/router.ts";
-
-async function collect(source: { read(): AsyncIterable<RawRecord> }): Promise<RawRecord[]> {
-  const rows: RawRecord[] = [];
-  for await (const row of source.read()) rows.push(row);
-  return rows;
-}
 
 const esc = (s: unknown) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -133,18 +124,18 @@ export async function buildExplainPage(dataDir: URL): Promise<string> {
       ((input: string | URL | Request, init?: RequestInit) =>
         handle(new Request(String(input), init))) as typeof fetch,
   };
-  const rawOrders = await collect(new Tmf622ProductOrderSource(config));
-  const rawServices = await collect(new Tmf641ServiceOrderSource(config));
-  const rawAttempts = await collect(new Tmf640ServiceActivationSource(config));
-  const result = correlate({
-    orders: rawOrders.map(mapProductOrder),
-    serviceOrders: rawServices.map(mapServiceOrder),
-    attempts: rawAttempts.map(mapActivation),
-  });
   const impact = JSON.parse(
     await Deno.readTextFile(new URL("config.json", dataDir)),
   ) as ImpactConfig;
-  const finding = detectR04(result.orders, impact);
+  const audit = await runAudit({}, {
+    sources: createTmfSources(config),
+    config: impact,
+    clock: systemClock,
+  });
+  const result = audit.correlation;
+  const { productOrders: rawOrders, serviceOrders: rawServices, activations: rawAttempts } =
+    audit.records;
+  const finding = audit.findings.find((f) => f.id === "R04");
   if (!finding) throw new Error("no duplicated order in this data");
 
   const ref = finding.evidence[0].orderRef;
@@ -232,14 +223,14 @@ ${
 ${
     box(
       "4. Hallazgo",
-      `${esc(finding.id)} · severidad ${esc(finding.severity)}`,
+      `${esc(finding.ruleVersion)} · severidad ${esc(finding.severity)}`,
       `<p>${finding.affectedOrders} pedidos de 5.000 (${
         (finding.shareOfOrders * 100).toFixed(1)
-      } %). Impacto: <b>${finding.impact.hoursMonth} h</b> y <b>USD ${
-        finding.impact.usdMonth.toLocaleString("en-US")
+      } %). Impacto: <b>${finding.cost.hoursMonth} h</b> y <b>USD ${
+        finding.cost.amountMonth.toLocaleString("en-US")
       }</b> al mes.</p><p>${
         esc(finding.recommendation)
-      }</p><details><summary>Cuenta</summary><pre>horas = ${finding.affectedOrders} × ${impact.rates.cleanupMinutes} min / 60 = ${finding.impact.hoursMonth}\nusd = ${finding.impact.hoursMonth} h × ${impact.loadedHourUsd} + activaciones duplicadas × ${impact.rates.duplicateActivationCostUsd}</pre></details>`,
+      }</p><details><summary>Cuenta</summary><pre>horas = ${finding.affectedOrders} × ${impact.rates.cleanupMinutes} min / 60 = ${finding.cost.hoursMonth}\nusd = ${finding.cost.hoursMonth} h × ${impact.loadedHourUsd} + activaciones duplicadas × ${impact.rates.duplicateActivationCostUsd}</pre></details>`,
     )
   }
 </body></html>`;

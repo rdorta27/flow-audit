@@ -8,15 +8,11 @@
  * nothing about whether it is a problem. Findings arrive with the rules (M3).
  */
 
-import { Tmf622ProductOrderSource, tmfConfigFromEnv } from "../adapters/ingest/tmf622_source.ts";
 import { mapActivation, mapProductOrder, mapServiceOrder } from "../adapters/ingest/tmf_mapping.ts";
 import { correlate, summarizeLinks } from "../domain/correlation.ts";
-import { Tmf640ServiceActivationSource } from "../adapters/ingest/tmf640_source.ts";
-import { Tmf641ServiceOrderSource } from "../adapters/ingest/tmf641_source.ts";
+import { createTmfSources, tmfConfigFromEnvOrStub } from "../adapters/ingest/tmf_sources.ts";
 import { TmfError } from "../adapters/ingest/tmf_client.ts";
 import type { EvidenceSource } from "../ports/evidence_source.ts";
-
-const DEFAULT_BASE_URL = "http://127.0.0.1:8081";
 
 export interface ReadSummary {
   productOrders: number;
@@ -59,14 +55,13 @@ const LINK_LABELS: [keyof ReadSummary["links"], string][] = [
 async function main(): Promise<number> {
   const get = (name: string) => Deno.env.get(name);
   try {
-    const config = tmfConfigFromEnv((name) =>
-      name === "FLOW_AUDIT_TMF_BASE_URL" ? get(name) ?? DEFAULT_BASE_URL : get(name)
-    );
+    const config = tmfConfigFromEnvOrStub(get);
     console.log(`Reading from ${config.baseUrl}`);
+    const sources = createTmfSources(config);
     const summary = await summarize(
-      new Tmf622ProductOrderSource(config),
-      new Tmf641ServiceOrderSource(config),
-      new Tmf640ServiceActivationSource(config),
+      sources.productOrders,
+      sources.serviceOrders,
+      sources.activations,
     );
     const rows: [string, number][] = [
       ["Product orders (TMF622)", summary.productOrders],
