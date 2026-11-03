@@ -5,6 +5,10 @@ tag when it publishes that version.
 
 ## Unreleased
 
+## 0.3.0 — 2026-11-03
+
+Milestones M1 (the readers) and M2 (join and time classification) are closed and the first rule runs: R04 finds the 20 duplicated orders and prices them at USD 1,590.
+
 - M3-02: `src/domain/rules/r04.ts` detects service orders duplicated over one product order
   item (`R04@1`), skips cancelled ones, derives severity from impact and prices the cleanup
   and duplicate activations from `ImpactConfig`. `deno task explain` writes a self-contained

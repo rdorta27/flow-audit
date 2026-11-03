@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — version 0.2.0, milestone Demo 1.** The engine reads orders and
+> **Under construction — version 0.3.0, milestone Demo 1.** The engine reads orders and
 > service orders from a simulated source, but detects nothing and produces no report yet:
 > `deno task audit` exits with a clear message instead of pretending to audit.
 
@@ -52,7 +52,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 
 ## What runs today
 
-Commands available in version 0.2.0:
+Commands available in version 0.3.0:
 
 - `deno task check` passes.
 - `deno task test` passes 93 tests: dataset invariants, export stability, the hexagonal
@@ -80,7 +80,7 @@ The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 | Milestone | Goal | State |
 |---|---|---|
 | — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
-| M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.2.0) |
+| M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.3.0) |
 | Demo 1 | One real report: R04 read from the TMF stub, with its cost in USD and formula | planned |
 | Client-ready | Audit a client's file exports through `mapping.yml`; R01, R02, R04, R05 | planned |
 
