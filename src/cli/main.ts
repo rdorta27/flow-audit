@@ -5,14 +5,16 @@ import { systemClock } from "../adapters/clock/system_clock.ts";
 import { TmfError } from "../adapters/ingest/tmf_client.ts";
 import { createTmfSources, tmfConfigFromEnvOrStub } from "../adapters/ingest/tmf_sources.ts";
 import { configFromFile } from "../domain/data_files.ts";
-import type { ImpactConfig } from "../domain/model.ts";
+import type { AuditReport, ImpactConfig } from "../domain/model.ts";
+import { renderFindingsJson } from "../adapters/report/json_renderer.ts";
+import { renderHtml } from "../adapters/report/html_renderer.ts";
 
 const DEFAULT_CONFIG = new URL("../../data/demo/config.json", import.meta.url);
 
 const USAGE = `flow-audit — audit the order-to-activate flow of a BSS
 
 Usage:
-  deno task audit --source stub [--config <file>] [--quiet]
+  deno task audit --source stub [--config <file>] [--out <dir>] [--quiet]
 
 Options:
   --source stub    Read the simulated TMF stub (start it with \`deno task stub\`).
@@ -22,6 +24,8 @@ Options:
                    FLOW_AUDIT_TMF_TIMEOUT_MS, FLOW_AUDIT_TMF_PAGE_SIZE,
                    FLOW_AUDIT_TMF_MAX_REQUESTS.
   --config <file>  Impact rates and thresholds (default: data/demo/config.json).
+  --out <dir>      Write findings.json and report.html into this existing directory.
+                   The \`audit\` task may write only under ./out.
   --dataset <dir>  Directory with exports; file sources arrive in M5-02.
   --quiet          No progress lines on stderr. The result on stdout is unchanged.
   -h, --help       Show this help.
@@ -41,6 +45,7 @@ interface ParsedArgs {
   source?: "stub";
   config?: string;
   dataset?: string;
+  out?: string;
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
@@ -66,6 +71,12 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
         const value = argv[++index];
         if (!value) throw new UsageError("--config needs a file");
         parsed.config = value;
+        break;
+      }
+      case "--out": {
+        const value = argv[++index];
+        if (!value) throw new UsageError("--out needs a directory");
+        parsed.out = value;
         break;
       }
       case "--dataset": {
@@ -95,6 +106,29 @@ async function readConfig(path: string | undefined): Promise<ImpactConfig> {
   } catch (error) {
     throw new Error(`${where}: not a valid impact config: ${(error as Error).message}`);
   }
+}
+
+/** Writes `findings.json` and `report.html`; the directory must already exist and be writable. */
+export async function writeReports(dir: string, report: AuditReport): Promise<string[]> {
+  try {
+    if (!(await Deno.stat(dir)).isDirectory) throw new Error("not a directory");
+  } catch (error) {
+    throw new Error(
+      `cannot write the report: output directory ${dir} is not usable: ${(error as Error).message}`,
+    );
+  }
+  const files: [string, string][] = [
+    [`${dir}/findings.json`, renderFindingsJson(report)],
+    [`${dir}/report.html`, renderHtml(report)],
+  ];
+  for (const [path, text] of files) {
+    try {
+      await Deno.writeTextFile(path, text);
+    } catch (error) {
+      throw new Error(`cannot write ${path}: ${(error as Error).message}`);
+    }
+  }
+  return files.map(([path]) => path);
 }
 
 const n = (value: number) => value.toLocaleString("en-US");
@@ -160,6 +194,9 @@ export async function main(
       { sources, config, clock: systemClock, onProgress: progress },
     );
     for (const line of summaryLines(result)) console.log(line);
+    if (options.out) {
+      for (const path of await writeReports(options.out, result.report)) progress(`wrote ${path}`);
+    }
     return 0;
   } catch (error) {
     if (error instanceof NoEvidenceSourceError) {

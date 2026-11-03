@@ -1,0 +1,921 @@
+{
+  "schema_version": "findings/1",
+  "engine_version": "0.3.2",
+  "run": {
+    "id": "<run>",
+    "generated_at": "<time>",
+    "inputs_hash": "16e384b8b09a420ed80986b345eb99c5d7cb2280c37358f3c34a3a4ffd4acac9",
+    "config_hash": "d3cdb513cc14f476244c57b733437bda558df9629118e9c5ee5e795d12c46001",
+    "rules_hash": "47aac6ef77567d17c45407f2e9bb024bab8902bd3949a9892ab0694262d1449f"
+  },
+  "sources": [
+    {
+      "system": "OMS",
+      "name": "TMF622 productOrder",
+      "kind": "tmf-api",
+      "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder",
+      "simulated": true,
+      "evidence_kind": "snapshot",
+      "records": 5000,
+      "rows_read": 5000,
+      "rows_discarded": 0,
+      "sha256": "cbac3f6f9a14d3eaf24f9a790e5b441aae3ac27ce3b0d60fb8c2fc4d02401bff"
+    },
+    {
+      "system": "OMS",
+      "name": "TMF641 serviceOrder",
+      "kind": "tmf-api",
+      "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder",
+      "simulated": true,
+      "evidence_kind": "snapshot",
+      "records": 5020,
+      "rows_read": 5020,
+      "rows_discarded": 0,
+      "sha256": "6caca13466bbaea8bcf75a4c1fdc655072661c56bfc13f832ad69155012e4dd4"
+    },
+    {
+      "system": "PROV",
+      "name": "TMF640 serviceActivation",
+      "kind": "tmf-api",
+      "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation",
+      "simulated": true,
+      "evidence_kind": "snapshot",
+      "records": 5400,
+      "rows_read": 5400,
+      "rows_discarded": 0,
+      "sha256": "3d9ea88e01d2c0b338a6784540d5c953b44ee9c1deaf317992c28263a85a854a"
+    }
+  ],
+  "labels": {
+    "synthetic_data": true,
+    "simulated_integration": true,
+    "estimated_impact": true
+  },
+  "config": {
+    "currency": "USD",
+    "orders_per_month": 5000,
+    "loaded_hour_usd": 45,
+    "rates": {
+      "manual_minutes": 5,
+      "daily_followup_minutes": 15,
+      "cleanup_minutes": 90,
+      "investigation_minutes": 45,
+      "duplicate_activation_cost_usd": 12,
+      "arpu_usd": 65
+    },
+    "thresholds": {
+      "retry_window_hours": 24,
+      "stuck_after_hours": 72,
+      "duplicate_window_minutes": 10
+    }
+  },
+  "correlation": {
+    "links": {
+      "service_order->order": {
+        "explicit": 5020,
+        "inferred": 0,
+        "ambiguous": 0,
+        "missing": 0,
+        "conflicting": 0
+      },
+      "process->service_order": {
+        "explicit": 0,
+        "inferred": 0,
+        "ambiguous": 0,
+        "missing": 0,
+        "conflicting": 0
+      },
+      "process->order": {
+        "explicit": 0,
+        "inferred": 0,
+        "ambiguous": 0,
+        "missing": 0,
+        "conflicting": 0
+      },
+      "attempt->service_order": {
+        "explicit": 5100,
+        "inferred": 0,
+        "ambiguous": 0,
+        "missing": 300,
+        "conflicting": 0
+      }
+    },
+    "unresolved": 300,
+    "unmapped": 0
+  },
+  "systems": [
+    {
+      "system": "CAT",
+      "name": "Product catalog",
+      "role": "lists what is sold and the technical data needed to switch it on",
+      "position": 1,
+      "read": false,
+      "source_kind": null,
+      "records": 0,
+      "coverage": null,
+      "cannot_observe": [
+        "not read in this run: no catalog source is wired yet"
+      ],
+      "findings": []
+    },
+    {
+      "system": "OMS",
+      "name": "Order manager",
+      "role": "receives the order and splits it into service orders",
+      "position": 2,
+      "read": true,
+      "source_kind": "tmf-api",
+      "records": 10020,
+      "coverage": 1,
+      "cannot_observe": [
+        "when each state change happened: the source is a snapshot, not a history"
+      ],
+      "findings": [
+        "R04"
+      ]
+    },
+    {
+      "system": "BPM",
+      "name": "Process orchestrator",
+      "role": "runs the tasks in order and hands some to people",
+      "position": 3,
+      "read": false,
+      "source_kind": null,
+      "records": 0,
+      "coverage": null,
+      "cannot_observe": [
+        "not read in this run: no process source is wired yet"
+      ],
+      "findings": []
+    },
+    {
+      "system": "PROV",
+      "name": "Activation system",
+      "role": "switches the service on in the network; can fail and retry",
+      "position": 4,
+      "read": true,
+      "source_kind": "tmf-api",
+      "records": 5400,
+      "coverage": 0.94,
+      "cannot_observe": [
+        "when each attempt changed state: the source is a snapshot, not a history"
+      ],
+      "findings": [
+        "R04"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "R04",
+      "rule_version": "R04@1",
+      "title": "OMS retry duplicates service orders",
+      "plain_summary": "When activation failed, someone retried by hand and the order manager created a second service order for the same line.",
+      "where": "OMS",
+      "severity": "medium",
+      "status": "detected",
+      "affected_orders": 20,
+      "share_of_orders": 0.004,
+      "evidence_level": "strong",
+      "evidence": [
+        {
+          "order_ref": "ORD-1000",
+          "event_ids": [
+            "SO-20000",
+            "SO-30000",
+            "ACT-80000"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1000",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20000",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30000",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80000",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1000-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1001",
+          "event_ids": [
+            "SO-20001",
+            "SO-30001",
+            "ACT-80001"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1001",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20001",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30001",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80001",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1001-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1002",
+          "event_ids": [
+            "SO-20002",
+            "SO-30002",
+            "ACT-80002"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1002",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20002",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30002",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80002",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1002-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1003",
+          "event_ids": [
+            "SO-20003",
+            "SO-30003",
+            "ACT-80003"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1003",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20003",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30003",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80003",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1003-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1004",
+          "event_ids": [
+            "SO-20004",
+            "SO-30004",
+            "ACT-80004"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1004",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20004",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30004",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80004",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1004-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1005",
+          "event_ids": [
+            "SO-20005",
+            "SO-30005",
+            "ACT-80005"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1005-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1006",
+          "event_ids": [
+            "SO-20006",
+            "SO-30006",
+            "ACT-80006"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1006",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20006",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30006",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80006",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1006-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1007",
+          "event_ids": [
+            "SO-20007",
+            "SO-30007",
+            "ACT-80007"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1007",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20007",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30007",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80007",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1007-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1008",
+          "event_ids": [
+            "SO-20008",
+            "SO-30008",
+            "ACT-80008"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1008",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20008",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30008",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80008",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1008-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1009",
+          "event_ids": [
+            "SO-20009",
+            "SO-30009",
+            "ACT-80009"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1009",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20009",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30009",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80009",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1009-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1010",
+          "event_ids": [
+            "SO-20010",
+            "SO-30010",
+            "ACT-80010"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1010",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20010",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30010",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80010",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1010-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1011",
+          "event_ids": [
+            "SO-20011",
+            "SO-30011",
+            "ACT-80011"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1011",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20011",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30011",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80011",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1011-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1012",
+          "event_ids": [
+            "SO-20012",
+            "SO-30012",
+            "ACT-80012"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1012",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20012",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30012",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80012",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1012-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1013",
+          "event_ids": [
+            "SO-20013",
+            "SO-30013",
+            "ACT-80013"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1013",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20013",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30013",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80013",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1013-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1014",
+          "event_ids": [
+            "SO-20014",
+            "SO-30014",
+            "ACT-80014"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1014",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20014",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30014",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80014",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1014-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1015",
+          "event_ids": [
+            "SO-20015",
+            "SO-30015",
+            "ACT-80015"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1015",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20015",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30015",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80015",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1015-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1016",
+          "event_ids": [
+            "SO-20016",
+            "SO-30016",
+            "ACT-80016"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1016",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20016",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30016",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80016",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1016-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1017",
+          "event_ids": [
+            "SO-20017",
+            "SO-30017",
+            "ACT-80017"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1017",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20017",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30017",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80017",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1017-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1018",
+          "event_ids": [
+            "SO-20018",
+            "SO-30018",
+            "ACT-80018"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1018",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20018",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30018",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80018",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1018-1; the duplicate reached activation"
+        },
+        {
+          "order_ref": "ORD-1019",
+          "event_ids": [
+            "SO-20019",
+            "SO-30019",
+            "ACT-80019"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1019",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-20019",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "OMS",
+              "external_id": "SO-30019",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80019",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "2 service orders over item ORD-1019-1; the duplicate reached activation"
+        }
+      ],
+      "evidence_total": 20,
+      "confidence": {
+        "level": "confirmed",
+        "inferred_link_share": 0
+      },
+      "in_total": true,
+      "cost": {
+        "currency": "USD",
+        "kind": "one_off",
+        "period_days": null,
+        "normalisation": null,
+        "hours_month": 30,
+        "amount_month": 1590,
+        "formula": "hours = duplicates × cleanup_minutes / 60; amount = hours × loaded_hour_usd + duplicates_that_reached_activation × duplicate_activation_cost_usd",
+        "inputs": [
+          {
+            "key": "rates.cleanup_minutes",
+            "value": 90,
+            "source": null,
+            "owner": null,
+            "date": null
+          },
+          {
+            "key": "loaded_hour_usd",
+            "value": 45,
+            "source": null,
+            "owner": null,
+            "date": null
+          },
+          {
+            "key": "rates.duplicate_activation_cost_usd",
+            "value": 12,
+            "source": null,
+            "owner": null,
+            "date": null
+          }
+        ],
+        "terms": [
+          {
+            "name": "Clean-up of duplicate service orders",
+            "amount": 1350,
+            "basis": "rate_assumption",
+            "observed": 20,
+            "input_keys": [
+              "rates.cleanup_minutes",
+              "loaded_hour_usd"
+            ]
+          },
+          {
+            "name": "Duplicate activations",
+            "amount": 240,
+            "basis": "rate_assumption",
+            "observed": 20,
+            "input_keys": [
+              "rates.duplicate_activation_cost_usd"
+            ]
+          }
+        ],
+        "unmeasured": [],
+        "revenue_at_risk": {
+          "amount": 0,
+          "basis": null,
+          "label": "not lost revenue"
+        }
+      },
+      "recommendation": "Make the retry reuse the existing service order, and confirm in billing the orders whose duplicate reached activation."
+    }
+  ],
+  "overlap": {
+    "by_order": {}
+  },
+  "totals": {
+    "gross": {
+      "hours": 30,
+      "amount": 1590
+    },
+    "net": null
+  },
+  "journeys": [
+    {
+      "order_ref": "ORD-1000",
+      "segments": [],
+      "findings": [
+        "R04"
+      ],
+      "correlation": {
+        "strong": true,
+        "gaps": []
+      },
+      "segments_unavailable": "ORD-1000: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
+      "story": null
+    },
+    {
+      "order_ref": "ORD-1001",
+      "segments": [],
+      "findings": [
+        "R04"
+      ],
+      "correlation": {
+        "strong": true,
+        "gaps": []
+      },
+      "segments_unavailable": "ORD-1001: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
+      "story": null
+    },
+    {
+      "order_ref": "ORD-1002",
+      "segments": [],
+      "findings": [
+        "R04"
+      ],
+      "correlation": {
+        "strong": true,
+        "gaps": []
+      },
+      "segments_unavailable": "ORD-1002: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
+      "story": null
+    }
+  ]
+}

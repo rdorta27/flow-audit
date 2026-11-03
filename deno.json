@@ -2,9 +2,9 @@
   "license": "MIT",
   "version": "0.3.2",
   "tasks": {
-    "check": "deno check src/cli/main.ts src/cli/read.ts src/cli/explain.ts src/cli/generate_dataset.ts src/adapters/clock/system_clock.ts src/stub/main.ts src/adapters/ingest/ src/domain/ tests/",
-    "test": "deno test --allow-read",
-    "audit": "deno run --allow-read --allow-net=127.0.0.1 --allow-env=FLOW_AUDIT_TMF_BASE_URL,FLOW_AUDIT_TMF_TOKEN,FLOW_AUDIT_TMF_TIMEOUT_MS,FLOW_AUDIT_TMF_PAGE_SIZE,FLOW_AUDIT_TMF_MAX_REQUESTS src/cli/main.ts",
+    "check": "deno check src/cli/main.ts src/cli/read.ts src/cli/explain.ts src/cli/generate_dataset.ts src/adapters/clock/system_clock.ts src/stub/main.ts src/adapters/ingest/ src/domain/ src/adapters/report/ tests/",
+    "test": "deno test --allow-read --allow-write --allow-env=UPDATE_GOLDEN",
+    "audit": "deno run --allow-read --allow-write=out --allow-net=127.0.0.1 --allow-env=FLOW_AUDIT_TMF_BASE_URL,FLOW_AUDIT_TMF_TOKEN,FLOW_AUDIT_TMF_TIMEOUT_MS,FLOW_AUDIT_TMF_PAGE_SIZE,FLOW_AUDIT_TMF_MAX_REQUESTS src/cli/main.ts",
     "explain": "deno run --allow-read=data/demo --allow-write src/cli/explain.ts",
     "read": "deno run --allow-net=127.0.0.1 --allow-env=FLOW_AUDIT_TMF_BASE_URL,FLOW_AUDIT_TMF_TOKEN,FLOW_AUDIT_TMF_TIMEOUT_MS,FLOW_AUDIT_TMF_PAGE_SIZE,FLOW_AUDIT_TMF_MAX_REQUESTS src/cli/read.ts",
     "dataset": "deno run --allow-write src/cli/generate_dataset.ts data/demo",
@@ -14,6 +14,7 @@
     "lineWidth": 100,
     "indentWidth": 2,
     "exclude": [
+      "tests/golden/**",
       "docs/**",
       "README.md",
       "AGENTS.md",

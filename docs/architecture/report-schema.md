@@ -1,8 +1,8 @@
 # Report schema: `findings/1`
 
 Status: defined in M4-01. The in-memory form is `AuditReport` (`src/domain/model.ts`,
-re-exported by `src/ports/report_renderer.ts`); `runAudit` returns it. Writing it to disk
-as `findings.json` is M4-02. The report, the site and any future client read this one
+re-exported by `src/ports/report_renderer.ts`); `runAudit` returns it. `deno task audit --out <dir>` writes it
+as `findings.json` (M4-02) next to `report.html` (M4-03). The report, the site and any future client read this one
 contract. Every number in it carries its formula and the inputs it came from.
 
 ## Conventions
@@ -69,6 +69,14 @@ contract. Every number in it carries its formula and the inputs it came from.
 R04 has two terms: clean-up (`rates.cleanup_minutes`, `loaded_hour_usd`) and duplicate
 activations (`rates.duplicateActivationCostUsd`). When the source has no activation records
 the second term moves to `unmeasured` and the amount is the clean-up alone.
+
+## Numbers
+
+The file is written with two-space indent, a final newline and keys in the order of the model.
+Hours (`hours`, `hours_month`) are rounded to one decimal and money (`amount`, `amount_month`)
+to two, in `src/adapters/report/json_renderer.ts` and nowhere else; `config` is never rounded.
+`run.id` and `run.generated_at` are the only fields that differ between two runs on the same
+input.
 
 ## Not in `findings/1` yet
 

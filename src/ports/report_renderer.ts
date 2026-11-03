@@ -8,6 +8,6 @@ import type { AuditReport } from "../domain/model.ts";
 export type { AuditReport };
 
 export interface ReportRenderer {
-  readonly format: "html";
+  readonly format: "html" | "json";
   render(report: AuditReport): Promise<string>;
 }
