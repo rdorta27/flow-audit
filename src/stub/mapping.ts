@@ -53,6 +53,7 @@ const attemptTmfState: Record<ProvisioningAttempt["state"], string> = {
   pending: "PENDING",
   failed: "FAILED",
   succeeded: "COMPLETED",
+  unmapped: "UNMAPPED",
 };
 
 /** Item id inside a product order: `<orderId>-1`; every order sells one line. */

@@ -23,6 +23,7 @@ import type {
   ProcessInstance,
   ProvisioningAttempt,
   ServiceOrder,
+  SystemId,
 } from "./model.ts";
 
 export type LinkConfidence = "explicit" | "inferred" | "ambiguous" | "missing" | "conflicting";
@@ -81,6 +82,15 @@ export interface CorrelationResult {
   /** Ids held by more than one record. Links that point at them are `ambiguous`. */
   duplicateIds: DuplicateId[];
   links: Link[];
+  /** Records whose state could not be read (M2-05), by system and source state. */
+  unmapped: UnmappedState[];
+}
+
+export interface UnmappedState {
+  system: SystemId;
+  /** The state as the source wrote it. */
+  state: string;
+  count: number;
 }
 
 type Summary = Record<LinkKind, Record<LinkConfidence, number>>;
@@ -405,7 +415,21 @@ export function correlate(input: CorrelationInput): CorrelationResult {
   unresolved.attempts.sort(byId((l) => l.item.attemptId));
   links.sort(byId((l) => `${l.kind}:${l.fromId}`));
 
-  return { orders, unresolved, duplicateIds, links };
+  const unmappedCounts = new Map<string, UnmappedState>();
+  const countUnmapped = (system: SystemId, state: string | undefined) => {
+    const key = `${system}\u0000${state ?? ""}`;
+    const entry = unmappedCounts.get(key) ?? { system, state: state ?? "", count: 0 };
+    entry.count++;
+    unmappedCounts.set(key, entry);
+  };
+  for (const o of input.orders) if (o.state === "UNMAPPED") countUnmapped("OMS", o.rawState);
+  for (const s of input.serviceOrders) if (s.state === "UNMAPPED") countUnmapped("OMS", s.rawState);
+  for (const a of input.attempts) if (a.state === "unmapped") countUnmapped("PROV", a.rawState);
+  const unmapped = [...unmappedCounts.values()].sort(
+    byId((u) => `${u.system}:${u.state}`),
+  );
+
+  return { orders, unresolved, duplicateIds, links, unmapped };
 }
 
 /**

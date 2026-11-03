@@ -337,27 +337,74 @@ function raw(system: "OMS" | "PROV", id: string, value: Record<string, unknown>)
   };
 }
 
-Deno.test("the mapper translates TMF states and keeps provenance; an unknown state is an error", () => {
+Deno.test("the mapper translates TMF states, keeps provenance and the source state", () => {
   const base = {
     orderDate: T0,
     productOrderItem: [{ id: "I-1", productOffering: { id: "OFFER-1" } }],
   };
   const mapped = mapProductOrder(raw("OMS", "ORD-1", { ...base, state: "COMPLETED" }));
   assertEquals([mapped.state, mapped.itemRefs, mapped.offerId], ["ACTIVE", ["I-1"], "OFFER-1"]);
-  assertEquals(mapped.provenance?.kind, "snapshot");
+  assertEquals([mapped.rawState, mapped.provenance?.kind], ["COMPLETED", "snapshot"]);
   assertEquals(
     mapProductOrder(raw("OMS", "ORD-2", { ...base, state: "IN_PROGRESS" })).state,
     "PROVISIONING",
   );
+});
 
-  let message = "";
-  try {
-    mapProductOrder(raw("OMS", "ORD-3", { ...base, state: "WEIRD" }));
-  } catch (error) {
-    assert(error instanceof TmfError);
-    message = error.message;
+Deno.test("every TMF622 and TMF641 state maps, in either spelling, and REJECTED is not FAILED", () => {
+  const base = { orderDate: T0, productOrderItem: [{ id: "I-1" }] };
+  const expected: Record<string, string> = {
+    acknowledged: "SUBMITTED",
+    pending: "SUBMITTED",
+    held: "HELD",
+    inProgress: "PROVISIONING",
+    IN_PROGRESS: "PROVISIONING",
+    partial: "PARTIAL",
+    assessingCancellation: "CANCELLING",
+    pendingCancellation: "CANCELLING",
+    completed: "ACTIVE",
+    failed: "FAILED",
+    rejected: "REJECTED",
+    cancelled: "CANCELLED",
+  };
+  for (const [tmf, canonical] of Object.entries(expected)) {
+    const mapped = mapProductOrder(raw("OMS", "ORD-S", { ...base, state: tmf }));
+    assertEquals([mapped.state, mapped.rawState], [canonical, tmf], tmf);
   }
-  assert(message.includes("ORD-3") && message.includes("WEIRD"), message);
+});
+
+Deno.test("an unknown state is read, kept, counted by system and state, and ignored by R04", () => {
+  const base = { orderDate: T0, productOrderItem: [{ id: "I-1" }] };
+  const mappedOrder = mapProductOrder(raw("OMS", "ORD-U", { ...base, state: "FALLOUT" }));
+  assertEquals([mappedOrder.state, mappedOrder.rawState], ["UNMAPPED", "FALLOUT"]);
+
+  const service = (id: string, state: string) =>
+    mapServiceOrder(raw("OMS", id, {
+      state,
+      orderDate: T0,
+      serviceOrderItem: [{ productOrderItem: { id: "I-1", productOrderId: "ORD-U" } }],
+    }));
+  const live = service("SO-1", "COMPLETED");
+  const odd = service("SO-2", "SUSPENDED");
+  const odd2 = service("SO-3", "SUSPENDED");
+  const activation = mapActivation(raw("PROV", "ACT-1", { state: "ON_HOLD", activationDate: T0 }));
+  assertEquals([odd.state, odd.rawState], ["UNMAPPED", "SUSPENDED"]);
+  assertEquals([activation.state, activation.rawState], ["unmapped", "ON_HOLD"]);
+
+  const result = correlate({
+    orders: [{ ...mappedOrder, itemRefs: ["I-1"] }],
+    serviceOrders: [live, odd, odd2],
+    attempts: [activation],
+  });
+  assertEquals(result.unmapped, [
+    { system: "OMS", state: "FALLOUT", count: 1 },
+    { system: "OMS", state: "SUSPENDED", count: 2 },
+    { system: "PROV", state: "ON_HOLD", count: 1 },
+  ]);
+  const entry = result.orders[0];
+  assertEquals(entry.serviceOrders.length, 3);
+  assertEquals(entry.order.rawState, "FALLOUT");
+  assertEquals(detectR04(result.orders, R04_CONFIG), null);
 });
 
 Deno.test("the mapper keeps an unlinked activation and rejects a service order over two product orders", () => {

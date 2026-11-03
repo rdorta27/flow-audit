@@ -236,7 +236,7 @@ export async function runAudit(
       links: summarizeLinks(correlation.links),
       unresolved: correlation.unresolved.serviceOrders.length +
         correlation.unresolved.processes.length + correlation.unresolved.attempts.length,
-      unmapped: 0,
+      unmapped: correlation.unmapped.reduce((sum, u) => sum + u.count, 0),
     },
     systems,
     findings,
