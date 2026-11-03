@@ -22,3 +22,4 @@ data/raw/
 # Sistema y editores
 .DS_Store
 *.swp
+out/
