@@ -54,9 +54,13 @@ Deno.test("the pipeline over the stub gives exactly one finding, R04, USD 1,590"
 Deno.test("the report counts links as the demo expects (300 activations without a reference)", async () => {
   const { report } = await auditStub();
   const links = report.correlation.links["attempt->service_order"];
-  assertEquals(links.explicit, 5100);
+  assertEquals(links.explicit, EXPECTED.attempts - 300);
   assertEquals(links.missing, 300);
-  assertEquals(report.sources.map((s) => s.records), [5000, 5020, 5400]);
+  assertEquals(report.sources.map((s) => s.records), [
+    EXPECTED.orders,
+    EXPECTED.service_orders,
+    EXPECTED.attempts,
+  ]);
   assertEquals(report.labels.simulatedIntegration, true);
 });
 

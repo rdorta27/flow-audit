@@ -95,6 +95,46 @@
           ]
         }
       ]
+    },
+    {
+      "spec_id": "SPEC-SKYHOME-200-V2",
+      "name": "SkyHome 200 technical spec (v2)",
+      "service_type": "residential-satellite-internet",
+      "attributes": [
+        {
+          "name": "terminal_model",
+          "type": "string",
+          "required": true,
+          "used_by": [
+            "PROV"
+          ]
+        },
+        {
+          "name": "qos_profile",
+          "type": "string",
+          "required": true,
+          "used_by": [
+            "PROV",
+            "OMS"
+          ]
+        },
+        {
+          "name": "installation_type",
+          "type": "string",
+          "required": true,
+          "used_by": [
+            "BPM"
+          ]
+        },
+        {
+          "name": "capacity_profile",
+          "type": "string",
+          "required": true,
+          "used_by": [
+            "PROV"
+          ]
+        }
+      ]
     }
   ],
   "offers": [
@@ -137,9 +177,16 @@
         {
           "version": "v1",
           "valid_from": "2026-01-01T00:00:00.000Z",
-          "valid_to": null,
+          "valid_to": "2026-09-15T23:58:00.000Z",
           "price_usd": 229,
           "spec_id": "SPEC-SKYHOME-200"
+        },
+        {
+          "version": "v2",
+          "valid_from": "2026-09-15T23:58:00.000Z",
+          "valid_to": null,
+          "price_usd": 229,
+          "spec_id": "SPEC-SKYHOME-200-V2"
         }
       ]
     }

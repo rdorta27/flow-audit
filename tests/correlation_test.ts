@@ -10,7 +10,6 @@
 import { Tmf622ProductOrderSource } from "../src/adapters/ingest/tmf622_source.ts";
 import { Tmf640ServiceActivationSource } from "../src/adapters/ingest/tmf640_source.ts";
 import { Tmf641ServiceOrderSource } from "../src/adapters/ingest/tmf641_source.ts";
-import { TmfError } from "../src/adapters/ingest/tmf_client.ts";
 import {
   mapActivation,
   mapProductOrder,
@@ -287,7 +286,7 @@ async function collect(source: { read(): AsyncIterable<RawRecord> }): Promise<Ra
   return rows;
 }
 
-Deno.test("read from the TMF stub, 5,020 service orders are explicit and 300 attempts have no link", async () => {
+Deno.test("read from the TMF stub, all service orders are explicit and 300 attempts have no link", async () => {
   const data = await loadStubDataset(new URL("../data/demo/", import.meta.url));
   const handle = createHandler({
     state: buildStubState(data.catalog, data.orders, data.serviceOrders, data.attempts),
@@ -309,9 +308,10 @@ Deno.test("read from the TMF stub, 5,020 service orders are explicit and 300 att
   // The API carries no terminal serial, so nothing can be inferred: the gap stays visible.
   assertEquals(summary["attempt->service_order"].missing, 300);
 
-  // The 20 duplicated orders show up as 20 journeys with two service orders.
-  const twoOrders = result.orders.filter((o) => o.serviceOrders.length === 2).length;
+  // The 20 duplicated orders show up as 20 journeys with two service orders (one has three).
+  const twoOrders = result.orders.filter((o) => o.serviceOrders.length >= 2).length;
   assertEquals(twoOrders, 20);
+  assertEquals(result.unmapped, []);
 
   // Everything read from an API is a snapshot, so there are no segments, and it says why.
   const journeys = journeysWithSegments(result, []);

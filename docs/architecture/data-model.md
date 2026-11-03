@@ -1,6 +1,6 @@
 # Data model
 
-Status: types implemented and dataset generated (version 0.3.2); correlation (M2) and rule R04 (M3-02) are
+Status: types implemented and dataset v2 generated (version 0.3.2); correlation (M2) and rule R04 (M3-02) are
 implemented; the cost report arrives in M4.
 
 Three models, deliberately separate: **catalog** (what can be sold), **orders** (what was sold) and **events** (what happened).
@@ -20,7 +20,7 @@ Offer ──1:n── OfferVersion ──1:1── Spec ──1:n── Attribut
 
 The audit cares about one thing here: whether every attribute provisioning needs exists in the spec that the offer version points to. Missing attributes are what push work back to humans.
 
-Demo offers: `SkyHome 50`, `SkyHome 100`, `SkyHome 200`, each with `kit` and `installation`. Required-by-provisioning attributes include `terminal_model`, `beam_id`, `capacity_profile` and `qos_profile`.
+Demo offers: `SkyHome 50`, `SkyHome 100`, `SkyHome 200`. Every first version's spec defines `terminal_model` (PROV), `qos_profile` (PROV, OMS) and `installation_type` (BPM). `capacity_profile` is missing from all of them, so a person does the capacity check. `SkyHome 200` has a second version, `v2`, valid from 2026-09-15T23:58Z (mid-month), whose spec `SPEC-SKYHOME-200-V2` adds `capacity_profile`: orders on it have an automatic capacity check, so R02 is a subset of the orders, not all of them. The catalog has no `beam_id` and no `kit`.
 
 ## Orders
 
@@ -32,7 +32,7 @@ Order ──1:n── ServiceOrder ──1:n── WorkOrder
 
 | Entity | Key | Notes |
 |---|---|---|
-| `Order` | `ORD-…` | Commercial order. Owned by the sales/CRM side, which is **out of scope** and enters only as the root id. |
+| `Order` | `ORD-…` | Commercial order. Owned by the sales/CRM side, which is **out of scope** and enters only as the root id. `replaces_order_ref` names the order an amendment replaces; the replaced order ends `CANCELLED`. |
 | `ServiceOrder` | `SO-…` | Decomposition of the order. One per service. Carries `order_ref`. |
 | `WorkOrder` | `WO-…` | Field or back-office task: installation, activation, recovery. Carries `so_ref`. |
 | `ProcessInstance` | `BPM-…` | Orchestration of a service order. Carries `so_ref`, or worse, only a business key. |
@@ -46,7 +46,26 @@ DRAFT → SUBMITTED → VALIDATED → DECOMPOSED → SCHEDULED → INSTALLED →
              └──────────────┴──────────────┴────────────┴────────────┴──▶ FAILED / CANCELLED
 ```
 
-Terminal states: `ACTIVE`, `CANCELLED`, `FAILED`. Everything else with no event for longer than `stuck_after` is **stuck** and counted by R03.
+Terminal states: `ACTIVE`, `CANCELLED`, `FAILED`, `REJECTED` (refused by validation before decomposition; not the same as a failure downstream). Other states the sources can report are `HELD`, `PARTIAL`, `CANCELLING` and `UNMAPPED` (a state we could not read). Everything else with no event for longer than `stuck_after` is **stuck** and counted by R03, unless a person or the customer owns the wait (see Legitimate cases).
+
+### Legitimate cases in the demo
+
+The demo also holds cases that look odd and are healthy. A rule that flags one is wrong, and each has a count in `data/demo/expected.json` under `cases`:
+
+| Case | Orders | What it looks like |
+|---|---|---|
+| Normal timer | 200 | a `scheduling_wait` timer that ends on its own (`timer_expired` false): not R03 |
+| Long running | 30 | process `RUNNING` about 40 h, installer slot pending, under `stuck_after` |
+| Suspended | 1 | process `SUSPENDED` on a customer hold |
+| Fallout queue | 1 | failed attempt, human task `fallout_review` open: a person owns it |
+| Offer v2 | 833 | `SkyHome 200` sold on `v2`: no human capacity check |
+| Permanent error | 40 | attempt failed with `TERMINAL_NOT_REGISTERED`, `ACCOUNT_BLOCKED` or `ADDRESS_NOT_SERVICEABLE`; a retry cannot fix it; order `FAILED` |
+| Maintenance failure | 30 | `HUB_TIMEOUT` inside 2026-09-14 02:00-06:00 UTC, retried within the hour |
+| Replaced | 10 | an order `CANCELLED` and replaced by the next ten orders |
+| Three-service-order duplicate | 1 | one of the 20 planted duplicates has a third service order; still one R04 order |
+| Reused serial | 5 | a terminal serial held by two orders |
+
+Not built yet: a change plus an add on one order item (needs an `action` on the service order and an R04 that reads it).
 
 ## Events
 
@@ -115,7 +134,7 @@ link that points at one is `ambiguous`. The result does not depend on input orde
 Readers map TMF states to the canonical lifecycle in `tmf_mapping.ts`. The translation is
 lossy (an API state stands for the later part of the lifecycle, so `IN_PROGRESS` is
 `PROVISIONING` whether the order was installed or not) and the table is in that file. An
-unknown state is an error, never a default. Fields the API does not carry are marked, not
+unknown state never fails the read: the record maps to `UNMAPPED` (`unmapped` for an attempt) and keeps the source text in `rawState`; correlation counts these by system and state, and no rule counts them as failed or active. TMF `rejected` stays `REJECTED`, apart from `failed`. Fields the API does not carry are marked, not
 invented: `offerVersion` and `specId` are `"unknown"` and an attempt's `serial` is empty.
 
 `OrderJourney` is the reconstruction result:
@@ -201,7 +220,7 @@ type ImpactConfig = {
 The engine reads them through one translation at the edge (`src/domain/data_files.ts`); its
 internal types stay camelCase. TMF payloads stay camelCase, as the standard has them.
 
-Example: R02 fires on 100% of 5,000 orders at 5 minutes each → 417 h/month → USD 18,750 at USD 45/h. The rate is visible in the report so the client can replace it with their own.
+Example: R02 fires on the 4,167 orders still on the first offer versions (83%) at 5 minutes each → 347 h/month → USD 15,625 at USD 45/h. The rate is visible in the report so the client can replace it with their own.
 
 ## Raw data
 
