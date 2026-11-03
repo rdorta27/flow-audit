@@ -188,8 +188,11 @@ Deno.test("R04: exactly the duplicated orders appear as two service orders on on
     EXPECTED.findings.R04.affected_orders,
     "the R04 cohort size must match the golden numbers",
   );
+  // Pairs, except the one planted order whose retry was retried (three service orders).
+  const triples = duplicated.filter(([, sos]) => sos.length === 3);
+  assertEquals(triples.length, EXPECTED.cases.three_service_order_duplicates);
   for (const [item, sos] of duplicated) {
-    assertEquals(sos.length, 2, `${item}: R04 duplicates come in pairs`);
+    assert(sos.length === 2 || sos.length === 3, `${item}: ${sos.length} service orders`);
   }
 
   // The parents are exactly the generator's deliberate duplicates.
@@ -213,11 +216,13 @@ Deno.test("every service order item resolves to an existing product order item",
 });
 
 Deno.test("state filter narrows collections", async () => {
-  const res = await get("/tmf-api/serviceOrdering/v4/serviceOrder?state=FAILED");
+  const res = await get("/tmf-api/serviceOrdering/v4/serviceOrder?state=FAILED&limit=200");
   assertEquals(res.status, 200);
-  assertEquals(res.headers.get("X-Total-Count"), String(EXPECTED.findings.R04.affected_orders));
+  // The planted duplicates' originals plus the orders that failed for good.
+  const failed = EXPECTED.findings.R04.affected_orders + EXPECTED.cases.permanent_error_orders;
+  assertEquals(res.headers.get("X-Total-Count"), String(failed));
   const rows = (await res.json()) as { state: string }[];
-  assertEquals(rows.length, EXPECTED.findings.R04.affected_orders);
+  assertEquals(rows.length, failed);
   assert(rows.every((row) => row.state === "FAILED"));
 });
 

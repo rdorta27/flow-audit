@@ -9,7 +9,7 @@ const files = serializeDataset(dataset);
 Deno.test("catalog export parses into offers and specs", () => {
   const catalog = JSON.parse(files["catalog.json"]);
   assertEquals(catalog.offers.length, 3);
-  assertEquals(catalog.specs.length, 3);
+  assertEquals(catalog.specs.length, 4);
   for (const spec of catalog.specs) {
     assert(Array.isArray(spec.attributes), `${spec.specId} has no attributes`);
   }

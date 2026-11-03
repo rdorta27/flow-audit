@@ -4,20 +4,28 @@
  *
  * The domain never sees a TMF shape: readers yield `RawRecord`s, and these functions turn
  * them into `Order`, `ServiceOrder` and `ProvisioningAttempt`, keeping the record's
- * provenance. A record the mapper cannot read fails with its id and the reason.
+ * provenance. A record the mapper cannot read (no items, no link) fails with its id and the reason.
  *
  * **State translation is lossy.** TMF has a handful of states and the canonical lifecycle
- * has ten, so an API state stands for the later part of the lifecycle:
+ * has more, so an API state stands for the later part of the lifecycle. Names are compared
+ * without case or separators (`IN_PROGRESS` = `inProgress`):
  *
- * | TMF state                    | Canonical       | What is lost                              |
- * |------------------------------|-----------------|-------------------------------------------|
- * | `COMPLETED`                  | `ACTIVE`        | nothing: the order reached activation      |
- * | `IN_PROGRESS`                | `PROVISIONING`  | whether it is decomposed, installed, etc.  |
- * | `ACKNOWLEDGED`, `PENDING`    | `SUBMITTED`     | whether it was validated                   |
- * | `FAILED`, `REJECTED`         | `FAILED`        | which of the two it was                    |
- * | `CANCELLED`                  | `CANCELLED`     | nothing                                    |
+ * | TMF state                                  | Canonical       | What is lost                  |
+ * |--------------------------------------------|-----------------|-------------------------------|
+ * | `completed`                                | `ACTIVE`        | nothing                       |
+ * | `inProgress`                               | `PROVISIONING`  | whether it is decomposed etc. |
+ * | `acknowledged`, `pending`                  | `SUBMITTED`     | whether it was validated      |
+ * | `held`                                     | `HELD`          | why it is held                |
+ * | `partial`                                  | `PARTIAL`       | which items finished          |
+ * | `assessingCancellation`, `pendingCancellation` | `CANCELLING` | which of the two           |
+ * | `failed`                                   | `FAILED`        | nothing                       |
+ * | `rejected`                                 | `REJECTED`      | nothing (a validation refusal) |
+ * | `cancelled`                                | `CANCELLED`     | nothing                       |
+ * | anything else                              | `UNMAPPED`      | the meaning; `rawState` keeps the text |
  *
- * An unknown state is an error, never a silent default.
+ * An unknown state never fails the read: the record maps to `UNMAPPED` (`unmapped` for an
+ * attempt), keeps the source text in `rawState`, and correlation counts it by system and
+ * state. Rules treat it as neither failed nor active.
  *
  * Fields the API does not carry are filled with a marker, not invented: `offerVersion` and
  * `specId` are `"unknown"` and an attempt's `serial` is `""`. Correlation treats an empty
@@ -28,21 +36,31 @@ import type { Order, OrderState, ProvisioningAttempt, ServiceOrder } from "../..
 import type { RawRecord } from "../../ports/evidence_source.ts";
 import { TmfError } from "./tmf_client.ts";
 
+/** Lower case with separators dropped, so `IN_PROGRESS`, `inProgress` and `in-progress` meet. */
+function normalize(state: string): string {
+  return state.replace(/[\s_-]/g, "").toLowerCase();
+}
+
 const ORDER_STATES: Record<string, OrderState> = {
-  COMPLETED: "ACTIVE",
-  IN_PROGRESS: "PROVISIONING",
-  ACKNOWLEDGED: "SUBMITTED",
-  PENDING: "SUBMITTED",
-  FAILED: "FAILED",
-  REJECTED: "FAILED",
-  CANCELLED: "CANCELLED",
+  completed: "ACTIVE",
+  inprogress: "PROVISIONING",
+  acknowledged: "SUBMITTED",
+  pending: "SUBMITTED",
+  held: "HELD",
+  partial: "PARTIAL",
+  assessingcancellation: "CANCELLING",
+  pendingcancellation: "CANCELLING",
+  failed: "FAILED",
+  rejected: "REJECTED",
+  cancelled: "CANCELLED",
 };
 
 const ATTEMPT_STATES: Record<string, ProvisioningAttempt["state"]> = {
-  COMPLETED: "succeeded",
-  FAILED: "failed",
-  PENDING: "pending",
-  IN_PROGRESS: "pending",
+  completed: "succeeded",
+  failed: "failed",
+  pending: "pending",
+  acknowledged: "pending",
+  inprogress: "pending",
 };
 
 type Json = Record<string, unknown>;
@@ -53,13 +71,9 @@ function fail(record: RawRecord, why: string): never {
   );
 }
 
-function state<T>(record: RawRecord, table: Record<string, T>): T {
-  const tmf = String(record.value.state);
-  const mapped = table[tmf];
-  if (mapped === undefined) {
-    fail(record, `has state "${tmf}", which is not one of ${Object.keys(table).join(", ")}`);
-  }
-  return mapped;
+/** An unknown state is kept as `unmapped`; the record is read, never dropped or guessed. */
+function state<T>(record: RawRecord, table: Record<string, T>, unmapped: T): T {
+  return table[normalize(String(record.value.state))] ?? unmapped;
 }
 
 function items(record: RawRecord, field: string): Json[] {
@@ -74,7 +88,8 @@ export function mapProductOrder(record: RawRecord): Order {
   return {
     orderRef: record.provenance.externalId,
     submittedAt: String(record.value.orderDate),
-    state: state(record, ORDER_STATES),
+    state: state(record, ORDER_STATES, "UNMAPPED"),
+    rawState: String(record.value.state),
     offerId: typeof offering?.id === "string" ? offering.id : "unknown",
     offerVersion: "unknown",
     itemRefs: lines.map((line) => String(line.id)),
@@ -98,7 +113,8 @@ export function mapServiceOrder(record: RawRecord): ServiceOrder {
     soRef: record.provenance.externalId,
     orderRef: link.productOrderId,
     specId: "unknown",
-    state: state(record, ORDER_STATES),
+    state: state(record, ORDER_STATES, "UNMAPPED"),
+    rawState: String(record.value.state),
     createdAt: String(record.value.orderDate),
     productOrderItemRef: link.id,
     provenance: record.provenance,
@@ -112,7 +128,8 @@ export function mapActivation(record: RawRecord): ProvisioningAttempt {
     attemptId: record.provenance.externalId,
     soRef: typeof link?.id === "string" ? link.id : null,
     serial: "",
-    state: state(record, ATTEMPT_STATES),
+    state: state(record, ATTEMPT_STATES, "unmapped"),
+    rawState: String(record.value.state),
     errorCode: null,
     startedAt: String(record.value.activationDate),
     endedAt: typeof completion === "string" ? completion : null,

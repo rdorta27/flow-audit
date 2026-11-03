@@ -52,8 +52,11 @@ export function detectR04(
   const links: Link[] = [];
 
   for (const entry of orders) {
-    // A cancelled order replaced by a new one is deliberate, so it does not count.
-    const live = entry.serviceOrders.filter((l) => l.item.state !== "CANCELLED");
+    // A cancelled order replaced by a new one is deliberate, and a state we could not read
+    // is neither live nor dead, so neither counts.
+    const live = entry.serviceOrders.filter((l) =>
+      l.item.state !== "CANCELLED" && l.item.state !== "UNMAPPED"
+    );
     const byItem = new Map<string, typeof live>();
     for (const linked of live) {
       const item = linked.item.productOrderItemRef;

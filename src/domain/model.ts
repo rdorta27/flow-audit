@@ -29,9 +29,21 @@ export type OrderState =
   | "PROVISIONING"
   | "ACTIVE"
   | "FAILED"
-  | "CANCELLED";
+  | "CANCELLED"
+  /** Refused by validation before decomposition; not the same as a failure downstream. */
+  | "REJECTED"
+  | "HELD"
+  | "PARTIAL"
+  | "CANCELLING"
+  /** The source's state is not in the mapping table. Rules neither count it as failed nor as active. */
+  | "UNMAPPED";
 
-export const TERMINAL_STATES: readonly OrderState[] = ["ACTIVE", "FAILED", "CANCELLED"];
+export const TERMINAL_STATES: readonly OrderState[] = [
+  "ACTIVE",
+  "FAILED",
+  "CANCELLED",
+  "REJECTED",
+];
 
 export function isTerminal(state: OrderState): boolean {
   return TERMINAL_STATES.includes(state);
@@ -126,6 +138,10 @@ export interface Order {
   state: OrderState;
   offerId: string;
   offerVersion: string;
+  /** The state exactly as the source wrote it (M2-05); absent for data not read from an API. */
+  rawState?: string;
+  /** The order this one replaces (an amendment); the replaced order ends `CANCELLED`. */
+  replacesOrderRef?: string;
   /** Ids of the order lines, when the source exposes them. Service orders point at one. */
   itemRefs?: string[];
   provenance?: Provenance;
@@ -136,6 +152,8 @@ export interface ServiceOrder {
   orderRef: string;
   specId: string;
   state: OrderState;
+  /** The state exactly as the source wrote it (M2-05). */
+  rawState?: string;
   createdAt: string;
   /** Terminal assigned to the service. PROV attempts link back through it. */
   terminalSerial?: string;
@@ -183,7 +201,9 @@ export interface ProvisioningAttempt {
   /** Null when the attempt only carries the terminal serial. That absence is R05. */
   soRef: string | null;
   serial: string;
-  state: "pending" | "failed" | "succeeded";
+  state: "pending" | "failed" | "succeeded" | "unmapped";
+  /** The state exactly as the source wrote it (M2-05). */
+  rawState?: string;
   errorCode: string | null;
   startedAt: string;
   endedAt: string | null;
@@ -377,7 +397,7 @@ export interface ReportCorrelation {
   links: Record<string, Record<string, number>>;
   /** Records that could not be placed under exactly one order. */
   unresolved: number;
-  /** Records whose state was not recognised (M2-05); 0 until that card exists. */
+  /** Records whose state was not recognised (M2-05), summed over `CorrelationResult.unmapped`. */
   unmapped: number;
 }
 

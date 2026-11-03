@@ -26,6 +26,7 @@ export const OMS_COLUMNS = [
   "wo_kind",
   "wo_state",
   "wo_created_at",
+  "replaces_order_ref",
 ] as const;
 
 function csvField(value: string | number | null | undefined): string {
@@ -71,6 +72,7 @@ export function serializeOms(dataset: DemoDataset): string {
         workOrder?.kind,
         workOrder?.state,
         workOrder?.createdAt,
+        order.replacesOrderRef,
       ].map(csvField).join(","),
     );
   }

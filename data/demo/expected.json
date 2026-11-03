@@ -1,13 +1,13 @@
 {
   "orders": 5000,
-  "service_orders": 5020,
+  "service_orders": 5021,
   "work_orders": 5000,
-  "processes": 5020,
-  "attempts": 5400,
+  "processes": 5021,
+  "attempts": 5390,
   "attempts_by_state": {
-    "failed": 400,
+    "failed": 471,
     "pending": 50,
-    "succeeded": 4950
+    "succeeded": 4869
   },
   "findings": {
     "R01": {
@@ -15,8 +15,8 @@
       "share_of_orders": 0.08
     },
     "R02": {
-      "affected_orders": 5000,
-      "share_of_orders": 1
+      "affected_orders": 4167,
+      "share_of_orders": 0.8334
     },
     "R03": {
       "affected_orders": 150,
@@ -31,5 +31,27 @@
       "affected_orders": 300,
       "share_of_orders": 0.06
     }
+  },
+  "cases": {
+    "normal_timer_orders": 200,
+    "long_running_orders": 30,
+    "suspended_orders": 1,
+    "fallout_queue_orders": 1,
+    "offer_v2_orders": 833,
+    "permanent_error_orders": 40,
+    "maintenance_failure_orders": 30,
+    "replaced_orders": 10,
+    "three_service_order_duplicates": 1,
+    "reused_serial_orders": 5,
+    "offer_v2_valid_from": "2026-09-15T23:58:00.000Z",
+    "maintenance_window": {
+      "from": "2026-09-14T02:00:00.000Z",
+      "to": "2026-09-14T06:00:00.000Z"
+    },
+    "permanent_error_codes": [
+      "TERMINAL_NOT_REGISTERED",
+      "ACCOUNT_BLOCKED",
+      "ADDRESS_NOT_SERVICEABLE"
+    ]
   }
 }
