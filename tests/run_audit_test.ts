@@ -20,10 +20,29 @@ Deno.test("audit fails with a clear message when no evidence source exists", asy
   );
 });
 
+const NOW = "2026-09-30T00:00:00.000Z";
+
 Deno.test("walking skeleton reads every record and returns no findings yet", async () => {
   const records: RawRecord[] = [
-    { system: "OMS", source: "oms.csv", line: 2, value: { order_ref: "ORD-1" } },
-    { system: "PROV", source: "prov.jsonl", line: 1, value: { serial: "SN-1" } },
+    {
+      system: "OMS",
+      source: "oms.csv",
+      line: 2,
+      value: { order_ref: "ORD-1" },
+      provenance: { externalId: "ORD-1", endpoint: "oms.csv", retrievedAt: NOW, simulated: false },
+    },
+    {
+      system: "PROV",
+      source: "prov.jsonl",
+      line: 1,
+      value: { serial: "SN-1" },
+      provenance: {
+        externalId: "SN-1",
+        endpoint: "prov.jsonl",
+        retrievedAt: NOW,
+        simulated: false,
+      },
+    },
   ];
 
   const evidence = {

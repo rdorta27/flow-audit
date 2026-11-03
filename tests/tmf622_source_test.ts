@@ -274,3 +274,38 @@ Deno.test("against the TMF stub it reads all 5000 orders, simulated, with auth",
   );
   assert(denied.includes("401"), denied);
 });
+
+Deno.test("every record carries its provenance: id, endpoint, read time, simulated flag", async () => {
+  const server = fakeServer([order(1), order(2), order(3)]);
+  const stamps = ["2026-11-03T10:00:00.000Z", "2026-11-03T10:00:01.000Z"];
+  let call = 0;
+  const rows = await collect(
+    new Tmf622ProductOrderSource({
+      baseUrl: BASE,
+      pageSize: 2,
+      fetch: server.fetcher,
+      now: () => stamps[call++],
+    }),
+  );
+  assertEquals(rows.map((r) => r.provenance.externalId), ["ORD-1", "ORD-2", "ORD-3"]);
+  for (const row of rows) {
+    assertEquals(row.provenance.endpoint, `${BASE}/tmf-api/productOrdering/v4/productOrder`);
+    assertEquals(row.provenance.simulated, false);
+  }
+  // One timestamp per page, not per record: the read time of the response that carried it.
+  assertEquals(rows.map((r) => r.provenance.retrievedAt), [stamps[0], stamps[0], stamps[1]]);
+});
+
+Deno.test("a server that labels itself simulated is flagged in every record", async () => {
+  const data = await loadStubDataset(new URL("../data/demo/", import.meta.url));
+  const state = buildStubState(data.catalog, data.orders, data.serviceOrders, data.attempts);
+  const handle = createHandler({ state });
+  const viaStub =
+    ((input: string | URL | Request, init?: RequestInit) =>
+      handle(new Request(String(input), init))) as typeof fetch;
+
+  const rows = await collect(new Tmf622ProductOrderSource({ baseUrl: BASE, fetch: viaStub }));
+  assert(rows.length === EXPECTED.orders);
+  assert(rows.every((r) => r.provenance.simulated), "a record was not flagged simulated");
+  assertEquals(rows[0].provenance.externalId, rows[0].value.id as string);
+});

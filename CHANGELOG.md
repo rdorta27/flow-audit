@@ -5,6 +5,10 @@ tag when it publishes that version.
 
 ## Unreleased
 
+- M1-02: every record carries `provenance` (its id in the source, the endpoint read, when it
+  was read and whether the source labels itself simulated), so a finding can point at its
+  proof. Read time is the observation time, taken per page from an injectable clock.
+
 - `deno task read`: reads product orders and service orders from a TMF source and prints
   counts, including how many product orders have more than one service order. A data check,
   not an audit.

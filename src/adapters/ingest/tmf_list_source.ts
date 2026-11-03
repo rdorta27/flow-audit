@@ -37,11 +37,18 @@ export abstract class TmfListSource implements EvidenceSource {
     for await (const page of this.#client.list(this.path, this.#signal)) {
       for (const item of page.items) {
         line++;
+        const value = this.validate(item, page.url, line);
         yield {
           system: this.system,
           source: page.url,
           line,
-          value: this.validate(item, page.url, line),
+          value,
+          provenance: {
+            externalId: String(value.id),
+            endpoint: page.endpoint,
+            retrievedAt: page.retrievedAt,
+            simulated: page.simulated,
+          },
         };
       }
     }

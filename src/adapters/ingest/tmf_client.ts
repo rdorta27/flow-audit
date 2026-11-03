@@ -25,6 +25,8 @@ export interface TmfClientConfig {
   /** Hard cap on requests per `list` call, so a runaway source cannot loop forever. */
   maxRequests?: number;
   fetch?: typeof fetch;
+  /** Observation clock, injected so tests are deterministic. Defaults to the system time. */
+  now?: () => string;
 }
 
 /** Every failure of the client: transport, HTTP status, shape, limits, cancellation. */
@@ -36,9 +38,15 @@ export class TmfError extends Error {
 }
 
 export interface TmfPage {
-  /** The URL that produced these items, kept for provenance. */
+  /** The URL that produced these items, including offset and limit. */
   url: string;
+  /** The collection URL without paging, the endpoint recorded in provenance. */
+  endpoint: string;
   items: readonly unknown[];
+  /** When the response arrived. */
+  retrievedAt: string;
+  /** The server labelled itself simulated (`X-Flow-Audit-Source: simulated`). */
+  simulated: boolean;
 }
 
 export class TmfClient {
@@ -48,6 +56,7 @@ export class TmfClient {
   readonly #pageSize: number;
   readonly #maxRequests: number;
   readonly #fetch: typeof fetch;
+  readonly #now: () => string;
 
   constructor(config: TmfClientConfig) {
     let base: URL;
@@ -65,6 +74,7 @@ export class TmfClient {
     this.#pageSize = positive("pageSize", config.pageSize ?? DEFAULT_PAGE_SIZE);
     this.#maxRequests = positive("maxRequests", config.maxRequests ?? DEFAULT_MAX_REQUESTS);
     this.#fetch = config.fetch ?? fetch;
+    this.#now = config.now ?? (() => new Date().toISOString());
   }
 
   /** Walks a collection page by page until the server says it is done. */
@@ -78,8 +88,10 @@ export class TmfClient {
         );
       }
       const url = `${this.#baseUrl}${path}?offset=${offset}&limit=${this.#pageSize}`;
-      const { items, total } = await this.#get(url, signal);
-      if (items.length > 0) yield { url, items };
+      const { items, total, retrievedAt, simulated } = await this.#get(url, signal);
+      if (items.length > 0) {
+        yield { url, endpoint: `${this.#baseUrl}${path}`, items, retrievedAt, simulated };
+      }
 
       offset += items.length;
       const done = items.length === 0 ||
@@ -91,7 +103,9 @@ export class TmfClient {
   async #get(
     url: string,
     caller?: AbortSignal,
-  ): Promise<{ items: unknown[]; total: number | undefined }> {
+  ): Promise<
+    { items: unknown[]; total: number | undefined; retrievedAt: string; simulated: boolean }
+  > {
     const timeout = AbortSignal.timeout(this.#timeoutMs);
     const signal = caller ? AbortSignal.any([caller, timeout]) : timeout;
     const headers: Record<string, string> = { Accept: "application/json" };
@@ -131,7 +145,12 @@ export class TmfClient {
         throw new TmfError(`GET ${url} sent a malformed X-Total-Count: "${header}"`);
       }
     }
-    return { items: body, total };
+    return {
+      items: body,
+      total,
+      retrievedAt: this.#now(),
+      simulated: response.headers.get("X-Flow-Audit-Source") === "simulated",
+    };
   }
 }
 
