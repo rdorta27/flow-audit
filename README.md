@@ -13,29 +13,30 @@ It does not implement, configure or monitor those systems. It observes them.
 ## Where we are
 
 The full picture, in Spanish and with every card's status, is in
-[`../specs/estado.html`](../specs/estado.html) (open it in a browser). The short version:
+[`../specs/estado.html`](../specs/estado.html) (open it in a browser). Flow Audit is an
+open-source (MIT) technical demo under construction; there is no commercial offer.
 
-| Today | What it is | See it |
+### Real, simulated, missing
+
+| Part | Status | What that means |
 |---|---|---|
-| Synthetic data | 5,000 made-up orders of a fictional operator, with the defects planted on purpose | `data/demo/` |
-| Simulated TMF server | Serves that data like a real system would, read-only | `deno task stub` |
-| Readers and join | Fetch product orders (TMF622), service orders (TMF641) and activation attempts (TMF640), join them and print counts and how sure each join is | `deno task read` |
-| Rule R04 | Finds the 20 duplicated orders and prices them at USD 1,590 (USD 1,350 clean-up + USD 240 duplicate activations) | `deno task audit --source stub`, `deno task explain` |
+| Engine: read, join, R04, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --source stub --out out` |
+| Evidence source | **Simulated** | A TMF-shaped server over synthetic data (`deno task stub`); every response is marked simulated |
+| Data | **Simulated** | 5,000 made-up orders of a fictional operator, defects planted on purpose (`data/demo/`) |
+| Rates (minutes, USD 45/h, ARPU) | **Example** | From `data/demo/config.json`, not measured at any operator |
+| R01, R02, R03, R05 | **Missing** | Specified in `docs/architecture/rules.md`; arrive in 0.5.0 (Client-ready) |
+| Reading a client's export files | **Missing** | Arrives in 0.5.0 |
+| Catalog and process steps of the story | **Missing** | The simulated source does not carry them; shown as "not observed" |
 
-**Not yet:** only R04 exists, and no `findings.json` or report file comes out of the engine
-(M4-02, M4-03).
+What the engine finds today: R04, 20 duplicated orders (21 extra service orders),
+30 h and USD 1,590 a month (USD 1,350 clean-up + USD 240 duplicate activations). With R04
+alone the net total equals the sum. The site's five-problem figures (USD 44,233 for R01 to
+R04, R05 apart) are the target design computed from the rules, not engine output.
 
-**Where it goes:**
-
-1. **Demo 1** — one real report: finding R04 (a retry creates a second service order),
-   read from the simulated server, with its cost in USD (1,590) and the formula.
-2. **Client-ready** — read the files a real client exports and also detect R01, R02, R03 and R05.
-
-Done in Demo 1 so far: the three readers (milestone M1 is closed), provenance on every record,
-the join of orders, service orders and activations with a confidence per link, the
-classification of time as work, wait or gap (milestone M2 is closed) and the written spec of
-R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. `deno task audit` now runs R04 and returns the findings schema (M3-06, M4-01); the demo data uses snake_case keys and CI runs on push. It now also writes `findings.json` and `report.html` (M4-02, M4-03), reads unknown states as `UNMAPPED` (M2-05) and uses dataset v2 (M6-01). Next cards: M4-04 (the story of one order) and M4-05 (net total). The plan is in
-[`../specs/backlog.md`](../specs/backlog.md); finished cards are in [`../specs/done/`](../specs/done/README.md).
+**Where it goes:** **Demo 1** (0.4.0) — this report, from the simulated source, reviewed;
+**Client-ready** (0.5.0) — the client's export files and all five rules. The plan is in
+[`../specs/backlog.md`](../specs/backlog.md); finished cards are in
+[`../specs/done/`](../specs/done/README.md).
 
 ## Why
 

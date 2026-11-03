@@ -5,9 +5,10 @@
   and activations (TMF640) in `src/adapters/ingest/`, the correlation with per-link confidence
   and time segments (`src/domain/correlation.ts`, `segments.ts`), and rule R04
   (`src/domain/rules/r04.ts`: 20 duplicates, USD 1,590). `deno task audit --source stub` runs R04
-  and returns the `findings/1` schema (`docs/architecture/report-schema.md`); no file is
-  written yet (M4-02). Data files use snake_case keys (TS stays camelCase). Do not add R01,
-  R02, R03 or R05 ahead of their milestone. Next cards: M4-02 and M2-05. The plan is
+  (`R04@2`, with causes) and writes `findings.json` and `report.html` with `--out`, including
+  the story of one order (`story.ts`) and the net total (`totals.ts`); schema in
+  `docs/architecture/report-schema.md`. Data files use snake_case keys (TS stays camelCase).
+  Do not add R01, R02, R03 or R05 ahead of their milestone (0.5.0). The plan is
   `../specs/backlog.md`.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).
