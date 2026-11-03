@@ -4,6 +4,18 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.3.6 — 2026-11-03
+
+The Demo 1 candidate. The engine is unchanged in behaviour; the docs and the site now say
+what is real.
+
+- README: a "Real, simulated, missing" table; the project is an open-source (MIT) technical
+  demo with no commercial offer; AGENTS.md describes the engine as it is (M5-04).
+- The site ships the same number: an honest landing with measured (R04) and projected
+  findings apart and no sales wording (S-15); a short landing with Systems, Status and Help
+  pages and a sticky menu (S-17); the report and `findings.json` written by engine 0.3.6
+  from the simulated server, published next to the target-design demo (M5-04).
+
 ## 0.3.5 — 2026-11-03
 
 - R04@2 (M3-08): counts extra service orders per item and classifies the cause

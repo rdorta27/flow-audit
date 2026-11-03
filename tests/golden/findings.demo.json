@@ -1,6 +1,6 @@
 {
   "schema_version": "findings/1",
-  "engine_version": "0.3.5",
+  "engine_version": "0.3.6",
   "run": {
     "id": "<run>",
     "generated_at": "<time>",
