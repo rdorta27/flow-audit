@@ -95,7 +95,7 @@ sample up to twenty. A test validates this exact block.
 ```json
 {
   "schema_version": "findings/1",
-  "engine_version": "0.3.3",
+  "engine_version": "0.3.4",
   "run": {
     "id": "b11b48203b389607",
     "generated_at": "2026-09-01T00:00:00Z",

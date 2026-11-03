@@ -4,7 +4,7 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
-## Unreleased
+## 0.3.4 — 2026-11-03
 
 - The story of one order in plain language (`journeys[].story`, M4-04), in the HTML report and
   in `deno task explain --order <ref>`.
