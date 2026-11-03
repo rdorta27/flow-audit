@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import { catalogToFile } from "../../domain/data_files.ts";
 import type {
   Activity,
   Catalog,
@@ -34,7 +35,7 @@ function csvField(value: string | number | null | undefined): string {
 }
 
 export function serializeCatalog(catalog: Catalog): string {
-  return `${JSON.stringify(catalog, null, 2)}\n`;
+  return `${JSON.stringify(catalogToFile(catalog), null, 2)}\n`;
 }
 
 export function serializeOms(dataset: DemoDataset): string {

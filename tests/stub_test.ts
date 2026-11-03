@@ -198,7 +198,7 @@ Deno.test("R04: exactly the duplicated orders appear as two service orders on on
   assertEquals(parents, expectedParents);
 });
 
-Deno.test("every service order item resolves to an existing product order item", async () => {
+Deno.test("every service order item resolves to an existing product order item", () => {
   const productOrderItems = new Set(
     state.productOrders.flatMap((po) => po.productOrderItem.map((item) => item.id)),
   );
@@ -250,7 +250,7 @@ Deno.test("activations reference their service order; weak links stay orphans", 
   assertEquals(orphans, EXPECTED.findings.R05.affected_orders);
 });
 
-Deno.test("pending activations have no completionDate; ended ones do", async () => {
+Deno.test("pending activations have no completionDate; ended ones do", () => {
   const pending = state.activations.find((a) => a.state === "PENDING");
   assert(pending !== undefined, "the dataset keeps 50 attempts pending");
   assertEquals(pending.completionDate, undefined);

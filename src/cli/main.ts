@@ -4,6 +4,7 @@ import type { AuditResult } from "../app/run_audit.ts";
 import { systemClock } from "../adapters/clock/system_clock.ts";
 import { TmfError } from "../adapters/ingest/tmf_client.ts";
 import { createTmfSources, tmfConfigFromEnvOrStub } from "../adapters/ingest/tmf_sources.ts";
+import { configFromFile } from "../domain/data_files.ts";
 import type { ImpactConfig } from "../domain/model.ts";
 
 const DEFAULT_CONFIG = new URL("../../data/demo/config.json", import.meta.url);
@@ -90,11 +91,7 @@ async function readConfig(path: string | undefined): Promise<ImpactConfig> {
     throw new Error(`cannot read the config ${where}: ${(error as Error).message}`);
   }
   try {
-    const config = JSON.parse(raw) as ImpactConfig;
-    if (typeof config.loadedHourUsd !== "number" || typeof config.rates !== "object") {
-      throw new Error("missing loadedHourUsd or rates");
-    }
-    return config;
+    return configFromFile(JSON.parse(raw));
   } catch (error) {
     throw new Error(`${where}: not a valid impact config: ${(error as Error).message}`);
   }

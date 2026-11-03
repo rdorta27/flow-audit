@@ -5,9 +5,10 @@
  *
  * Two subtrees keep their keys as they are, because the keys are data and not field names:
  * `config` (printed "as read"; `cost.inputs[].key` points into it, for example
- * `rates.cleanupMinutes`) and `overlap.byOrder` (its keys are order ids).
+ * `rates.cleanup_minutes`) and `overlap.byOrder` (its keys are order ids).
  */
 
+import { configToFile } from "./data_files.ts";
 import type { AuditReport } from "./model.ts";
 
 const snake = (key: string) => key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
@@ -33,5 +34,8 @@ function convert(value: unknown, path: string): unknown {
 
 /** Maps the in-memory report to the object that is written as `findings.json`. */
 export function toFileShape(report: AuditReport): Record<string, unknown> {
-  return convert(report, "") as Record<string, unknown>;
+  const file = convert(report, "") as Record<string, unknown>;
+  // `config` is printed as the file the engine read: snake_case, as `config.json` has it.
+  file.config = configToFile(report.config);
+  return file;
 }

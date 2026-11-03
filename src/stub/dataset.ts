@@ -8,6 +8,7 @@
  * (by order, oldest first); the stub does not re-sort.
  */
 
+import { catalogFromFile } from "../domain/data_files.ts";
 import type {
   Catalog,
   Order,
@@ -107,7 +108,7 @@ function parseAttempts(text: string): ProvisioningAttempt[] {
 }
 
 export async function loadStubDataset(root: URL): Promise<StubDataset> {
-  const catalog = JSON.parse(await readText(root, "catalog.json")) as Catalog;
+  const catalog = catalogFromFile(JSON.parse(await readText(root, "catalog.json")));
   const oms = parseOms(await readText(root, "oms_orders.csv"));
   const attempts = parseAttempts(await readText(root, "provisioning.jsonl"));
 

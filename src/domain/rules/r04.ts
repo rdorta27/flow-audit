@@ -92,11 +92,11 @@ export function detectR04(
     amount: cleanup,
     basis: "rate_assumption",
     observed: duplicates,
-    inputKeys: ["rates.cleanupMinutes", "loadedHourUsd"],
+    inputKeys: ["rates.cleanup_minutes", "loaded_hour_usd"],
   }];
   const inputs: Cost["inputs"] = [
-    input("rates.cleanupMinutes", config.rates.cleanupMinutes),
-    input("loadedHourUsd", config.loadedHourUsd),
+    input("rates.cleanup_minutes", config.rates.cleanupMinutes),
+    input("loaded_hour_usd", config.loadedHourUsd),
   ];
   const unmeasured: Cost["unmeasured"] = [];
   if (activationsObserved) {
@@ -105,9 +105,11 @@ export function detectR04(
       amount: reachedActivation * config.rates.duplicateActivationCostUsd,
       basis: "rate_assumption",
       observed: reachedActivation,
-      inputKeys: ["rates.duplicateActivationCostUsd"],
+      inputKeys: ["rates.duplicate_activation_cost_usd"],
     });
-    inputs.push(input("rates.duplicateActivationCostUsd", config.rates.duplicateActivationCostUsd));
+    inputs.push(
+      input("rates.duplicate_activation_cost_usd", config.rates.duplicateActivationCostUsd),
+    );
   } else {
     unmeasured.push({
       term: "Duplicate activations",

@@ -88,9 +88,11 @@ The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 
 ## Versions
 
-`core` sets the version numbers (semver). The sibling `site/` repository tags a release
-only when it publishes that same `core` version, with the same number; site-only fixes
-are not tagged. Both repositories start aligned at `0.1.0`.
+Version numbers mark progress towards a milestone; they are not semver. `0.4.0` is Demo 1,
+`0.5.0` Client-ready and `0.6.0` Order-to-cash; a `0.3.x` release is a step towards `0.4.0`
+and may carry features. `core` and the sibling `site/` repository share the number of each
+release and are tagged together. The engine reads its version from `deno.json` through
+`src/version.ts`.
 
 ## Repository
 

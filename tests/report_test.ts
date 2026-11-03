@@ -34,7 +34,7 @@ Deno.test("the validator rejects a finding with no formula", () => {
 
 Deno.test("the validator rejects an input key that is not in config.json", () => {
   const report = example();
-  report.findings[0].cost.inputs[0].key = "rates.madeUpMinutes";
+  report.findings[0].cost.inputs[0].key = "rates.made_up_minutes";
   const errors = validateReport(report, configJson);
   assert(errors.some((e) => e.includes("not a key of config.json")), errors.join("\n"));
 });
@@ -62,7 +62,7 @@ Deno.test("the validator rejects bad enums, camelCase files and an oversized sam
 Deno.test("the engine's report validates, and the serializer maps to snake_case", async () => {
   const { report } = await auditStub();
   const file = toFileShape(report) as Json;
-  assertEquals(validateReport(file, demoConfig), []);
+  assertEquals(validateReport(file, configJson), []);
   assertEquals(file.schema_version, "findings/1");
   assertEquals(file.findings[0].rule_version, "R04@1");
   assertEquals(file.findings[0].cost.amount_month, 1590);
@@ -70,13 +70,13 @@ Deno.test("the engine's report validates, and the serializer maps to snake_case"
   assertEquals(file.sources[0].rows_read, 5000);
   assertEquals(file.totals.gross.amount, 1590);
   // The JSON round trip is what a file would hold.
-  assertEquals(validateReport(JSON.parse(JSON.stringify(file)), demoConfig), []);
-  // Data keys keep their spelling: config as read.
-  assertEquals(file.config.ordersPerMonth, 5000);
-  assertEquals(file.config.rates.cleanupMinutes, 90);
-  // No camelCase key leaks anywhere outside config.
-  const { config: _config, ...rest } = file;
-  assert(!/"[a-z]+[A-Z][A-Za-z]*":/.test(JSON.stringify(rest)), "a camelCase key leaked");
+  assertEquals(validateReport(JSON.parse(JSON.stringify(file)), configJson), []);
+  // The config is printed as the file has it: snake_case, and the same as config.json.
+  assertEquals(file.config, configJson);
+  assertEquals(file.config.orders_per_month, 5000);
+  assertEquals(file.config.rates.cleanup_minutes, 90);
+  // No camelCase key leaks anywhere.
+  assert(!/"[a-z]+[A-Z][A-Za-z]*":/.test(JSON.stringify(file)), "a camelCase key leaked");
 });
 
 Deno.test("the serializer keeps order ids in overlap.by_order as they are", async () => {
@@ -123,9 +123,9 @@ Deno.test("R04 cost with activations: two terms, USD 1,350 + USD 240, one_off", 
   assertEquals(cost.unmeasured, []);
   assertEquals(cost.amountMonth, 1590);
   assertEquals(cost.inputs.map((i) => i.key), [
-    "rates.cleanupMinutes",
-    "loadedHourUsd",
-    "rates.duplicateActivationCostUsd",
+    "rates.cleanup_minutes",
+    "loaded_hour_usd",
+    "rates.duplicate_activation_cost_usd",
   ]);
   assertEquals(cost.revenueAtRisk.amount, 0);
   assertEquals(findings[0].evidenceTotal, 20);

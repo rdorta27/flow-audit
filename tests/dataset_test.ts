@@ -10,6 +10,7 @@ import {
   TIMER_ORDERS,
   WEAK_LINK_ORDERS,
 } from "../src/dataset/generator.ts";
+import { configFromFile, configToFile } from "../src/domain/data_files.ts";
 import { isTerminal } from "../src/domain/model.ts";
 import { assert, assertEquals } from "./assert.ts";
 
@@ -256,5 +257,6 @@ Deno.test("the committed files match the generator", async () => {
   const config = JSON.parse(await Deno.readTextFile(new URL("config.json", datasetUrl)));
 
   assertEquals(expected, EXPECTED);
-  assertEquals(config, IMPACT_CONFIG);
+  assertEquals(config, configToFile(IMPACT_CONFIG));
+  assertEquals(configFromFile(config), IMPACT_CONFIG);
 });

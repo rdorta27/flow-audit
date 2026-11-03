@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 import { EXPECTED, generateDemoDataset, IMPACT_CONFIG } from "../dataset/generator.ts";
+import { configToFile } from "../domain/data_files.ts";
 import { serializeDataset, serializeJson } from "../adapters/export/serializers.ts";
 
 export async function writeDataset(target: string): Promise<string[]> {
   const dataset = generateDemoDataset();
   const files: Record<string, string> = {
     ...serializeDataset(dataset),
-    "config.json": serializeJson(IMPACT_CONFIG),
+    "config.json": serializeJson(configToFile(IMPACT_CONFIG)),
     "expected.json": serializeJson(EXPECTED),
   };
 

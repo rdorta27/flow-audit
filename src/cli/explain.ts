@@ -8,7 +8,7 @@
 import { systemClock } from "../adapters/clock/system_clock.ts";
 import { createTmfSources } from "../adapters/ingest/tmf_sources.ts";
 import { runAudit } from "../app/run_audit.ts";
-import type { ImpactConfig } from "../domain/model.ts";
+import { configFromFile } from "../domain/data_files.ts";
 import type { RawRecord } from "../ports/evidence_source.ts";
 import { loadStubDataset } from "../stub/dataset.ts";
 import { buildStubState } from "../stub/mapping.ts";
@@ -43,11 +43,11 @@ function buildDiagram(entry: DiagramEntry, ref: string, note: string): string {
     `<text x="${t}" y="${y}" class="${cls}">${esc(a)}</text>`;
   let g = "";
   for (
-    const [name, y, api] of [["Pedido", lane.order, "TMF622"], [
-      "Orden de servicio",
+    const [name, y, api] of [["Order", lane.order, "TMF622"], [
+      "Service order",
       lane.so,
       "TMF641",
-    ], ["Activación", lane.act, "TMF640"]] as const
+    ], ["Activation", lane.act, "TMF640"]] as const
   ) {
     g += `<line class="lane" x1="${L - 10}" x2="${W - 10}" y1="${y - 14}" y2="${y - 14}"/>${
       label(8, y + 14, name)
@@ -56,7 +56,7 @@ function buildDiagram(entry: DiagramEntry, ref: string, note: string): string {
   const first = L;
   g +=
     `<g data-s="1"><rect class="n" x="${first}" y="${lane.order}" width="150" height="34" rx="6"/>${
-      label(first + 8, lane.order + 21, ref + " creado")
+      label(first + 8, lane.order + 21, ref + " created")
     }</g>`;
   sos.forEach((so, i) => {
     const bad = i > 0;
@@ -90,23 +90,23 @@ function buildDiagram(entry: DiagramEntry, ref: string, note: string): string {
   g += `<g data-s="3"><path class="hot" d="M${x(sos[0].createdAt) + 55} ${lane.order + 34} L${
     b + 55
   } ${lane.so}"/><path class="hot" d="M${a} ${lane.so + 17} H${b}"/>${
-    label((a + b) / 2 - 60, lane.so + 80, `${hours} h hasta el segundo intento`, "m")
+    label((a + b) / 2 - 60, lane.so + 80, `${hours} h until the second attempt`, "m")
   }</g>`;
   const caps = [
-    "Se lee: tres llamadas GET de solo lectura traen el pedido, sus órdenes de servicio y sus activaciones.",
-    "Se une: cada registro se enlaza con su pedido por el id que lleva, y cada enlace queda marcado como explícito, inferido o faltante.",
-    "La regla R04: dos órdenes de servicio salen de la misma línea del pedido. La segunda no reintenta la primera, la duplica. " +
+    "Read: three read-only GET calls fetch the order, its service orders and its activations.",
+    "Join: each record is linked to its order by the id it carries, and each link is marked explicit, inferred or missing.",
+    "Rule R04: two service orders come from the same order line. The second does not retry the first, it duplicates it. " +
     note,
-    "Se calcula el costo: horas de limpieza más la activación duplicada. Es el hallazgo que verás en el informe.",
+    "Cost: cleanup hours plus the duplicate activation. This is the finding you will see in the report.",
   ];
   return `<div class="flow" data-on="1"><div class="steps">${
-    ["1 Leer", "2 Unir", "3 Detectar", "4 Costo"].map((t, i) =>
+    ["1 Read", "2 Join", "3 Detect", "4 Cost"].map((t, i) =>
       `<button type="button" aria-pressed="${i === 0}" data-step="${i + 1}">${t}</button>`
     ).join("")
   }</div>
-<svg viewBox="0 0 ${W} 330" role="img" aria-label="Flujo del pedido ${
+<svg viewBox="0 0 ${W} 330" role="img" aria-label="Flow of order ${
     esc(ref)
-  } por los tres sistemas">${g}</svg>
+  } through the three systems">${g}</svg>
 <p class="cap" aria-live="polite">${esc(caps[0])}</p>
 <script>(function(){var f=document.currentScript.parentNode,c=${
     JSON.stringify(caps)
@@ -124,9 +124,9 @@ export async function buildExplainPage(dataDir: URL): Promise<string> {
       ((input: string | URL | Request, init?: RequestInit) =>
         handle(new Request(String(input), init))) as typeof fetch,
   };
-  const impact = JSON.parse(
-    await Deno.readTextFile(new URL("config.json", dataDir)),
-  ) as ImpactConfig;
+  const impact = configFromFile(
+    JSON.parse(await Deno.readTextFile(new URL("config.json", dataDir))),
+  );
   const audit = await runAudit({}, {
     sources: createTmfSources(config),
     config: impact,
@@ -157,8 +157,8 @@ export async function buildExplainPage(dataDir: URL): Promise<string> {
       esc(r.provenance.endpoint)
     }</small></summary><pre>${json(r.value)}</pre></details>`;
   const ev = finding.evidence[0];
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Un pedido, paso a paso</title>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>One order, step by step</title>
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--line:#d8d8d8;--bad:#b3261e;--badbg:#fde8e6;--ok:#1b6e3c;--card:#f6f6f6}
 @media(prefers-color-scheme:dark){:root{--bg:#161616;--fg:#eee;--mut:#9a9a9a;--line:#333;--bad:#ff8a80;--badbg:#3a1f1d;--ok:#6fcf97;--card:#202020}}
@@ -176,25 +176,25 @@ summary{cursor:pointer;margin:4px 0}small{color:var(--mut)}
 .flow [data-s]{opacity:.12;transition:opacity .3s}.flow[data-on="1"] [data-s="1"],.flow[data-on="2"] [data-s="1"],.flow[data-on="2"] [data-s="2"],.flow[data-on="3"] [data-s],.flow[data-on="4"] [data-s]{opacity:1}.flow .cap{min-height:3em;margin:8px 0;color:var(--fg)}
 :root{--brand:#3b6fd8}.tag{display:inline-block;background:var(--bad);color:#fff;border-radius:4px;padding:0 6px;font-size:.8rem}
 </style></head><body>
-<h1>Un pedido, paso a paso: ${esc(ref)}</h1>
-<p>Datos reales del dataset de prueba (sintético). Pulsa los pasos para recorrer el flujo; debajo está el JSON tal como llegó.</p>
+<h1>One order, step by step: ${esc(ref)}</h1>
+<p>Real records from the test dataset (synthetic). Click the steps to walk through the flow; below is the JSON as it arrived.</p>
 ${diagram}
 ${
     box(
-      "1. Se lee",
-      "Tres llamadas GET, solo lectura. Cada registro guarda de dónde salió y cuándo.",
-      `<p>Pedido comercial (TMF622):</p>${
+      "1. Read",
+      "Three read-only GET calls. Each record keeps where it came from and when.",
+      `<p>Product order (TMF622):</p>${
         rawO.map(rec).join("")
-      }<p>Órdenes de servicio (TMF641), hay <b>${rawS.length}</b>:</p>${
+      }<p>Service orders (TMF641), there are <b>${rawS.length}</b>:</p>${
         rawS.map(rec).join("")
-      }<p>Activaciones (TMF640):</p>${rawA.map(rec).join("") || "<p>(ninguna enlazada)</p>"}`,
+      }<p>Activations (TMF640):</p>${rawA.map(rec).join("") || "<p>(none linked)</p>"}`,
     )
   }
-<div class="arrow">▼ se unen por el id que llevan</div>
+<div class="arrow">▼ joined by the id they carry</div>
 ${
     box(
-      "2. Se une",
-      "Cada enlace dice qué tan seguro es.",
+      "2. Join",
+      "Each link says how sure it is.",
       `<ul>${
         entry.serviceOrders.map((l) =>
           `<li>${esc(l.item.soRef)} → ${esc(ref)}: <b>${esc(l.link.confidence)}</b> (${
@@ -204,33 +204,33 @@ ${
       }</ul>`,
     )
   }
-<div class="arrow">▼ se aplica la regla R04</div>
+<div class="arrow">▼ rule R04 applies</div>
 ${
     box(
-      "3. Dónde está el error",
-      "Dos órdenes de servicio salen de la misma línea del pedido.",
+      "3. Where the error is",
+      "Two service orders come from the same order line.",
       `<div class="pair">${
         entry.serviceOrders.map((l) =>
-          `<div><b>${esc(l.item.soRef)}</b><br>estado ${esc(l.item.state)}<br>línea <code>${
+          `<div><b>${esc(l.item.soRef)}</b><br>state ${esc(l.item.state)}<br>line <code>${
             esc(l.item.productOrderItemRef ?? "?")
-          }</code><br>creada ${esc(l.item.createdAt)}</div>`
+          }</code><br>created ${esc(l.item.createdAt)}</div>`
         ).join("")
       }</div><p><span class="tag">error</span> ${esc(ev.note ?? "")}</p>`,
       "bad",
     )
   }
-<div class="arrow">▼ se calcula el costo</div>
+<div class="arrow">▼ cost is computed</div>
 ${
     box(
-      "4. Hallazgo",
-      `${esc(finding.ruleVersion)} · severidad ${esc(finding.severity)}`,
-      `<p>${finding.affectedOrders} pedidos de 5.000 (${
+      "4. Finding",
+      `${esc(finding.ruleVersion)} · severity ${esc(finding.severity)}`,
+      `<p>${finding.affectedOrders} orders of 5,000 (${
         (finding.shareOfOrders * 100).toFixed(1)
-      } %). Impacto: <b>${finding.cost.hoursMonth} h</b> y <b>USD ${
+      }%). Impact: <b>${finding.cost.hoursMonth} h</b> and <b>USD ${
         finding.cost.amountMonth.toLocaleString("en-US")
-      }</b> al mes.</p><p>${
+      }</b> per month.</p><p>${
         esc(finding.recommendation)
-      }</p><details><summary>Cuenta</summary><pre>horas = ${finding.affectedOrders} × ${impact.rates.cleanupMinutes} min / 60 = ${finding.cost.hoursMonth}\nusd = ${finding.cost.hoursMonth} h × ${impact.loadedHourUsd} + activaciones duplicadas × ${impact.rates.duplicateActivationCostUsd}</pre></details>`,
+      }</p><details><summary>Calculation</summary><pre>hours = ${finding.affectedOrders} × ${impact.rates.cleanupMinutes} min / 60 = ${finding.cost.hoursMonth}\nusd = ${finding.cost.hoursMonth} h × ${impact.loadedHourUsd} + duplicate activations × ${impact.rates.duplicateActivationCostUsd}</pre></details>`,
     )
   }
 </body></html>`;

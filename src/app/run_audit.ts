@@ -16,8 +16,7 @@ import { RULES } from "../domain/rules/index.ts";
 import type { Clock } from "../ports/clock.ts";
 import type { EvidenceSource, RawRecord } from "../ports/evidence_source.ts";
 
-/** Version of the engine, written in every report. Bumped with the release. */
-export const ENGINE_VERSION = "0.3.1";
+import { ENGINE_VERSION } from "../version.ts";
 
 /** How many orders the report draws as journeys. */
 export const REPORT_JOURNEYS_MAX = 3;

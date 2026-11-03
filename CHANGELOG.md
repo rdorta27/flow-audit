@@ -1,9 +1,22 @@
 # Changelog
 
-Versions follow semver. `core` sets the numbers; the `site` repository reuses the same
-tag when it publishes that version.
+Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Client-ready,
+`0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
+release.
 
 ## Unreleased
+
+- `deno task audit --source stub` reads the TMF stub, joins the records and runs the rule
+  registry (R04); exit codes 0, 1, 2 (3 reserved); `--quiet` and `--config`. `read`,
+  `audit` and `explain` share the source wiring; `explain` reuses `runAudit` and is in
+  English.
+- The findings schema (`docs/architecture/report-schema.md`): types, a dependency-free
+  validator and a serializer to snake_case keys; R04 fills its cost block.
+- Every demo data file uses snake_case keys (`config.json`, `catalog.json`); the engine
+  translates at the edge.
+- The engine version comes from `deno.json` (`src/version.ts`).
+- CI: `.github/workflows/ci.yml` runs check, test, lint and fmt on push.
+- `docs/architecture/report-style.md`: the system colours shared with the site.
 
 ## 0.3.1 — 2026-11-03
 

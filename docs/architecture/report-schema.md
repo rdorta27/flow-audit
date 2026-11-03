@@ -9,9 +9,9 @@ contract. Every number in it carries its formula and the inputs it came from.
 
 - **Keys in the file are snake_case** (D-12). The engine keeps camelCase objects and
   `toFileShape` (`src/domain/report_json.ts`) maps them. The doc names fields in the file form.
-- Two subtrees keep their keys unchanged because the keys are data: `config` (the
-  `ImpactConfig` printed as read, camelCase, so `cost.inputs[].key` such as
-  `rates.cleanupMinutes` points into it) and `overlap.by_order` (keys are order ids).
+- `config` is printed as `config.json` has it (snake_case, D-14), so `cost.inputs[].key` such
+  as `rates.cleanup_minutes` points into it; `data_files.ts` translates at the edge. The keys of
+  `overlap.by_order` are order ids and stay as they are.
 - `cost.currency` is `USD` today. Times are ISO 8601 UTC. Shares are fractions (0.004 = 0.4%).
 - A field that a later card fills is present from day one, with `null`, `[]` or `{}`, so no
   reader breaks when it starts to carry data. The table below says which.
@@ -61,12 +61,12 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `period_days`, `normalisation` | Days the amount covers and how it became "per month"; `null` when it did not need to (a one-off). |
 | `hours_month`, `amount_month` | The hours and the amount. For a `one_off` they are the amount of the audited period, not a monthly rate. **`amount_month` is the sum of `terms[].amount`; revenue at risk never enters it.** |
 | `formula` | The text of the formula in `rules.md`. Required. |
-| `inputs[]` | `key` (a dotted key of `config.json`, such as `rates.cleanupMinutes`), `value` (must equal the config), and `source`, `owner`, `date` (null until M5-07 provides them). |
+| `inputs[]` | `key` (a dotted key of `config.json`, such as `rates.cleanup_minutes`), `value` (must equal the config), and `source`, `owner`, `date` (null until M5-07 provides them). |
 | `terms[]` | `name`, `amount`, `basis`, `observed` (the count the term multiplies, when measured) and `input_keys` (keys in `inputs`). `basis` is `measured` (counted in the evidence), `rate_assumption` (an amount from `config.json`) or `not_observed`. A rate times a measured count is `rate_assumption`; `observed` says the count was measured. |
 | `unmeasured[]` | `term` and `reason` for a term the source cannot show; it is not in `terms` and not in the amount. |
 | `revenue_at_risk` | `amount`, `basis` (`arpu_assumption` or `null`) and `label` ("not lost revenue"). Never added to the amount. |
 
-R04 has two terms: clean-up (`rates.cleanupMinutes`, `loadedHourUsd`) and duplicate
+R04 has two terms: clean-up (`rates.cleanup_minutes`, `loaded_hour_usd`) and duplicate
 activations (`rates.duplicateActivationCostUsd`). When the source has no activation records
 the second term moves to `unmeasured` and the amount is the clean-up alone.
 
@@ -87,7 +87,7 @@ sample up to twenty. A test validates this exact block.
 ```json
 {
   "schema_version": "findings/1",
-  "engine_version": "0.3.1",
+  "engine_version": "0.3.2",
   "run": {
     "id": "b11b48203b389607",
     "generated_at": "2026-09-01T00:00:00Z",
@@ -140,20 +140,20 @@ sample up to twenty. A test validates this exact block.
   },
   "config": {
     "currency": "USD",
-    "ordersPerMonth": 5000,
-    "loadedHourUsd": 45,
+    "orders_per_month": 5000,
+    "loaded_hour_usd": 45,
     "rates": {
-      "manualMinutes": 5,
-      "dailyFollowupMinutes": 15,
-      "cleanupMinutes": 90,
-      "investigationMinutes": 45,
-      "duplicateActivationCostUsd": 12,
-      "arpuUsd": 65
+      "manual_minutes": 5,
+      "daily_followup_minutes": 15,
+      "cleanup_minutes": 90,
+      "investigation_minutes": 45,
+      "duplicate_activation_cost_usd": 12,
+      "arpu_usd": 65
     },
     "thresholds": {
-      "retryWindowHours": 24,
-      "stuckAfterHours": 72,
-      "duplicateWindowMinutes": 10
+      "retry_window_hours": 24,
+      "stuck_after_hours": 72,
+      "duplicate_window_minutes": 10
     }
   },
   "correlation": {
@@ -344,21 +344,21 @@ sample up to twenty. A test validates this exact block.
         "formula": "hours = duplicates × cleanup_minutes / 60; amount = hours × loaded_hour_usd + duplicates_that_reached_activation × duplicate_activation_cost_usd",
         "inputs": [
           {
-            "key": "rates.cleanupMinutes",
+            "key": "rates.cleanup_minutes",
             "value": 90,
             "source": null,
             "owner": null,
             "date": null
           },
           {
-            "key": "loadedHourUsd",
+            "key": "loaded_hour_usd",
             "value": 45,
             "source": null,
             "owner": null,
             "date": null
           },
           {
-            "key": "rates.duplicateActivationCostUsd",
+            "key": "rates.duplicate_activation_cost_usd",
             "value": 12,
             "source": null,
             "owner": null,
@@ -372,8 +372,8 @@ sample up to twenty. A test validates this exact block.
             "basis": "rate_assumption",
             "observed": 20,
             "input_keys": [
-              "rates.cleanupMinutes",
-              "loadedHourUsd"
+              "rates.cleanup_minutes",
+              "loaded_hour_usd"
             ]
           },
           {
@@ -382,7 +382,7 @@ sample up to twenty. A test validates this exact block.
             "basis": "rate_assumption",
             "observed": 20,
             "input_keys": [
-              "rates.duplicateActivationCostUsd"
+              "rates.duplicate_activation_cost_usd"
             ]
           }
         ],

@@ -21,7 +21,7 @@ const isStr = (v: unknown): v is string => typeof v === "string";
 const isNonEmpty = (v: unknown): v is string => isStr(v) && v.trim() !== "";
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
-/** Reads a dotted key such as `rates.cleanupMinutes` from the config; undefined when absent. */
+/** Reads a dotted key such as `rates.cleanup_minutes` from the config; undefined when absent. */
 function lookup(config: unknown, key: string): unknown {
   let node: unknown = config;
   for (const part of key.split(".")) {

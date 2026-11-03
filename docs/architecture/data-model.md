@@ -196,6 +196,11 @@ type ImpactConfig = {
 };
 ```
 
+`config.json` and `catalog.json` use snake_case keys (`loaded_hour_usd`, `rates.cleanup_minutes`,
+`spec_id`, `used_by`, `valid_from`, `price_usd`), like every data file the project defines (D-14).
+The engine reads them through one translation at the edge (`src/domain/data_files.ts`); its
+internal types stay camelCase. TMF payloads stay camelCase, as the standard has them.
+
 Example: R02 fires on 100% of 5,000 orders at 5 minutes each → 417 h/month → USD 18,750 at USD 45/h. The rate is visible in the report so the client can replace it with their own.
 
 ## Raw data

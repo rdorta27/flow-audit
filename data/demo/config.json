@@ -1,18 +1,18 @@
 {
   "currency": "USD",
-  "ordersPerMonth": 5000,
-  "loadedHourUsd": 45,
+  "orders_per_month": 5000,
+  "loaded_hour_usd": 45,
   "rates": {
-    "manualMinutes": 5,
-    "dailyFollowupMinutes": 15,
-    "cleanupMinutes": 90,
-    "investigationMinutes": 45,
-    "duplicateActivationCostUsd": 12,
-    "arpuUsd": 65
+    "manual_minutes": 5,
+    "daily_followup_minutes": 15,
+    "cleanup_minutes": 90,
+    "investigation_minutes": 45,
+    "duplicate_activation_cost_usd": 12,
+    "arpu_usd": 65
   },
   "thresholds": {
-    "retryWindowHours": 24,
-    "stuckAfterHours": 72,
-    "duplicateWindowMinutes": 10
+    "retry_window_hours": 24,
+    "stuck_after_hours": 72,
+    "duplicate_window_minutes": 10
   }
 }

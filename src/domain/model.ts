@@ -252,7 +252,7 @@ export type CostKind = "recurring" | "one_off" | "accumulated_to_period_end";
  */
 export type CostBasis = "measured" | "rate_assumption" | "not_observed";
 
-/** A number taken from `config.json`, named by its dotted key, for example `rates.cleanupMinutes`. */
+/** A number taken from `config.json`, named by its dotted key, for example `rates.cleanup_minutes`. */
 export interface CostInput {
   key: string;
   value: number;

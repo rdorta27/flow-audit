@@ -3,15 +3,15 @@
 
 import { runAudit } from "../src/app/run_audit.ts";
 import { createTmfSources } from "../src/adapters/ingest/tmf_sources.ts";
-import type { ImpactConfig } from "../src/domain/model.ts";
+import { configFromFile } from "../src/domain/data_files.ts";
 import { loadStubDataset } from "../src/stub/dataset.ts";
 import { buildStubState } from "../src/stub/mapping.ts";
 import { createHandler } from "../src/stub/router.ts";
 
 const dataDir = new URL("../data/demo/", import.meta.url);
-export const demoConfig = JSON.parse(
-  await Deno.readTextFile(new URL("config.json", dataDir)),
-) as ImpactConfig;
+export const demoConfig = configFromFile(
+  JSON.parse(await Deno.readTextFile(new URL("config.json", dataDir))),
+);
 const stubData = await loadStubDataset(dataDir);
 const handle = createHandler({
   state: buildStubState(

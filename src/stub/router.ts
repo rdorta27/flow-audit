@@ -93,7 +93,7 @@ export function createHandler(
     }],
   ]);
 
-  return async (request: Request): Promise<Response> => {
+  const handle = (request: Request): Response => {
     if (options.bearerToken !== undefined) {
       const expected = `Bearer ${options.bearerToken}`;
       if (request.headers.get("Authorization") !== expected) {
@@ -140,6 +140,10 @@ export function createHandler(
 
     return errorResponse(`no stub collection at ${url.pathname}`, 404);
   };
+
+  // The handler is synchronous; a throw still surfaces as a rejected promise, as before.
+  return (request: Request): Promise<Response> =>
+    new Promise((resolve) => resolve(handle(request)));
 }
 
 function filterByState(

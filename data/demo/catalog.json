@@ -1,15 +1,15 @@
 {
   "specs": [
     {
-      "specId": "SPEC-SKYHOME-50",
+      "spec_id": "SPEC-SKYHOME-50",
       "name": "SkyHome 50 technical spec",
-      "serviceType": "residential-satellite-internet",
+      "service_type": "residential-satellite-internet",
       "attributes": [
         {
           "name": "terminal_model",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "PROV"
           ]
         },
@@ -17,7 +17,7 @@
           "name": "qos_profile",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "PROV",
             "OMS"
           ]
@@ -26,22 +26,22 @@
           "name": "installation_type",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "BPM"
           ]
         }
       ]
     },
     {
-      "specId": "SPEC-SKYHOME-100",
+      "spec_id": "SPEC-SKYHOME-100",
       "name": "SkyHome 100 technical spec",
-      "serviceType": "residential-satellite-internet",
+      "service_type": "residential-satellite-internet",
       "attributes": [
         {
           "name": "terminal_model",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "PROV"
           ]
         },
@@ -49,7 +49,7 @@
           "name": "qos_profile",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "PROV",
             "OMS"
           ]
@@ -58,22 +58,22 @@
           "name": "installation_type",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "BPM"
           ]
         }
       ]
     },
     {
-      "specId": "SPEC-SKYHOME-200",
+      "spec_id": "SPEC-SKYHOME-200",
       "name": "SkyHome 200 technical spec",
-      "serviceType": "residential-satellite-internet",
+      "service_type": "residential-satellite-internet",
       "attributes": [
         {
           "name": "terminal_model",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "PROV"
           ]
         },
@@ -81,7 +81,7 @@
           "name": "qos_profile",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "PROV",
             "OMS"
           ]
@@ -90,7 +90,7 @@
           "name": "installation_type",
           "type": "string",
           "required": true,
-          "usedBy": [
+          "used_by": [
             "BPM"
           ]
         }
@@ -99,47 +99,47 @@
   ],
   "offers": [
     {
-      "offerId": "OFFER-SKYHOME-50",
+      "offer_id": "OFFER-SKYHOME-50",
       "name": "SkyHome 50",
       "family": "SkyHome",
       "status": "active",
       "versions": [
         {
           "version": "v1",
-          "validFrom": "2026-01-01T00:00:00.000Z",
-          "validTo": null,
-          "priceUsd": 79,
-          "specId": "SPEC-SKYHOME-50"
+          "valid_from": "2026-01-01T00:00:00.000Z",
+          "valid_to": null,
+          "price_usd": 79,
+          "spec_id": "SPEC-SKYHOME-50"
         }
       ]
     },
     {
-      "offerId": "OFFER-SKYHOME-100",
+      "offer_id": "OFFER-SKYHOME-100",
       "name": "SkyHome 100",
       "family": "SkyHome",
       "status": "active",
       "versions": [
         {
           "version": "v1",
-          "validFrom": "2026-01-01T00:00:00.000Z",
-          "validTo": null,
-          "priceUsd": 129,
-          "specId": "SPEC-SKYHOME-100"
+          "valid_from": "2026-01-01T00:00:00.000Z",
+          "valid_to": null,
+          "price_usd": 129,
+          "spec_id": "SPEC-SKYHOME-100"
         }
       ]
     },
     {
-      "offerId": "OFFER-SKYHOME-200",
+      "offer_id": "OFFER-SKYHOME-200",
       "name": "SkyHome 200",
       "family": "SkyHome",
       "status": "active",
       "versions": [
         {
           "version": "v1",
-          "validFrom": "2026-01-01T00:00:00.000Z",
-          "validTo": null,
-          "priceUsd": 229,
-          "specId": "SPEC-SKYHOME-200"
+          "valid_from": "2026-01-01T00:00:00.000Z",
+          "valid_to": null,
+          "price_usd": 229,
+          "spec_id": "SPEC-SKYHOME-200"
         }
       ]
     }
