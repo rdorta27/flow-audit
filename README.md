@@ -47,7 +47,7 @@ shape and labelled simulated (M0-11). bss-oss-rust stays an optional, local-only
 check. Its license review waits for the author's answers (M0-05) and no longer blocks the
 public demo, which runs on the stub.
 
-The plan is in [`../specs/flow-audit_BACKLOG.md`](../specs/flow-audit_BACKLOG.md):
+The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 
 | Milestone | Goal | State |
 |---|---|---|

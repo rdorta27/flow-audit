@@ -6,7 +6,7 @@
 ## Context
 
 Milestone M0 set out to validate one integration source before writing the first
-adapter. The candidate, bss-oss-rust, runs locally ([M0-02](../../../specs/flow-audit_BACKLOG.md),
+adapter. The candidate, bss-oss-rust, runs locally ([M0-02](../../../specs/m0-log.md#m0-02--run-the-candidate-with-docker),
 M0-09) and its contracts are captured (M0-04), but the same captures show that its API is
 a weak TMF: items are accepted on create and never returned, the product-order →
 service-order link is a free-text `external_id` the client writes itself, activations
