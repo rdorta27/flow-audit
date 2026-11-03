@@ -4,6 +4,22 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.4.0 — 2026-11-03 · Demo 1
+
+Milestone Demo 1 is closed: the engine, not a mock, reads the simulated TMF server, joins
+the records, runs R04 and writes `findings.json` and a self-contained `report.html` with
+the finding's evidence, the story of one order, its cost next to its formula and the net
+total (R04@2: 20 orders, 30 h, USD 1,590). The engine is unchanged since 0.3.6; this release
+holds the corrections from the review.
+
+The site ships the same number:
+- the journey now shows how Flow Audit works: after the order's trip, four steps gather
+  the notes, join them by number, lay them on a timeline and run the rules with their cost;
+- each trip step says what that system knows; status badges and dimming left the journey;
+- a plain lead and a help answer on new, solid systems;
+- the journey drawing was polished (notes fit their boxes, the gap label stays in view);
+- the published engine report is the one written by engine 0.4.0.
+
 ## 0.3.6 — 2026-11-03
 
 The Demo 1 candidate. The engine is unchanged in behaviour; the docs and the site now say

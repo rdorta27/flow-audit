@@ -1,6 +1,6 @@
 # Architecture
 
-> **Under construction — on the way to 0.4.0, Demo 1.** The TMF readers, the join, rule R04 and
+> **Under construction — Demo 1 (0.4.0) done, on the way to 0.5.0.** The TMF readers, the join, rule R04 and
 > the findings schema run end to end through `deno task audit --source stub`, which writes
 > `findings.json` and `report.html`; file readers and the other rules do not exist yet. Complements
 > [product](../product.md).

@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — on the way to 0.4.0 (Demo 1).** `deno task audit --source stub`
+> **Under construction — Demo 1 (0.4.0) is done; on the way to 0.5.0 (Client-ready).** `deno task audit --source stub`
 > reads orders, service orders and activations from a simulated source, joins them and runs
 > rule R04 with its cost; the result has a documented, validated shape (`findings/1`)
 > and is written to `out/findings.json` and a self-contained `out/report.html`. `deno task explain` follows one
