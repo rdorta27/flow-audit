@@ -67,6 +67,29 @@ The demo also holds cases that look odd and are healthy. A rule that flags one i
 
 Not built yet: a change plus an add on one order item (needs an `action` on the service order and an R04 that reads it).
 
+## BPM evidence contract
+
+What the engine asks of a BPM export (M2-09). A real engine (Camunda 7, Flowable) keeps separate history tables; the model reads one record per process instance with a flat list of activities (`data/demo/bpm_history.jsonl`). `tests/bpm_contract_test.ts` checks the demo against the **required** column. Fields marked optional may be absent; a rule that needs one says so and reports "not observed" otherwise. New fields (user task assignee, incidents, variables) arrive with M2-10.
+
+| Canonical term | Field | Required | A real export calls it (Camunda 7 / Flowable) |
+|---|---|---|---|
+| Process instance | `process_id` | yes | `ACT_HI_PROCINST.ID_` / `PROC_INST_ID_` |
+| | `so_ref` | one of `so_ref`, `business_key` | a process variable, or `BUSINESS_KEY_` |
+| | `business_key` | one of `so_ref`, `business_key` | `ACT_HI_PROCINST.BUSINESS_KEY_` |
+| | `state` | yes | `STATE_` (`ACTIVE`, `COMPLETED`, `SUSPENDED`, `EXTERNALLY_TERMINATED`) |
+| | `started_at` | yes | `START_TIME_` |
+| | `ended_at` | yes, null while running | `END_TIME_` |
+| Activity instance | `activities[].sequence` | yes | order by `START_TIME_` in `ACT_HI_ACTINST` |
+| | `activities[].kind` | yes (`task`, `timer`, `gateway`) | `ACT_TYPE_` (`userTask`, `serviceTask`, `intermediateTimer`, `exclusiveGateway`, `boundaryTimer`) |
+| | `activities[].name` | yes | `ACT_NAME_` / `ACT_ID_` |
+| | `activities[].started_at`, `ended_at` | yes, `ended_at` null while open | `START_TIME_`, `END_TIME_` |
+| User task | `activities[].actor` (`human`, `system`, `partner`) | yes | a row in `ACT_HI_TASKINST` means `human`; `ASSIGNEE_` names the person (not read) |
+| Timer | `activities[].timer_expired` | optional | `ACT_HI_JOB_LOG` entry of type `timer`, `JOB_DEF_TYPE_`, with an execution (fired) versus a deleted job |
+| Incident | not in the model yet | optional (M2-10) | `ACT_HI_INCIDENT` (`INCIDENT_TYPE_`, `CREATE_TIME_`, `END_TIME_`) |
+| Variable | not in the model yet | optional (M2-10) | `ACT_HI_VARINST` (`NAME_`, `VAR_TYPE_`, `TEXT_`) |
+
+Camunda 8 exports (Zeebe/Operate) use the same ideas under other names: process instance, flow node instance, job, incident, variable.
+
 ## Events
 
 The only ingestible unit. Append-only, immutable, system-agnostic.
