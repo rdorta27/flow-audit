@@ -4,7 +4,7 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
-## Unreleased
+## 0.3.2 — 2026-11-03
 
 - `deno task audit --source stub` reads the TMF stub, joins the records and runs the rule
   registry (R04); exit codes 0, 1, 2 (3 reserved); `--quiet` and `--config`. `read`,
@@ -17,6 +17,10 @@ release.
 - The engine version comes from `deno.json` (`src/version.ts`).
 - CI: `.github/workflows/ci.yml` runs check, test, lint and fmt on push.
 - `docs/architecture/report-style.md`: the system colours shared with the site.
+
+The site ships the same number: the order journey on the landings, plain system names, the
+glossary and "the difference", status badges from `status.json`, and journey labels that fit
+inside their boxes.
 
 ## 0.3.1 — 2026-11-03
 
