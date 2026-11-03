@@ -1,6 +1,7 @@
 # Rule catalogue
 
-Status: designed, not implemented. R04 is the first rule planned (milestone M3). The rules below are the five
+Status: designed, not implemented. R04 is the first rule planned (milestone Demo 1) and its
+Demo 1 specification is written below. The rules below are the five
 findings the demo reports. Each one must be defensible: a signal, the
 evidence that proves it and a formula that turns it into hours and USD.
 
@@ -99,12 +100,31 @@ the expired timer and the absence of any subsequent event.
 
 ## R04 — OMS retry duplicates service orders
 
-**Signal.** Two service orders share the same parent order and the same spec, and the
-second one is created within `duplicate_window_minutes` (default 10) of a retry attempt
-on the first. It comes from a replay, not from a second line item.
+**Rule version.** `R04@1` — the Demo 1 specification (M3-01). It reads snapshots, so it
+needs no event history.
 
-**Evidence.** Both service orders, the retry marker on the OMS call, and the duplicated
-provisioning attempts.
+**Signal.** Two or more service orders decompose the **same product order item**: their
+`serviceOrderItem.productOrderItem` links carry the same `productOrderId` and item `id`.
+A product order line should produce one service order; a second one is a retry that
+created a new order instead of retrying the existing one.
+
+The key is the **item**, not the order. A multi-line product order legitimately creates
+one service order per line, and each line has its own item id, so it does not fire.
+
+**Evidence levels.** Every finding records which one it used.
+
+| Level | Signal | Source |
+|---|---|---|
+| `strong` | two service order items reference the same product order item | the TMF stub, and any server that sends the item link |
+| `weak` | two service orders share the same free-text `external_id` | bss-oss-rust dialect (M1-04, Later); a convention, not a contract |
+| `history` | a second service order is created within `duplicate_window_minutes` of a retry attempt on the first | event exports (M5-02); the richer variant, with the retry marker and the attempts |
+
+Demo 1 implements `strong` only.
+
+**Evidence.** The product order, every service order that points at its item (ids, states,
+order dates) and the provenance of each record (system, endpoint, read time). With
+activations (M1-05b) it adds the attempts, so the report can say whether the duplicate
+reached activation.
 
 **Impact.**
 
@@ -113,10 +133,33 @@ hours = duplicates × cleanup_minutes / 60
 usd   = hours × loaded_hour_usd + duplicates × duplicate_activation_cost_usd
 ```
 
-**Demo.** 5% of retries, about 20 orders/month, 90 minutes of cleanup each.
+`duplicates` counts the product order items with more than one service order, once each,
+however many extra orders they have. Without activations the second term cannot be
+observed: the finding reports only the first term, lists the second as **not observed in
+this source** and never estimates it. On the synthetic dataset that is 30 h and **USD
+1,350**; with activations it is USD 1,590.
 
-**Known limits.** Multi-line orders legitimately create several service orders. Compare
-line-item count against service-order count before firing.
+**Severity.** Derived from impact, as for every rule: on the demo, 0.4% of orders and
+30 h/month, so `medium`.
+
+**Demo.** 20 orders out of 5,000 (`data/demo/expected.json`, `R04.affected_orders`), each
+with two service orders over one product order item. The rule must find exactly those 20.
+
+**Failure cases — when it must not fire, and what it cannot tell.**
+
+| Case | Treatment |
+|---|---|
+| Multi-line product order, one service order per line | Does not fire: each line has its own item id |
+| An earlier service order is `CANCELLED` and a new one replaces it | Does not fire: a cancellation followed by a new order is deliberate |
+| Service order with no `productOrderItem` link | Cannot be evaluated; the reader already rejects it (M1-05a) rather than guessing |
+| Two service orders created minutes apart by a legitimate split (for example a bundle) on the same item | Fires; cannot be told apart without the retry marker. The recommendation asks the client to confirm |
+| Many service orders on one item | One duplicate, not many; the count is per item |
+
+**Known limits.** On snapshots the rule sees that a second order exists, not why it was
+created. Treat each finding as a candidate that the evidence supports, not as proof of a
+retry. A duplicated activation can become a duplicated charge; billing accuracy is out of
+scope, so the finding flags the orders whose duplicate reached activation for the client
+to check in billing.
 
 ## R05 — No end-to-end correlation id
 
