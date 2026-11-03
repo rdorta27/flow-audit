@@ -131,8 +131,16 @@ Deno.test("only GET is ever sent, and the token goes in a bearer header", async 
 
 Deno.test("no write method exists on the client or the source", () => {
   const source = new Tmf622ProductOrderSource({ baseUrl: BASE });
-  const names = Object.getOwnPropertyNames(Object.getPrototypeOf(source));
-  assertEquals(names.sort(), ["constructor", "read"]);
+  const names = new Set<string>();
+  for (
+    let proto = Object.getPrototypeOf(source);
+    proto !== Object.prototype;
+    proto = Object.getPrototypeOf(proto)
+  ) {
+    Object.getOwnPropertyNames(proto).forEach((name) => names.add(name));
+  }
+  names.delete("constructor");
+  assertEquals([...names].sort(), ["read"]);
 });
 
 Deno.test("an HTTP error names the URL, the status and the server's message", async () => {
