@@ -4,7 +4,7 @@ Flow Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Status: under construction — version 0.3.4, milestone Demo 1.** The model, the dataset,
+> **Status: under construction — version 0.3.5, milestone Demo 1.** The model, the dataset,
 > the simulated TMF stub and a preview of the report exist. There is no analysis and no
 > generated report yet; the demo described below is the target of the Demo 1 and Client-ready milestones.
 
@@ -91,7 +91,7 @@ The dataset is synthetic and coherent: orders, state transitions, process timers
 | R05 | No end-to-end correlation id | ~45 min per incident to investigate | ~USD 10,125 (300 incidents × 45 min) |
 
 Labour at the loaded rate of USD 45/hour, all inputs from `data/demo/config.json`. That
-is roughly **USD 54,358 a month in operating cost plus USD 3,250 of revenue at risk** for
+is roughly **USD 44,233 a month in operating cost for R01 to R04 plus USD 3,250 of revenue at risk**; R05 (USD 10,125) is shown apart as a traceability risk (D-11), for
 a 5,000-order operator. These are illustrative figures; the engine computes them from the
 evidence from milestone M2 on, and the report shows each formula next to its number.
 

@@ -4,12 +4,16 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
-## Unreleased
+## 0.3.5 — 2026-11-03
 
 - R04@2 (M3-08): counts extra service orders per item and classifies the cause
   (`retry_new_order`, `parallel_duplicate`, `needs_review`); `breakdown` in the report. The
   cost is unchanged (USD 1,590).
 - BPM evidence contract (M2-09) in `data-model.md`, with a shape test over the demo export.
+
+The site ships the same number: measured contrast and larger diagram text (S-16), the demo
+report as one card per problem in the `findings/1` shape (S-05), and R05 kept out of the
+total (D-11): USD 44,233 a month for R01 to R04, R05 shown apart.
 
 ## 0.3.4 — 2026-11-03
 
