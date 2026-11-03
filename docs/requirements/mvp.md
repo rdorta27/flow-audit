@@ -22,9 +22,9 @@ Rules `R01`–`R05` fire on the demo dataset with the documented rates (±1 perc
 
 ## R4 — Quantify impact
 
-Impact is computed from `orders_per_month`, `loaded_hour_usd` and per-action minutes, all visible in the report. Changing a rate changes the numbers without re-running ingest.
+Impact is computed from `orders_per_month` and per-action minutes, all visible in the report. Changing a rate changes the numbers without re-running ingest.
 
-**Accepted when:** editing the config changes the reported hours and USD, and the report states the rates used.
+**Accepted when:** editing the config changes the reported hours, and the report states the rates used.
 
 ## R5 — Render the report
 

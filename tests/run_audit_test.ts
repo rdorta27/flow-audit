@@ -23,7 +23,7 @@ import { auditStub, demoConfig, stubSources } from "./stub_sources.ts";
 import { EXPECTED } from "../src/dataset/generator.ts";
 import { main, summaryLines } from "../src/cli/main.ts";
 
-Deno.test("the pipeline over the stub gives exactly one finding, R04, USD 1,590", async () => {
+Deno.test("the pipeline over the stub gives exactly one finding, R04, 30 h", async () => {
   const progress: string[] = [];
   const result = await runAudit({}, {
     clock,
@@ -41,13 +41,12 @@ Deno.test("the pipeline over the stub gives exactly one finding, R04, USD 1,590"
   assertEquals(finding.ruleVersion, "R04@2");
   assertEquals(finding.affectedOrders, EXPECTED.findings.R04.affected_orders);
   assertEquals(finding.cost.hoursMonth, 30);
-  assertEquals(finding.cost.amountMonth, 1590);
-  assertEquals(result.report.totals.gross, { hours: 30, amount: 1590 });
+  assertEquals(result.report.totals.gross, { hours: 30 });
   assertEquals(result.report.run.generatedAt, "2026-09-01T00:00:00Z");
   assert(progress.some((m) => m.includes("R04@2")), "progress should name the rule");
   assertEquals(
     summaryLines(result).at(-1),
-    "R04@2 \u00b7 20 orders \u00b7 30 h \u00b7 USD 1,590",
+    "R04@2 \u00b7 20 orders \u00b7 30 h",
   );
 });
 

@@ -23,14 +23,14 @@ open-source (MIT) technical demo under construction; there is no commercial offe
 | Engine: read, join, R04, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --source stub --out out` |
 | Evidence source | **Simulated** | A TMF-shaped server over synthetic data (`deno task stub`); every response is marked simulated |
 | Data | **Simulated** | 5,000 made-up orders of a fictional operator, defects planted on purpose (`data/demo/`) |
-| Rates (minutes, USD 45/h, ARPU) | **Example** | From `data/demo/config.json`, not measured at any operator |
+| Rates (minutes per action) | **Example** | From `data/demo/config.json`, not measured at any operator |
 | R01, R02, R03, R05 | **Missing** | Specified in `docs/architecture/rules.md`; arrive in 0.5.0 (Client-ready) |
 | Reading a client's export files | **Missing** | Arrives in 0.5.0 |
 | Catalog and process steps of the story | **Missing** | The simulated source does not carry them; shown as "not observed" |
 
 What the engine finds today: R04, 20 duplicated orders (21 extra service orders),
-30 h and USD 1,590 a month (USD 1,350 clean-up + USD 240 duplicate activations). With R04
-alone the net total equals the sum. The site's five-problem figures (USD 44,233 for R01 to
+30 h a month (20 orders × 90 min of clean-up). With R04
+alone the net total equals the sum. The site's five-problem figures (977.6 h for R01 to
 R04, R05 apart) are the target design computed from the rules, not engine output.
 
 **Where it goes:** **Demo 1** (0.4.0) — this report, from the simulated source, reviewed;
@@ -51,7 +51,7 @@ evidence exports → ingest → reconstruct → detect → quantify → report.h
 - **Ingest** one export per system into a canonical event stream.
 - **Reconstruct** each order's journey, including the links the systems do not share.
 - **Detect** five failure patterns with explicit rules, each tied to its evidence.
-- **Quantify** hours and USD from visible, configurable rates.
+- **Quantify** hours from visible, configurable rates.
 - **Report** one self-contained HTML file with flow map, state machine, timeline and heat map.
 
 ## What runs today
@@ -62,7 +62,7 @@ Commands available today:
 - `deno task test` passes: dataset invariants, export stability, the hexagonal and license
   boundaries, the TMF stub, the readers, the join, R04, the findings schema and its validator.
 - `deno task audit --source stub` (start `deno task stub` first) prints counts, links and
-  `R04@2 · 20 orders · 30 h · USD 1,590`, and with `--out out` writes the two report files; without a source it exits with code 2.
+  `R04@2 · 20 orders · 30 h`, and with `--out out` writes the two report files; without a source it exits with code 2.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts
   (TMF640) from the stub and prints counts. Start `deno task stub` first. It is a data check, not an audit.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs
@@ -86,7 +86,7 @@ The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 |---|---|---|
 | — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
 | M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.2.0) |
-| Demo 1 | One real report: R04 read from the TMF stub, with its cost in USD and formula | planned |
+| Demo 1 | One real report: R04 read from the TMF stub, with its cost in hours and formula | planned |
 | Client-ready | Audit a client's file exports through a mapping file; R01–R05 | planned |
 
 ## Versions

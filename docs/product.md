@@ -49,7 +49,7 @@ Four verbs, one pipeline:
 3. **Detect** failure patterns with explicit rules, each tied to the evidence that triggered it.
 4. **Quantify and report** the impact of every finding and render a self-contained report.
 
-Every finding carries: rule, severity, affected orders, evidence, time lost, money lost and a recommendation. A finding without evidence is not a finding.
+Every finding carries: rule, severity, affected orders, evidence, hours lost and a recommendation. A finding without evidence is not a finding.
 
 ## What is audited
 
@@ -76,22 +76,22 @@ Every finding carries: rule, severity, affected orders, evidence, time lost, mon
 
 ## The demo
 
-The demo runs against **Ortelis Satellite**, a fictional residential satellite-ISP operator (United States, USD, ~5,000 orders per month). Four systems are in scope: `CAT`, `OMS`, `BPM` and `PROV`.
+The demo runs against **Ortelis Satellite**, a fictional residential satellite-ISP operator (United States, ~5,000 orders per month). Four systems are in scope: `CAT`, `OMS`, `BPM` and `PROV`.
 
 Satellite is a good carrier for the method because one order needs a beam with capacity, a physical kit, a field installation and a terminal activation: four systems, one order, many places to break.
 
 The dataset is synthetic and coherent: orders, state transitions, process timers, provisioning attempts and catalog versions that produce the five demo findings. It ships with the repo so the audit can be re-run and reproduced.
 
-| # | Finding | Rough impact | Est. cost per month |
+| # | Finding | Rough impact | Est. hours per month |
 |---|---|---|---|
-| R01 | Provisioning fallout with no automatic retry | 8% of orders, 2.5 days to recover | ~USD 12,750 (400 orders × (5 min + 2.5 days × 15 min follow-up)) |
-| R02 | Missing catalog attribute forces a manual capacity check | 83% of orders (those sold before the offer's second version), ~5 min each | ~USD 15,626 (4,167 orders × 5 min) |
-| R03 | BPM timer expires without compensation | 3% stuck in "pending activation" | ~USD 14,267 (50 stuck × (5 min + ~25 days × 15 min)); plus USD 3,250 revenue at risk (50 stuck × ARPU 65), reported apart |
-| R04 | A retry duplicates service orders | 5% of retries, double activation | ~USD 1,590 (20 orders × (90 min clean-up + USD 12 duplicate activation)) |
-| R05 | No end-to-end correlation id | ~45 min per incident to investigate | ~USD 10,125 (300 incidents × 45 min) |
+| R01 | Provisioning fallout with no automatic retry | 8% of orders, 2.5 days to recover | 283.3 h (400 orders × (5 min + 2.5 days × 15 min follow-up)) |
+| R02 | Missing catalog attribute forces a manual capacity check | 83% of orders (those sold before the offer's second version), ~5 min each | 347.3 h (4,167 orders × 5 min) |
+| R03 | BPM timer expires without compensation | 3% stuck in "pending activation" | 317 h (50 stuck × (5 min + ~25 days × 15 min)) |
+| R04 | A retry duplicates service orders | 5% of retries, double activation | 30 h (20 orders × 90 min clean-up) |
+| R05 | No end-to-end correlation id | ~45 min per incident to investigate | 225 h (300 incidents × 45 min) |
 
-Labour at the loaded rate of USD 45/hour, all inputs from `data/demo/config.json`. That
-is roughly **USD 44,233 a month in operating cost for R01 to R04 plus USD 3,250 of revenue at risk**; R05 (USD 10,125) is shown apart as a traceability risk (D-11), for
+Flow Audit reports hours, not money (D-21); all inputs are minute rates from `data/demo/config.json`. That
+is roughly **977.6 hours a month of manual work for R01 to R04**; R05 (225 h) is shown apart as a traceability risk (D-11), for
 a 5,000-order operator. These are illustrative figures; the engine computes them from the
 evidence from milestone M2 on, and the report shows each formula next to its number.
 

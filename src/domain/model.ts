@@ -278,7 +278,7 @@ export interface EvidenceRef {
 export type CostKind = "recurring" | "one_off" | "accumulated_to_period_end";
 
 /**
- * `measured`: counted in the evidence. `rate_assumption`: an amount from `config.json`.
+ * `measured`: counted in the evidence. `rate_assumption`: hours from a rate in `config.json`.
  * `not_observed`: the source cannot show it.
  */
 export type CostBasis = "measured" | "rate_assumption" | "not_observed";
@@ -295,8 +295,8 @@ export interface CostInput {
 
 export interface CostTerm {
   name: string;
-  amount: number;
-  /** The basis of the amount: a rate is `rate_assumption` even when its count is measured. */
+  hours: number;
+  /** The basis of the hours: a rate is `rate_assumption` even when its count is measured. */
   basis: CostBasis;
   /** The count the term multiplies, when the evidence measured one (orders, duplicates). */
   observed: number | null;
@@ -309,31 +309,18 @@ export interface UnmeasuredTerm {
   reason: string;
 }
 
-export interface RevenueAtRisk {
-  /** Never part of `Cost.amountMonth`. */
-  amount: number;
-  /** `arpu_assumption`, or null when the rule reports none. */
-  basis: "arpu_assumption" | null;
-  /** Fixed text the report prints next to the figure. */
-  label: string;
-}
-
 export interface Cost {
-  currency: "USD";
   kind: CostKind;
-  /** Days the amount covers (recurring and accumulated kinds); null for a one-off. */
+  /** Days the hours cover (recurring and accumulated kinds); null for a one-off. */
   periodDays: number | null;
   /** How the amount became "per month", or null when it did not need to. */
   normalisation: string | null;
   hoursMonth: number;
-  /** Sum of `terms[].amount`. Revenue at risk is not in it. */
-  amountMonth: number;
   /** The formula of `rules.md`, as text. */
   formula: string;
   inputs: CostInput[];
   terms: CostTerm[];
   unmeasured: UnmeasuredTerm[];
-  revenueAtRisk: RevenueAtRisk;
 }
 
 export type FindingStatus = "detected" | "not_detected" | "insufficient_evidence" | "not_evaluable";
@@ -432,7 +419,6 @@ export interface ReportSystem {
 
 export interface ReportTotals {
   hours: number;
-  amount: number;
 }
 
 export interface ReportOverlap {
@@ -486,8 +472,6 @@ export interface ImpactRates {
   dailyFollowupMinutes: number;
   cleanupMinutes: number;
   investigationMinutes: number;
-  duplicateActivationCostUsd: number;
-  arpuUsd: number;
 }
 
 export interface ImpactThresholds {
@@ -497,9 +481,7 @@ export interface ImpactThresholds {
 }
 
 export interface ImpactConfig {
-  currency: "USD";
   ordersPerMonth: number;
-  loadedHourUsd: number;
   rates: ImpactRates;
   thresholds: ImpactThresholds;
 }

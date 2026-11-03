@@ -26,7 +26,7 @@ Terms as this project uses them. One meaning per term.
 | **Segment** | A slice of a journey marked as work, wait or gap. |
 | **Finding** | A rule that fired, with evidence and quantified impact. |
 | **Rule** | A declared condition over journeys that produces a finding. |
-| **Impact** | Hours and USD attributable to a finding, computed from configurable rates. |
+| **Impact** | Hours attributable to a finding, computed from configurable rates. |
 | **Weak link** | A correlation resolved by a time window instead of a declared key. Counted as a gap. |
 | **Orphan** | An event that cannot be joined to any order. Kept and counted, never dropped. |
 | **SLA** | The time an order is allowed to take before it is late. Compared against the journey, not against system uptime. |

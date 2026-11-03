@@ -9,8 +9,17 @@ release.
 Milestone Demo 1 is closed: the engine, not a mock, reads the simulated TMF server, joins
 the records, runs R04 and writes `findings.json` and a self-contained `report.html` with
 the finding's evidence, the story of one order, its cost next to its formula and the net
-total (R04@2: 20 orders, 30 h, USD 1,590). The engine is unchanged since 0.3.6; this release
+total (R04@2: 20 orders, 30 h). The engine is unchanged since 0.3.6; this release
 holds the corrections from the review.
+
+Flow Audit now reports hours, not money, everywhere (D-21). The USD rates (loaded hour,
+duplicate activation, ARPU) were example assumptions with no source. `config.json` keeps only
+minute rates; the `findings/1` cost block is hours only (`hours_month`, terms in hours; no
+`amount`, `currency` or `revenue_at_risk`); net totals and the overlap tie-break use hours;
+the HTML report and `deno task explain` show hours. R04 drops its duplicate-activation term
+(it was money-only) and keeps `reached_activation` and `activation_attempts` as counts. The
+CLI line is `R04@2 · 20 orders · 30 h`. Demo figures: R01 283.3 h, R02 347.3 h, R03 317 h,
+R04 30 h, R05 225 h apart; R01 to R04 977.6 h.
 
 The site ships the same number:
 - the journey now shows how Flow Audit works: after the order's trip, four steps gather

@@ -4,7 +4,7 @@
   dataset, the simulated TMF stub, readers for product orders (TMF622), service orders (TMF641)
   and activations (TMF640) in `src/adapters/ingest/`, the correlation with per-link confidence
   and time segments (`src/domain/correlation.ts`, `segments.ts`), and rule R04
-  (`src/domain/rules/r04.ts`: 20 duplicates, USD 1,590). `deno task audit --source stub` runs R04
+  (`src/domain/rules/r04.ts`: 20 duplicates, 30 h). `deno task audit --source stub` runs R04
   (`R04@2`, with causes) and writes `findings.json` and `report.html` with `--out`, including
   the story of one order (`story.ts`) and the net total (`totals.ts`); schema in
   `docs/architecture/report-schema.md`. Data files use snake_case keys (TS stays camelCase).

@@ -5,7 +5,7 @@
     "id": "<run>",
     "generated_at": "<time>",
     "inputs_hash": "0e18a362633b18939e17e37ea020931e12b6190d2ada80a94e26088b4cc0628d",
-    "config_hash": "d3cdb513cc14f476244c57b733437bda558df9629118e9c5ee5e795d12c46001",
+    "config_hash": "858fb229a437daae1edc9b2612d4a96cf29c6ab6ac7b9d9b02cb87eb04295bc8",
     "rules_hash": "34fd9a2e5aa6ac89cf0773a0c0aab37ad09cfcbf6dad55b5b9484ca6364d1c74"
   },
   "sources": [
@@ -52,16 +52,12 @@
     "estimated_impact": true
   },
   "config": {
-    "currency": "USD",
     "orders_per_month": 5000,
-    "loaded_hour_usd": 45,
     "rates": {
       "manual_minutes": 5,
       "daily_followup_minutes": 15,
       "cleanup_minutes": 90,
-      "investigation_minutes": 45,
-      "duplicate_activation_cost_usd": 12,
-      "arpu_usd": 65
+      "investigation_minutes": 45
     },
     "thresholds": {
       "retry_window_hours": 24,
@@ -827,31 +823,15 @@
         "activation_attempts": 21
       },
       "cost": {
-        "currency": "USD",
         "kind": "one_off",
         "period_days": null,
         "normalisation": null,
         "hours_month": 30,
-        "amount_month": 1590,
-        "formula": "hours = groups × cleanup_minutes / 60; amount = hours × loaded_hour_usd + groups_that_reached_activation × duplicate_activation_cost_usd",
+        "formula": "hours = groups × cleanup_minutes / 60",
         "inputs": [
           {
             "key": "rates.cleanup_minutes",
             "value": 90,
-            "source": null,
-            "owner": null,
-            "date": null
-          },
-          {
-            "key": "loaded_hour_usd",
-            "value": 45,
-            "source": null,
-            "owner": null,
-            "date": null
-          },
-          {
-            "key": "rates.duplicate_activation_cost_usd",
-            "value": 12,
             "source": null,
             "owner": null,
             "date": null
@@ -860,30 +840,15 @@
         "terms": [
           {
             "name": "Clean-up of duplicate service orders",
-            "amount": 1350,
+            "hours": 30,
             "basis": "rate_assumption",
             "observed": 20,
             "input_keys": [
-              "rates.cleanup_minutes",
-              "loaded_hour_usd"
-            ]
-          },
-          {
-            "name": "Duplicate activations",
-            "amount": 240,
-            "basis": "rate_assumption",
-            "observed": 20,
-            "input_keys": [
-              "rates.duplicate_activation_cost_usd"
+              "rates.cleanup_minutes"
             ]
           }
         ],
-        "unmeasured": [],
-        "revenue_at_risk": {
-          "amount": 0,
-          "basis": null,
-          "label": "not lost revenue"
-        }
+        "unmeasured": []
       },
       "recommendation": "Make the retry reuse the existing service order, and confirm in billing the orders whose duplicate reached activation."
     }
@@ -894,12 +859,10 @@
   },
   "totals": {
     "gross": {
-      "hours": 30,
-      "amount": 1590
+      "hours": 30
     },
     "net": {
-      "hours": 30,
-      "amount": 1590
+      "hours": 30
     }
   },
   "journeys": [

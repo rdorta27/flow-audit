@@ -247,11 +247,9 @@ ${
       `${esc(finding.ruleVersion)} · severity ${esc(finding.severity)}`,
       `<p>${finding.affectedOrders} orders of 5,000 (${
         (finding.shareOfOrders * 100).toFixed(1)
-      }%). Impact: <b>${finding.cost.hoursMonth} h</b> and <b>USD ${
-        finding.cost.amountMonth.toLocaleString("en-US")
-      }</b> per month.</p><p>${
+      }%). Impact: <b>${finding.cost.hoursMonth} h</b> per month.</p><p>${
         esc(finding.recommendation)
-      }</p><details><summary>Calculation</summary><pre>hours = ${finding.affectedOrders} × ${impact.rates.cleanupMinutes} min / 60 = ${finding.cost.hoursMonth}\nusd = ${finding.cost.hoursMonth} h × ${impact.loadedHourUsd} + duplicate activations × ${impact.rates.duplicateActivationCostUsd}</pre></details>`,
+      }</p><details><summary>Calculation</summary><pre>hours = ${finding.affectedOrders} × ${impact.rates.cleanupMinutes} min / 60 = ${finding.cost.hoursMonth}</pre></details>`,
     )
   }
 </body></html>`;

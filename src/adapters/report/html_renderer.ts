@@ -11,7 +11,6 @@ const esc = (s: unknown) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 const num = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
-const money = (c: string, n: number) => `${c} ${num(n)}`;
 const hours = (n: number) => `${num(Math.round(n * 10) / 10)} h`;
 const pct = (share: number) => `${num(Math.round(share * 1000) / 10)}%`;
 
@@ -44,7 +43,7 @@ const touched = (where: string) => where.split(/→|->/).map((s) => s.trim()).fi
 function findingSection(f: Finding): string {
   const c = f.cost;
   const terms = c.terms.map((t) =>
-    `<tr><td>${esc(t.name)}</td><td class="n">${esc(money(c.currency, t.amount))}</td>` +
+    `<tr><td>${esc(t.name)}</td><td class="n">${hours(t.hours)}</td>` +
     `<td>${esc(t.basis.replace("_", " "))}${
       t.observed === null ? "" : `, observed ${num(t.observed)}`
     }</td></tr>`
@@ -58,22 +57,17 @@ function findingSection(f: Finding): string {
   const sample = f.evidence.slice(0, 5).map((e) =>
     `<li><code>${esc(e.orderRef)}</code>${e.note ? ` ${esc(e.note)}` : ""}</li>`
   ).join("");
-  const risk = c.revenueAtRisk.basis === null
-    ? ""
-    : `<p class="note">${esc(money(c.currency, c.revenueAtRisk.amount))} ${
-      esc(c.revenueAtRisk.label)
-    }; not part of the amount above.</p>`;
   return `<article class="card finding" id="${esc(f.id)}" data-rule="${esc(f.ruleVersion)}">
 <header><h3>${esc(f.id)} · ${esc(f.title)}</h3>
 <p class="chips">${touched(f.where).map(chip).join("")} <span class="sev sev-${esc(f.severity)}">${
     esc(f.severity)
   }</span></p></header>
 <p>${esc(f.plainSummary)}</p>
-<p class="cost"><span class="big">${esc(money(c.currency, c.amountMonth))}</span> · ${
-    hours(c.hoursMonth)
-  } · ${esc(c.kind.replace(/_/g, " "))}${c.normalisation ? ` · ${esc(c.normalisation)}` : ""}</p>
+<p class="cost"><span class="big">${hours(c.hoursMonth)}</span> · ${
+    esc(c.kind.replace(/_/g, " "))
+  }${c.normalisation ? ` · ${esc(c.normalisation)}` : ""}</p>
 <p class="formula"><code>${esc(c.formula)}</code></p>
-<table><thead><tr><th>Term</th><th class="n">Amount</th><th>Basis</th></tr></thead><tbody>${terms}</tbody></table>
+<table><thead><tr><th>Term</th><th class="n">Hours</th><th>Basis</th></tr></thead><tbody>${terms}</tbody></table>
 ${unmeasured ? `<ul class="note">${unmeasured}</ul>` : ""}
 <details open><summary>Inputs (rates you can change)</summary><ul>${inputs}</ul></details>
 <p>${num(f.affectedOrders)} orders affected (${pct(f.shareOfOrders)}) · evidence ${
@@ -93,7 +87,7 @@ ${
   }<details><summary>Evidence: ${num(f.evidence.length)} of ${
     num(f.evidenceTotal)
   } orders shown</summary><ul>${sample}</ul></details>
-${risk}<p><strong>What to do.</strong> ${esc(f.recommendation)}</p>
+<p><strong>What to do.</strong> ${esc(f.recommendation)}</p>
 </article>`;
 }
 
@@ -162,12 +156,10 @@ function journeys(report: AuditReport): string {
   }).join("\n");
 }
 
-function totalsBlock(report: AuditReport, cur: string): string {
+function totalsBlock(report: AuditReport): string {
   const { gross, net } = report.totals;
   const rows = report.findings.map((f) =>
-    `<tr><td>${esc(f.id)} · ${esc(f.title)}</td><td class="n">${
-      hours(f.cost.hoursMonth)
-    }</td><td class="n">${esc(money(cur, f.cost.amountMonth))}</td></tr>`
+    `<tr><td>${esc(f.id)} · ${esc(f.title)}</td><td class="n">${hours(f.cost.hoursMonth)}</td></tr>`
   ).join("");
   const shared = Object.keys(report.overlap.byOrder).length;
   const why = shared === 0
@@ -175,15 +167,13 @@ function totalsBlock(report: AuditReport, cur: string): string {
     : `${num(shared)} order${shared === 1 ? " is" : "s are"} charged by more than one rule (${
       report.overlap.pairs.map((p) => `${esc(p.rules.join(" and "))}: ${num(p.orders)}`).join("; ")
     }). Each such order is counted once, at its largest charge; the ${
-      esc(money(cur, gross.amount - net.amount))
+      hours(gross.hours - net.hours)
     } difference is the smaller charges removed, order by order in <code>overlap.by_order</code>.`;
-  return `<table><thead><tr><th>Per rule</th><th class="n">Hours</th><th class="n">Cost</th></tr></thead><tbody>${rows}
-<tr><td>Sum of the rules (gross)</td><td class="n">${hours(gross.hours)}</td><td class="n">${
-    esc(money(cur, gross.amount))
-  }</td></tr>
+  return `<table><thead><tr><th>Per rule</th><th class="n">Hours</th></tr></thead><tbody>${rows}
+<tr><td>Sum of the rules (gross)</td><td class="n">${hours(gross.hours)}</td></tr>
 <tr><th>Net total, each order counted once</th><th class="n">${
     hours(net.hours)
-  }</th><th class="n">${esc(money(cur, net.amount))}</th></tr></tbody></table>
+  }</th></tr></tbody></table>
 <p class="note">${why}</p>`;
 }
 
@@ -218,32 +208,28 @@ function sources(report: AuditReport): string {
 }
 
 function summary(report: AuditReport): string {
-  const cur = report.config.currency;
   const orders = report.sources.find((s) => s.name.includes("622"))?.records ??
     report.config.ordersPerMonth;
   const top = [...report.findings].filter((f) => f.status === "detected")
-    .sort((a, b) => b.cost.amountMonth - a.cost.amountMonth).slice(0, 3);
+    .sort((a, b) => b.cost.hoursMonth - a.cost.hoursMonth).slice(0, 3);
   const list = top.length === 0
     ? "<p>No finding was detected in this run.</p>"
     : `<ol>${
       top.map((f) =>
-        `<li><a href="#${esc(f.id)}">${esc(f.title)}</a>: ${esc(money(cur, f.cost.amountMonth))} (${
-          hours(f.cost.hoursMonth)
-        })</li>`
+        `<li><a href="#${esc(f.id)}">${esc(f.title)}</a>: ${hours(f.cost.hoursMonth)}</li>`
       ).join("")
     }</ol>`;
   return `<p>Flow Audit read ${num(orders)} orders from ${
     num(report.sources.length)
   } sources and checked them against ${num(report.findings.length)} rule${
     report.findings.length === 1 ? "" : "s"
-  }. The estimated cost is <strong>${esc(money(cur, report.totals.gross.amount))}</strong> (${
+  }. The estimated cost is <strong>${
     hours(report.totals.gross.hours)
-  }). It is an estimate built from the rates in this report, not a measured loss.</p>
+  }</strong> of manual work. It is an estimate built from the rates in this report, not a measured loss.</p>
 <h3>Fix first</h3>${list}`;
 }
 
 export function renderHtml(report: AuditReport): string {
-  const cur = report.config.currency;
   const l = report.labels;
   const labels = [
     l.syntheticData && "Synthetic data",
@@ -273,11 +259,8 @@ export function renderHtml(report: AuditReport): string {
 <section aria-labelledby="kpi"><h2 id="kpi">At a glance</h2>
 <ul class="kpis">
 <li class="card"><span class="big">${
-    esc(money(cur, report.totals.net.amount))
-  }</span><small>estimated cost, each order counted once</small></li>
-<li class="card"><span class="big">${
     hours(report.totals.net.hours)
-  }</span><small>of manual work</small></li>
+  }</span><small>of manual work, each order counted once</small></li>
 <li class="card"><span class="big">${num(report.findings.length)}</span><small>finding${
     report.findings.length === 1 ? "" : "s"
   }</small></li>
@@ -285,7 +268,7 @@ export function renderHtml(report: AuditReport): string {
     num(report.sources.length)
   }</span><small>sources read</small></li>
 </ul>
-${totalsBlock(report, cur)}
+${totalsBlock(report)}
 </section>
 <section aria-labelledby="sum"><h2 id="sum">Executive summary</h2>${summary(report)}</section>
 <section aria-labelledby="find"><h2 id="find">Findings</h2>${

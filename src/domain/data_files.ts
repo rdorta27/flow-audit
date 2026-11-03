@@ -26,8 +26,8 @@ const isObj = (v: unknown): v is Record<string, unknown> =>
 /** Parsed `config.json` (snake_case) to the engine's `ImpactConfig`. Throws when it is not one. */
 export function configFromFile(raw: unknown): ImpactConfig {
   if (!isObj(raw)) throw new Error("the config is not an object");
-  if (typeof raw.loaded_hour_usd !== "number" || !isObj(raw.rates) || !isObj(raw.thresholds)) {
-    throw new Error("missing loaded_hour_usd, rates or thresholds");
+  if (!isObj(raw.rates) || !isObj(raw.thresholds)) {
+    throw new Error("missing rates or thresholds");
   }
   return mapKeys(raw, toCamel) as ImpactConfig;
 }

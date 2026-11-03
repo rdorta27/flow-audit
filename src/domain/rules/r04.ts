@@ -27,8 +27,7 @@ import type { OrderCharge } from "../totals.ts";
 export const R04_ID = "R04";
 export const R04_VERSION = "R04@2";
 
-export const R04_FORMULA = "hours = groups × cleanup_minutes / 60; " +
-  "amount = hours × loaded_hour_usd + groups_that_reached_activation × duplicate_activation_cost_usd";
+export const R04_FORMULA = "hours = groups × cleanup_minutes / 60";
 
 function recordRef(system: SystemId, provenance: Provenance | undefined): RecordRef[] {
   return provenance
@@ -114,11 +113,9 @@ export function detectR04(
   let retryNewOrder = 0;
   let parallelDuplicate = 0;
   let needsReview = 0;
-  let activationsObserved = false;
   const links: Link[] = [];
 
   for (const entry of orders) {
-    if (entry.attempts.length > 0) activationsObserved = true;
     for (const g of groupsR04(entry)) {
       if (g.verdict === "needs_review") {
         needsReview++;
@@ -150,37 +147,17 @@ export function detectR04(
   evidence.sort((a, b) => a.orderRef.localeCompare(b.orderRef));
 
   const hours = duplicates * config.rates.cleanupMinutes / 60;
-  const cleanup = hours * config.loadedHourUsd;
   const terms: CostTerm[] = [{
     name: "Clean-up of duplicate service orders",
-    amount: cleanup,
+    hours,
     basis: "rate_assumption",
     observed: duplicates,
-    inputKeys: ["rates.cleanup_minutes", "loaded_hour_usd"],
+    inputKeys: ["rates.cleanup_minutes"],
   }];
   const inputs: Cost["inputs"] = [
     input("rates.cleanup_minutes", config.rates.cleanupMinutes),
-    input("loaded_hour_usd", config.loadedHourUsd),
   ];
   const unmeasured: Cost["unmeasured"] = [];
-  if (activationsObserved) {
-    terms.push({
-      name: "Duplicate activations",
-      amount: reachedActivation * config.rates.duplicateActivationCostUsd,
-      basis: "rate_assumption",
-      observed: reachedActivation,
-      inputKeys: ["rates.duplicate_activation_cost_usd"],
-    });
-    inputs.push(
-      input("rates.duplicate_activation_cost_usd", config.rates.duplicateActivationCostUsd),
-    );
-  } else {
-    unmeasured.push({
-      term: "Duplicate activations",
-      reason: "not observed in this source: it has no activation records",
-    });
-  }
-  const usd = terms.reduce((sum, t) => sum + t.amount, 0);
   const share = duplicates / orders.length;
   const inferred = links.filter((l) => l.confidence !== "explicit").length;
   const inferredLinkShare = links.length === 0 ? 0 : inferred / links.length;
@@ -210,17 +187,14 @@ export function detectR04(
       activationAttempts,
     },
     cost: {
-      currency: config.currency,
       kind: "one_off",
       periodDays: null,
       normalisation: null,
       hoursMonth: hours,
-      amountMonth: usd,
       formula: R04_FORMULA,
       inputs,
       terms,
       unmeasured,
-      revenueAtRisk: { amount: 0, basis: null, label: "not lost revenue" },
     },
     recommendation:
       "Make the retry reuse the existing service order, and confirm in billing the orders " +
@@ -245,8 +219,6 @@ export function chargesR04(
         ruleId: R04_ID,
         orderRef: g.orderRef,
         hours,
-        amount: hours * config.loadedHourUsd +
-          (g.attempts.length > 0 ? config.rates.duplicateActivationCostUsd : 0),
       });
     }
   }

@@ -540,21 +540,17 @@ Deno.test("segments: snapshot evidence is refused with a reason, never guessed",
 import { detectR04 } from "../src/domain/rules/r04.ts";
 
 const R04_CONFIG = {
-  currency: "USD" as const,
   ordersPerMonth: 5000,
-  loadedHourUsd: 45,
   rates: {
     manualMinutes: 5,
     dailyFollowupMinutes: 15,
     cleanupMinutes: 90,
     investigationMinutes: 45,
-    duplicateActivationCostUsd: 12,
-    arpuUsd: 65,
   },
   thresholds: { retryWindowHours: 24, stuckAfterHours: 72, duplicateWindowMinutes: 10 },
 };
 
-Deno.test("R04 finds exactly the 20 duplicated orders on the stub, USD 1,590", async () => {
+Deno.test("R04 finds exactly the 20 duplicated orders on the stub, 30 h", async () => {
   const data = await loadStubDataset(new URL("../data/demo/", import.meta.url));
   const handle = createHandler({
     state: buildStubState(data.catalog, data.orders, data.serviceOrders, data.attempts),
@@ -574,7 +570,6 @@ Deno.test("R04 finds exactly the 20 duplicated orders on the stub, USD 1,590", a
   assertEquals(finding.affectedOrders, EXPECTED.findings.R04.affected_orders);
   assertEquals(finding.evidence.length, 20);
   assertEquals(finding.cost.hoursMonth, 30);
-  assertEquals(finding.cost.amountMonth, 1590);
   assertEquals(finding.severity, "medium");
   // M3-08: all 20 are retries of a FAILED original; ORD-1017 has a third order (21 extras).
   assertEquals(finding.breakdown?.retryNewOrder, 20);

@@ -5,11 +5,10 @@ import type { ReportRenderer } from "../../ports/report_renderer.ts";
 
 /**
  * Rounding rule of `findings.json` (docs/architecture/report-schema.md, "Numbers"): hours
- * to one decimal, money to two. It is applied here and nowhere else, so `283.3` never
+ * to one decimal. It is applied here and nowhere else, so `283.3` never
  * becomes `283.33333333333337` in a file an analyst diffs.
  */
 const HOURS_KEYS = new Set(["hours", "hours_month"]);
-const MONEY_KEYS = new Set(["amount", "amount_month"]);
 
 export const roundTo = (value: number, decimals: number): number => {
   const f = 10 ** decimals;
@@ -27,7 +26,6 @@ function normalise(value: unknown, key = "", inConfig = false): unknown {
   }
   if (typeof value === "number" && !inConfig) {
     if (HOURS_KEYS.has(key)) return roundTo(value, 1);
-    if (MONEY_KEYS.has(key)) return roundTo(value, 2);
   }
   return value;
 }

@@ -238,18 +238,16 @@ Impact is never stored in the data; it is computed at audit time from config:
 ```ts
 type ImpactConfig = {
   orders_per_month: number;
-  loaded_hour_usd: number;
-  currency: "USD";
   rates: Record<string, number>;  // minutes per manual action, per finding
 };
 ```
 
-`config.json` and `catalog.json` use snake_case keys (`loaded_hour_usd`, `rates.cleanup_minutes`,
+`config.json` and `catalog.json` use snake_case keys (`rates.cleanup_minutes`,
 `spec_id`, `used_by`, `valid_from`, `price_usd`), like every data file the project defines (D-14).
 The engine reads them through one translation at the edge (`src/domain/data_files.ts`); its
 internal types stay camelCase. TMF payloads stay camelCase, as the standard has them.
 
-Example: R02 fires on the 4,167 orders still on the first offer versions (83%) at 5 minutes each → 347 h/month → USD 15,625 at USD 45/h. The rate is visible in the report so the client can replace it with their own.
+Example: R02 fires on the 4,167 orders still on the first offer versions (83%) at 5 minutes each → 347.3 h/month. The rate is visible in the report so the client can replace it with their own.
 
 ## Raw data
 

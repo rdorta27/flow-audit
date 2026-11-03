@@ -119,7 +119,6 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     list(s, "findings", p);
   });
 
-  let grossAmount = 0;
   let grossHours = 0;
   list(report, "findings", "report").forEach((f, i) => {
     const p = `findings[${i}]`;
@@ -163,11 +162,9 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     const cost = obj(f, "cost", p);
     if (!cost) return;
     const c = `${p}.cost`;
-    if (cost.currency !== "USD") err(`${c}.currency`, 'must be "USD"');
     oneOf(cost, "kind", c, COST_KINDS);
     str(cost, "formula", c);
     num(cost, "hours_month", c);
-    num(cost, "amount_month", c);
     if (cost.period_days !== null && !isNum(cost.period_days)) {
       err(`${c}.period_days`, "must be a number or null");
     }
@@ -195,11 +192,10 @@ export function validateReport(report: unknown, config?: unknown): string[] {
       const q = `${c}.terms[${j}]`;
       if (!isObj(t)) return err(q, "must be an object");
       str(t, "name", q);
-      num(t, "amount", q);
+      num(t, "hours", q);
       oneOf(t, "basis", q, BASES);
       if (t.observed !== null && !isNum(t.observed)) err(`${q}.observed`, "number or null");
-      if (isNum(t.amount)) sum += t.amount;
-      if (isStr(t.name) && /revenue/i.test(t.name)) err(`${q}.name`, "revenue is not a cost term");
+      if (isNum(t.hours)) sum += t.hours;
       for (const key of list(t, "input_keys", q)) {
         if (!inputKeys.has(String(key))) err(`${q}.input_keys`, `"${key}" is not in cost.inputs`);
       }
@@ -209,22 +205,10 @@ export function validateReport(report: unknown, config?: unknown): string[] {
       str(u, "term", `${c}.unmeasured[${j}]`);
       str(u, "reason", `${c}.unmeasured[${j}]`);
     });
-    const revenue = obj(cost, "revenue_at_risk", c);
-    if (revenue) {
-      num(revenue, "amount", `${c}.revenue_at_risk`);
-      str(revenue, "label", `${c}.revenue_at_risk`);
-      if (revenue.basis !== null && revenue.basis !== "arpu_assumption") {
-        err(`${c}.revenue_at_risk.basis`, 'must be "arpu_assumption" or null');
-      }
+    if (isNum(cost.hours_month) && Math.abs(cost.hours_month - sum) > 1e-6) {
+      err(`${c}.hours_month`, `must equal the sum of the terms (${sum})`);
     }
-    if (isNum(cost.amount_month) && Math.abs(cost.amount_month - sum) > 1e-6) {
-      err(
-        `${c}.amount_month`,
-        `must equal the sum of the terms (${sum}); revenue at risk never enters it`,
-      );
-    }
-    if (f.in_total === true && isNum(cost.amount_month) && isNum(cost.hours_month)) {
-      grossAmount += cost.amount_month;
+    if (f.in_total === true && isNum(cost.hours_month)) {
       grossHours += cost.hours_month;
     }
   });
@@ -239,10 +223,6 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     const gross = obj(totals, "gross", "totals");
     if (gross) {
       num(gross, "hours", "totals.gross");
-      num(gross, "amount", "totals.gross");
-      if (isNum(gross.amount) && Math.abs(gross.amount - grossAmount) > 1e-6) {
-        err("totals.gross.amount", `must equal the sum of findings with in_total (${grossAmount})`);
-      }
       if (isNum(gross.hours) && Math.abs(gross.hours - grossHours) > 1e-6) {
         err("totals.gross.hours", `must equal the sum of findings with in_total (${grossHours})`);
       }
@@ -250,9 +230,8 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     const net = obj(totals, "net", "totals");
     if (net) {
       num(net, "hours", "totals.net");
-      num(net, "amount", "totals.net");
-      if (gross && isNum(net.amount) && isNum(gross.amount) && net.amount > gross.amount + 1e-6) {
-        err("totals.net.amount", "must not exceed totals.gross.amount");
+      if (gross && isNum(net.hours) && isNum(gross.hours) && net.hours > gross.hours + 1e-6) {
+        err("totals.net.hours", "must not exceed totals.gross.hours");
       }
     }
   }

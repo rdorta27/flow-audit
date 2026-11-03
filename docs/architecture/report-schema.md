@@ -12,7 +12,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 - `config` is printed as `config.json` has it (snake_case, D-14), so `cost.inputs[].key` such
   as `rates.cleanup_minutes` points into it; `data_files.ts` translates at the edge. The keys of
   `overlap.by_order` are order ids and stay as they are.
-- `cost.currency` is `USD` today. Times are ISO 8601 UTC. Shares are fractions (0.004 = 0.4%).
+- Costs are hours only (D-21): no money, no currency. Times are ISO 8601 UTC. Shares are fractions (0.004 = 0.4%).
 - A field that a later card fills is present from day one, with `null`, `[]` or `{}`, so no
   reader breaks when it starts to carry data. The table below says which.
 - `validateReport` (`src/domain/report_validator.ts`, no dependencies) checks a parsed file
@@ -32,7 +32,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `systems[]` | One per `CAT`, `OMS`, `BPM`, `PROV`: `name`, `role`, `position` (1-based in the flow), `read`, `source_kind` (null if not read), `records`, `coverage` (share of orders with a record from that system, null when not read), `cannot_observe[]`, `findings[]` (rule ids whose evidence touches it). |
 | `findings[]` | See below. |
 | `overlap` | `by_order`: order id to the rule ids that charge it, only for orders charged by two or more rules (`{}` when none). `pairs[]`: `rules` (two ids) and `orders` (how many orders they share). |
-| `totals` | `gross`: `hours` and `amount` summed over findings with `in_total` true. `net`: the same with each order counted once, at its largest charge (`rules.md`, "Overlap"); equals `gross` when nothing overlaps. |
+| `totals` | `gross`: `hours` summed over findings with `in_total` true. `net`: the same with each order counted once, at its largest charge (`rules.md`, "Overlap"); equals `gross` when nothing overlaps. |
 | `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story[]`: the order step by step (`at`, `system`, `what` (one plain sentence), `record` (`id` and `endpoint`, or `null`), `finding` (the rule id that starts at this step, or `null`), `observed`, `reason` (why a step is not observed)). A step the source cannot show stays in the list with `observed` false. |
 
 ## Findings
@@ -57,25 +57,21 @@ contract. Every number in it carries its formula and the inputs it came from.
 
 | Key | Meaning |
 |---|---|
-| `currency` | `USD`. |
 | `kind` | `recurring` (R01, R02, R05), `one_off` (R04 clean-up) or `accumulated_to_period_end` (R03). The report never mixes kinds in one "per month" column. |
-| `period_days`, `normalisation` | Days the amount covers and how it became "per month"; `null` when it did not need to (a one-off). |
-| `hours_month`, `amount_month` | The hours and the amount. For a `one_off` they are the amount of the audited period, not a monthly rate. **`amount_month` is the sum of `terms[].amount`; revenue at risk never enters it.** |
+| `period_days`, `normalisation` | Days the hours cover and how it became "per month"; `null` when it did not need to (a one-off). |
+| `hours_month` | The hours. For a `one_off` they are the hours of the audited period, not a monthly rate. **`hours_month` is the sum of `terms[].hours`.** |
 | `formula` | The text of the formula in `rules.md`. Required. |
 | `inputs[]` | `key` (a dotted key of `config.json`, such as `rates.cleanup_minutes`), `value` (must equal the config), and `source`, `owner`, `date` (null until M5-07 provides them). |
-| `terms[]` | `name`, `amount`, `basis`, `observed` (the count the term multiplies, when measured) and `input_keys` (keys in `inputs`). `basis` is `measured` (counted in the evidence), `rate_assumption` (an amount from `config.json`) or `not_observed`. A rate times a measured count is `rate_assumption`; `observed` says the count was measured. |
-| `unmeasured[]` | `term` and `reason` for a term the source cannot show; it is not in `terms` and not in the amount. |
-| `revenue_at_risk` | `amount`, `basis` (`arpu_assumption` or `null`) and `label` ("not lost revenue"). Never added to the amount. |
+| `terms[]` | `name`, `hours`, `basis`, `observed` (the count the term multiplies, when measured) and `input_keys` (keys in `inputs`). `basis` is `measured` (counted in the evidence), `rate_assumption` (hours from a rate in `config.json`) or `not_observed`. A rate times a measured count is `rate_assumption`; `observed` says the count was measured. |
+| `unmeasured[]` | `term` and `reason` for a term the source cannot show; it is not in `terms` and not in the hours. |
 
-R04 has two terms: clean-up (`rates.cleanup_minutes`, `loaded_hour_usd`) and duplicate
-activations (`rates.duplicateActivationCostUsd`). When the source has no activation records
-the second term moves to `unmeasured` and the amount is the clean-up alone.
+R04 has one term: clean-up (`rates.cleanup_minutes`). Whether a duplicate reached activation is
+a count in `breakdown` (`reached_activation`, `activation_attempts`), not a cost term.
 
 ## Numbers
 
 The file is written with two-space indent, a final newline and keys in the order of the model.
-Hours (`hours`, `hours_month`) are rounded to one decimal and money (`amount`, `amount_month`)
-to two, in `src/adapters/report/json_renderer.ts` and nowhere else; `config` is never rounded.
+Hours (`hours`, `hours_month`) are rounded to one decimal, in `src/adapters/report/json_renderer.ts` and nowhere else; `config` is never rounded.
 `run.id` and `run.generated_at` are the only fields that differ between two runs on the same
 input.
 
@@ -89,7 +85,7 @@ bump of the schema.
 ## Example
 
 The R04 finding of the demo, as `deno task audit` produces it over the stub (20 of 5,000
-orders, 30 h, USD 1,350 + USD 240 = USD 1,590). The evidence sample is shortened to two of
+orders, 30 h). The evidence sample is shortened to two of
 its twenty orders and `journeys` to one, to keep the page readable; the validator accepts any
 sample up to twenty. A test validates this exact block.
 
@@ -148,16 +144,12 @@ sample up to twenty. A test validates this exact block.
     "estimated_impact": true
   },
   "config": {
-    "currency": "USD",
     "orders_per_month": 5000,
-    "loaded_hour_usd": 45,
     "rates": {
       "manual_minutes": 5,
       "daily_followup_minutes": 15,
       "cleanup_minutes": 90,
-      "investigation_minutes": 45,
-      "duplicate_activation_cost_usd": 12,
-      "arpu_usd": 65
+      "investigation_minutes": 45
     },
     "thresholds": {
       "retry_window_hours": 24,
@@ -344,31 +336,15 @@ sample up to twenty. A test validates this exact block.
       },
       "in_total": true,
       "cost": {
-        "currency": "USD",
         "kind": "one_off",
         "period_days": null,
         "normalisation": null,
         "hours_month": 30,
-        "amount_month": 1590,
-        "formula": "hours = duplicates × cleanup_minutes / 60; amount = hours × loaded_hour_usd + duplicates_that_reached_activation × duplicate_activation_cost_usd",
+        "formula": "hours = groups × cleanup_minutes / 60",
         "inputs": [
           {
             "key": "rates.cleanup_minutes",
             "value": 90,
-            "source": null,
-            "owner": null,
-            "date": null
-          },
-          {
-            "key": "loaded_hour_usd",
-            "value": 45,
-            "source": null,
-            "owner": null,
-            "date": null
-          },
-          {
-            "key": "rates.duplicate_activation_cost_usd",
-            "value": 12,
             "source": null,
             "owner": null,
             "date": null
@@ -377,30 +353,15 @@ sample up to twenty. A test validates this exact block.
         "terms": [
           {
             "name": "Clean-up of duplicate service orders",
-            "amount": 1350,
+            "hours": 30,
             "basis": "rate_assumption",
             "observed": 20,
             "input_keys": [
-              "rates.cleanup_minutes",
-              "loaded_hour_usd"
-            ]
-          },
-          {
-            "name": "Duplicate activations",
-            "amount": 240,
-            "basis": "rate_assumption",
-            "observed": 20,
-            "input_keys": [
-              "rates.duplicate_activation_cost_usd"
+              "rates.cleanup_minutes"
             ]
           }
         ],
-        "unmeasured": [],
-        "revenue_at_risk": {
-          "amount": 0,
-          "basis": null,
-          "label": "not lost revenue"
-        }
+        "unmeasured": []
       },
       "recommendation": "Make the retry reuse the existing service order, and confirm in billing the orders whose duplicate reached activation."
     }
@@ -411,12 +372,10 @@ sample up to twenty. A test validates this exact block.
   },
   "totals": {
     "gross": {
-      "hours": 30,
-      "amount": 1590
+      "hours": 30
     },
     "net": {
-      "hours": 30,
-      "amount": 1590
+      "hours": 30
     }
   },
   "journeys": [

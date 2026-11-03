@@ -39,12 +39,11 @@ Deno.test("the validator rejects an input key that is not in config.json", () =>
   assert(errors.some((e) => e.includes("not a key of config.json")), errors.join("\n"));
 });
 
-Deno.test("the validator rejects revenue at risk added into the amount", () => {
+Deno.test("the validator rejects hours that differ from the sum of the terms", () => {
   const report = example();
-  report.findings[0].cost.revenue_at_risk = { amount: 650, basis: "arpu_assumption", label: "x" };
-  report.findings[0].cost.amount_month += 650;
+  report.findings[0].cost.hours_month += 5;
   const errors = validateReport(report, configJson);
-  assert(errors.some((e) => e.includes("amount_month")), errors.join("\n"));
+  assert(errors.some((e) => e.includes("hours_month")), errors.join("\n"));
 });
 
 Deno.test("the validator rejects bad enums, camelCase files and an oversized sample", () => {
@@ -65,10 +64,9 @@ Deno.test("the engine's report validates, and the serializer maps to snake_case"
   assertEquals(validateReport(file, configJson), []);
   assertEquals(file.schema_version, "findings/1");
   assertEquals(file.findings[0].rule_version, "R04@2");
-  assertEquals(file.findings[0].cost.amount_month, 1590);
-  assertEquals(file.findings[0].cost.revenue_at_risk.basis, null);
+  assertEquals(file.findings[0].cost.hours_month, 30);
   assertEquals(file.sources[0].rows_read, 5000);
-  assertEquals(file.totals.gross.amount, 1590);
+  assertEquals(file.totals.gross.hours, 30);
   // The JSON round trip is what a file would hold.
   assertEquals(validateReport(JSON.parse(JSON.stringify(file)), configJson), []);
   // The config is printed as the file has it: snake_case, and the same as config.json.
@@ -113,26 +111,22 @@ const attempt = (id: string, soRef: string): ProvisioningAttempt => ({
   endedAt: null,
 });
 
-Deno.test("R04 cost with activations: two terms, USD 1,350 + USD 240, one_off", async () => {
+Deno.test("R04 cost: one hours term, 30 h, one_off, activations kept as counts", async () => {
   const { findings } = await auditStub();
   const cost = findings[0].cost;
   assertEquals(cost.kind, "one_off");
-  assertEquals(cost.terms.map((t) => t.amount), [1350, 240]);
-  assertEquals(cost.terms.map((t) => t.basis), ["rate_assumption", "rate_assumption"]);
-  assertEquals(cost.terms[1].observed, 20);
+  assertEquals(cost.terms.map((t) => t.hours), [30]);
+  assertEquals(cost.terms.map((t) => t.basis), ["rate_assumption"]);
+  assertEquals(cost.terms[0].observed, 20);
   assertEquals(cost.unmeasured, []);
-  assertEquals(cost.amountMonth, 1590);
-  assertEquals(cost.inputs.map((i) => i.key), [
-    "rates.cleanup_minutes",
-    "loaded_hour_usd",
-    "rates.duplicate_activation_cost_usd",
-  ]);
-  assertEquals(cost.revenueAtRisk.amount, 0);
+  assertEquals(cost.hoursMonth, 30);
+  assertEquals(cost.inputs.map((i) => i.key), ["rates.cleanup_minutes"]);
+  assertEquals(findings[0].breakdown?.reachedActivation, 20);
   assertEquals(findings[0].evidenceTotal, 20);
   assert(findings[0].evidence.length <= 20);
 });
 
-Deno.test("R04 cost without activations: the second term is unmeasured, USD 1,350", () => {
+Deno.test("R04 cost without activations is the same 30 h", () => {
   const orders = Array.from({ length: 20 }, (_, i) => `O${i}`);
   const result = correlate({
     orders: orders.map(order),
@@ -140,17 +134,15 @@ Deno.test("R04 cost without activations: the second term is unmeasured, USD 1,35
     attempts: [],
   });
   const finding = detectR04(result.orders, demoConfig)!;
-  assertEquals(finding.cost.amountMonth, 1350);
+  assertEquals(finding.cost.hoursMonth, 30);
   assertEquals(finding.cost.terms.length, 1);
-  assertEquals(finding.cost.unmeasured.map((u) => u.term), ["Duplicate activations"]);
-  assertEquals(finding.cost.inputs.length, 2);
-  // With activations present but none on the duplicate: measured zero, not unmeasured.
+  assertEquals(finding.breakdown?.reachedActivation, 0);
   const withAttempts = correlate({
     orders: orders.map(order),
     serviceOrders: orders.flatMap((o) => [so(`${o}-A`, o), so(`${o}-B`, o)]),
-    attempts: [attempt("ACT-1", "O0-A")],
+    attempts: [attempt("ACT-1", "O0-B")],
   });
-  const zero = detectR04(withAttempts.orders, demoConfig)!;
-  assertEquals(zero.cost.terms[1].amount, 0);
-  assertEquals(zero.cost.unmeasured, []);
+  const one = detectR04(withAttempts.orders, demoConfig)!;
+  assertEquals(one.cost.hoursMonth, 30);
+  assertEquals(one.breakdown?.reachedActivation, 1);
 });

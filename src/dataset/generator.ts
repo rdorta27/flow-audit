@@ -80,16 +80,12 @@ const OFFER_V2_FROM = new Date(WINDOW_START + V2_FIRST_INDEX * STEP_MS - 2 * MIN
   .toISOString();
 
 export const IMPACT_CONFIG: ImpactConfig = {
-  currency: "USD",
   ordersPerMonth: ORDERS,
-  loadedHourUsd: 45,
   rates: {
     manualMinutes: 5,
     dailyFollowupMinutes: 15,
     cleanupMinutes: 90,
     investigationMinutes: 45,
-    duplicateActivationCostUsd: 12,
-    arpuUsd: 65,
   },
   thresholds: {
     retryWindowHours: 24,

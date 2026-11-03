@@ -151,8 +151,7 @@ export function summaryLines(result: AuditResult): string[] {
   for (const f of result.findings) {
     lines.push(
       `${f.ruleVersion} · ${n(f.affectedOrders)} orders · ` +
-        `${n(Math.round(f.cost.hoursMonth * 10) / 10)} h · ` +
-        `${f.cost.currency === "USD" ? "USD" : f.cost.currency} ${n(f.cost.amountMonth)}`,
+        `${n(Math.round(f.cost.hoursMonth * 10) / 10)} h`,
     );
   }
   return lines;

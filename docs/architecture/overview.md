@@ -28,7 +28,7 @@ data/demo/ortelis/            Flow Audit
 | **Ingest** | Raw exports | `Event[]` | Parse, validate, normalize. One adapter per system, one canonical envelope. |
 | **Reconstruct** | `Event[]` | `OrderJourney[]` | Group by order, resolve correlation keys, order events, cut waits and detect gaps. |
 | **Detect** | `OrderJourney[]` + catalog | `Finding[]` | Run rules. Each rule declares condition, evidence selector and impact formula. |
-| **Quantify** | `Finding[]` + config | `Finding[]` with impact | Turn counts and durations into hours and USD with explicit, configurable rates. |
+| **Quantify** | `Finding[]` + config | `Finding[]` with impact | Turn counts and durations into hours with explicit, configurable rates. |
 | **Render** | `Finding[]` + journeys + config | `report.html`, `findings.json` | Presentation only. No analysis in the renderer. |
 
 Analysis and presentation are separated on purpose: the same findings must be renderable as HTML, as JSON, or as slides later without re-running the rules.

@@ -15,7 +15,6 @@ export interface OrderCharge {
   ruleId: string;
   orderRef: string;
   hours: number;
-  amount: number;
 }
 
 export interface Totals {
@@ -30,36 +29,29 @@ export function computeTotals(
 ): Totals {
   const counted = findings.filter((f) => f.inTotal);
   const ids = new Set(counted.map((f) => f.id));
-  const gross = {
-    hours: counted.reduce((sum, f) => sum + f.cost.hoursMonth, 0),
-    amount: counted.reduce((sum, f) => sum + f.cost.amountMonth, 0),
-  };
+  const gross = { hours: counted.reduce((sum, f) => sum + f.cost.hoursMonth, 0) };
 
   // One charge per (order, rule): a rule that charges an order twice is still one rule.
-  const byOrder = new Map<string, Map<string, { hours: number; amount: number }>>();
+  const byOrder = new Map<string, Map<string, number>>();
   for (const c of charges) {
     if (!ids.has(c.ruleId)) continue;
     const rules = byOrder.get(c.orderRef) ?? new Map();
-    const prev = rules.get(c.ruleId) ?? { hours: 0, amount: 0 };
-    rules.set(c.ruleId, { hours: prev.hours + c.hours, amount: prev.amount + c.amount });
+    rules.set(c.ruleId, (rules.get(c.ruleId) ?? 0) + c.hours);
     byOrder.set(c.orderRef, rules);
   }
 
   const overlap: ReportOverlap = { byOrder: {}, pairs: [] };
   const pairCount = new Map<string, number>();
-  let removedHours = 0, removedAmount = 0;
+  let removedHours = 0;
   for (const [orderRef, rules] of [...byOrder].sort(([a], [b]) => a.localeCompare(b))) {
     if (rules.size < 2) continue;
     const ruleIds = [...rules.keys()].sort();
     overlap.byOrder[orderRef] = ruleIds;
-    // Largest amount stays; on a tie the lowest rule id, so the result never depends on order.
-    const keep = ruleIds.reduce((best, id) =>
-      rules.get(id)!.amount > rules.get(best)!.amount ? id : best
-    );
+    // Largest hours stay; on a tie the lowest rule id, so the result never depends on order.
+    const keep = ruleIds.reduce((best, id) => rules.get(id)! > rules.get(best)! ? id : best);
     for (const id of ruleIds) {
       if (id === keep) continue;
-      removedHours += rules.get(id)!.hours;
-      removedAmount += rules.get(id)!.amount;
+      removedHours += rules.get(id)!;
     }
     for (let i = 0; i < ruleIds.length; i++) {
       for (let j = i + 1; j < ruleIds.length; j++) {
@@ -73,7 +65,7 @@ export function computeTotals(
 
   return {
     gross,
-    net: { hours: gross.hours - removedHours, amount: gross.amount - removedAmount },
+    net: { hours: gross.hours - removedHours },
     overlap,
   };
 }

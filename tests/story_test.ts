@@ -63,16 +63,15 @@ Deno.test("the report journeys carry the story", () => {
   for (const j of audit.report.journeys) assert(j.story.length >= 3, j.orderRef);
 });
 
-const finding = (id: string, hours: number, amount: number): Finding => ({
+const finding = (id: string, hours: number): Finding => ({
   ...audit.findings[0],
   id,
-  cost: { ...audit.findings[0].cost, hoursMonth: hours, amountMonth: amount },
+  cost: { ...audit.findings[0].cost, hoursMonth: hours },
 });
-const charge = (ruleId: string, orderRef: string, hours: number, amount: number): OrderCharge => ({
+const charge = (ruleId: string, orderRef: string, hours: number): OrderCharge => ({
   ruleId,
   orderRef,
   hours,
-  amount,
 });
 
 Deno.test("with only R04, net equals gross and nothing overlaps", () => {
@@ -86,34 +85,33 @@ Deno.test("R04 charges add up to the finding's cost", () => {
   assertEquals(charges.length, 20);
   const f = audit.findings[0];
   assert(Math.abs(charges.reduce((s, c) => s + c.hours, 0) - f.cost.hoursMonth) < 1e-9);
-  assert(Math.abs(charges.reduce((s, c) => s + c.amount, 0) - f.cost.amountMonth) < 1e-9);
 });
 
 Deno.test("an overlapping order is counted once, at its largest charge", () => {
-  const findings = [finding("R01", 3, 300), finding("R03", 2, 100)];
+  const findings = [finding("R01", 3), finding("R03", 2)];
   const t = computeTotals(findings, [
-    charge("R01", "A", 2, 200),
-    charge("R03", "A", 1, 50),
-    charge("R01", "B", 1, 100),
-    charge("R03", "C", 1, 50),
+    charge("R01", "A", 2),
+    charge("R03", "A", 1),
+    charge("R01", "B", 1),
+    charge("R03", "C", 1),
   ]);
-  assertEquals(t.gross, { hours: 5, amount: 400 });
-  assertEquals(t.net, { hours: 4, amount: 350 });
+  assertEquals(t.gross, { hours: 5 });
+  assertEquals(t.net, { hours: 4 });
   assertEquals(t.overlap.byOrder, { A: ["R01", "R03"] });
   assertEquals(t.overlap.pairs, [{ rules: ["R01", "R03"], orders: 1 }]);
 });
 
 Deno.test("on a tie the lowest rule id stays, whatever the input order", () => {
-  const findings = [finding("R01", 1, 100), finding("R03", 1, 100)];
-  const a = computeTotals(findings, [charge("R03", "A", 1, 100), charge("R01", "A", 2, 100)]);
-  const b = computeTotals(findings, [charge("R01", "A", 2, 100), charge("R03", "A", 1, 100)]);
+  const findings = [finding("R01", 1), finding("R03", 1)];
+  const a = computeTotals(findings, [charge("R03", "A", 1), charge("R01", "A", 1)]);
+  const b = computeTotals(findings, [charge("R01", "A", 1), charge("R03", "A", 1)]);
   assertEquals(a, b);
-  assertEquals(a.net, { hours: 1, amount: 100 });
+  assertEquals(a.net, { hours: 1 });
 });
 
 Deno.test("a finding outside the total adds nothing to either figure", () => {
-  const out = { ...finding("R05", 9, 900), inTotal: false };
-  const t = computeTotals([finding("R04", 1, 10), out], [charge("R05", "A", 9, 900)]);
-  assertEquals(t.gross, { hours: 1, amount: 10 });
+  const out = { ...finding("R05", 9), inTotal: false };
+  const t = computeTotals([finding("R04", 1), out], [charge("R05", "A", 9)]);
+  assertEquals(t.gross, { hours: 1 });
   assertEquals(t.net, t.gross);
 });

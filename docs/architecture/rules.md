@@ -3,7 +3,7 @@
 Status: R04 is implemented (`src/domain/rules/r04.ts`, M3-02) and registered in `src/domain/rules/index.ts`; the others are designed. R04 is the first rule (milestone Demo 1) and its
 Demo 1 specification is written below. The rules below are the five
 findings the demo reports. Each one must be defensible: a signal, the
-evidence that proves it and a formula that turns it into hours and USD.
+evidence that proves it and a formula that turns it into hours.
 
 ## Rule contract
 
@@ -47,7 +47,6 @@ and the point where the order leaves the automated path.
 
 ```
 hours = affected × (manual_minutes + wait_days × daily_followup_minutes) / 60
-usd   = hours × loaded_hour_usd
 ```
 
 **Demo.** 8% of 5,000 orders = 400 orders, 25 manual minutes and 2.5 days of wait.
@@ -68,7 +67,6 @@ instances with actor `human`.
 
 ```
 hours = affected × manual_minutes / 60
-usd   = hours × loaded_hour_usd
 ```
 
 **Demo.** `capacity_profile` missing on the first offer version; 4,167 of 5,000 orders (83%), 5 minutes each = 347 h. Orders on the second version (833) get an automatic check.
@@ -90,11 +88,9 @@ and the order's age.
 ```
 hours = stuck × (manual_minutes + days_stuck × daily_followup_minutes) / 60
                                    // days_stuck: from the timer expiry to the end of the audited period
-usd   = hours × loaded_hour_usd
-revenue_at_risk = stuck × arpu_usd      // reported separately, never added to cost
 ```
 
-**Demo.** 3% (150 orders) hit the timer; one third (50) never close on their own. They have been stuck about 25 days at the end of September: 50 × (5 + 25 × 15) min = 317 h, USD 14,267.
+**Demo.** 3% (150 orders) hit the timer; one third (50) never close on their own. They have been stuck about 25 days at the end of September: 50 × (5 + 25 × 15) min = 317 h.
 
 **Known limits.** A long-running but healthy process must not be flagged. Require both
 the expired timer and the absence of any subsequent event.
@@ -131,7 +127,6 @@ reached activation.
 
 ```
 hours = duplicates × cleanup_minutes / 60
-usd   = hours × loaded_hour_usd + duplicates × duplicate_activation_cost_usd
 ```
 
 `duplicates` is the number of **groups**: product order items with more than one live
@@ -142,9 +137,8 @@ clean-up per item), so it is unchanged from `R04@1`. The finding also reports, i
 `activation_attempts` (attempts that ran on an extra service order) next to
 `reached_activation` (groups with at least one such attempt). On the synthetic dataset that is
 20 groups, 21 extras (ORD-1017 has three service orders), all `retry_new_order`, 30 h and
-**USD 1,590** (USD 1,350 of clean-up plus 20 × USD 12). A source without activations cannot
-observe the second term: the finding reports only the first (USD 1,350), lists the second as
-**not observed in this source** and never estimates it. A low/base/high range arrives with
+**30 h** (20 × 90 min of clean-up). The duplicate activations are counts in `breakdown`, not a
+cost term: they had only a money value, and the engine reports hours (D-21). A low/base/high range arrives with
 M5-07; until then the cost is one value, every term `basis: rate_assumption`.
 
 **R04@2 classification.** Service orders over one item are ordered by creation time; the first
@@ -197,7 +191,6 @@ needed to join them.
 
 ```
 hours = incidents_per_month × investigation_minutes / 60
-usd   = hours × loaded_hour_usd
 ```
 
 **Demo.** 300 incidents/month at 45 minutes = 225 h/month.
@@ -213,8 +206,8 @@ than once. `totals.net` counts each order once:
 
 1. For each order, a rule's charge is the sum of what that rule charges the order (one rule
    charging two items of the order is still one rule).
-2. When two or more rules in the total charge the same order, only the **largest charge by
-   amount** stays. On a tie the **lowest rule id** stays (R01 before R03), so the result never
+2. When two or more rules in the total charge the same order, only the **largest charge in
+   hours** stays. On a tie the **lowest rule id** stays (R01 before R03), so the result never
    depends on the order the rules ran.
 3. `net = gross - the charges removed`; with no overlap it equals `gross` exactly.
 4. `overlap.by_order` lists the rules that charge each overlapped order and `overlap.pairs`
@@ -230,5 +223,4 @@ Every rule returns the same `Finding` (`src/domain/model.ts`) and the file keeps
 for all of them: the `findings/1` schema, documented with a complete R04 example in
 [report-schema.md](report-schema.md). A finding carries its `cost` block: the formula
 written in this catalogue, the `config.json` inputs it used, the terms that add up to the
-amount (each with its `basis`), what could not be measured, and the revenue at risk, which
-is never added. The old per-rule example is replaced by the schema.
+hours (each with its `basis`) and what could not be measured. The old per-rule example is replaced by the schema.

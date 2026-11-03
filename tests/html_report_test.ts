@@ -15,14 +15,14 @@ Deno.test("the HTML has no external resource reference and no script", () => {
   assert(!/<script|@import|<link/i.test(html), "script, import or link");
 });
 
-Deno.test("every finding amount appears next to its formula", () => {
+Deno.test("every finding's hours appear next to its formula", () => {
   for (const f of report.findings) {
     const start = html.indexOf(`id="${f.id}"`);
     const section = html.slice(start, html.indexOf("</article>", start));
-    assert(section.includes(`USD ${f.cost.amountMonth.toLocaleString("en-US")}`), "amount");
+    assert(section.includes(`${f.cost.hoursMonth} h`), "hours");
     assert(section.includes(f.cost.formula.replace(/&/g, "&amp;")), "formula");
     for (const t of f.cost.terms) {
-      assert(section.includes(`USD ${t.amount.toLocaleString("en-US")}`), `term ${t.name}`);
+      assert(section.includes(`${t.hours} h`), `term ${t.name}`);
     }
   }
 });
@@ -41,5 +41,5 @@ Deno.test("the R04 section matches its snapshot", async () => {
   const section = html.slice(start, html.indexOf("</article>", start) + 10) + "\n";
   if (Deno.env.get("UPDATE_GOLDEN")) await Deno.writeTextFile(GOLDEN, section);
   assertEquals(section, await Deno.readTextFile(GOLDEN));
-  assert(section.includes("USD 1,590") && section.includes("USD 1,350"));
+  assert(section.includes("30 h") && !section.includes("USD"));
 });

@@ -26,7 +26,7 @@ Deno.test("findings.json matches the golden file and validates against findings/
   assertEquals(stable(text), await Deno.readTextFile(GOLDEN));
 });
 
-Deno.test("findings.json carries the labels and R04's USD 1,590", async () => {
+Deno.test("findings.json carries the labels and R04's 30 h", async () => {
   const file = JSON.parse(renderFindingsJson((await auditStub()).report));
   assertEquals(file.labels, {
     synthetic_data: true,
@@ -34,8 +34,7 @@ Deno.test("findings.json carries the labels and R04's USD 1,590", async () => {
     estimated_impact: true,
   });
   const [r04] = file.findings;
-  assertEquals(r04.cost.terms.map((t: { amount: number }) => t.amount), [1350, 240]);
-  assertEquals(r04.cost.amount_month, 1590);
+  assertEquals(r04.cost.terms.map((t: { hours: number }) => t.hours), [30]);
   assertEquals(r04.cost.hours_month, 30);
   assertEquals(file.correlation.links["attempt->service_order"].inferred, 0);
 });

@@ -1,14 +1,10 @@
 {
-  "currency": "USD",
   "orders_per_month": 5000,
-  "loaded_hour_usd": 45,
   "rates": {
     "manual_minutes": 5,
     "daily_followup_minutes": 15,
     "cleanup_minutes": 90,
-    "investigation_minutes": 45,
-    "duplicate_activation_cost_usd": 12,
-    "arpu_usd": 65
+    "investigation_minutes": 45
   },
   "thresholds": {
     "retry_window_hours": 24,
