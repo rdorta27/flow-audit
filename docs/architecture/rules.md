@@ -99,7 +99,7 @@ revenue_at_risk = stuck × arpu_usd      // reported separately, never added to 
 **Known limits.** A long-running but healthy process must not be flagged. Require both
 the expired timer and the absence of any subsequent event.
 
-## R04 — OMS retry duplicates service orders
+## R04 — A retry duplicates service orders
 
 **Rule version.** `R04@1` — the Demo 1 specification (M3-01). It reads snapshots, so it
 needs no event history.

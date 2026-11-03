@@ -126,7 +126,7 @@ export function detectR04(
   return {
     id: R04_ID,
     ruleVersion: R04_VERSION,
-    title: "OMS retry duplicates service orders",
+    title: "A retry duplicates service orders",
     plainSummary: "When activation failed, someone retried by hand and the order manager " +
       "created a second service order for the same line.",
     where: "OMS",

@@ -22,9 +22,20 @@ const SYSTEM_CLASS: Record<SystemId, string> = {
   PROV: "prov",
 };
 
+/** Plain names shown to readers; the codes stay in the data and in tooltips. */
+const PLAIN: Record<SystemId, string> = {
+  CAT: "Product catalog",
+  OMS: "Order manager",
+  BPM: "Process orchestrator",
+  PROV: "Activation system",
+};
+const plain = (system: string) => PLAIN[system as SystemId] ?? system;
+
 const chip = (system: string) => {
   const cls = SYSTEM_CLASS[system as SystemId];
-  return `<span class="chip${cls ? ` s-${cls}` : ""}">${esc(system)}</span>`;
+  return `<span class="chip${cls ? ` s-${cls}` : ""}" title="${esc(system)}">${
+    esc(plain(system))
+  }</span>`;
 };
 
 /** The systems a `where` such as `OMS` or `OMS→PROV` touches. */
@@ -96,7 +107,7 @@ ${
 function flowMap(systems: ReportSystem[]): string {
   const nodes = [...systems].sort((a, b) => a.position - b.position).map((s) =>
     `<li class="node s-${SYSTEM_CLASS[s.system]}${s.read ? "" : " unread"}">${
-      esc(s.system)
+      esc(plain(s.system))
     }<small>${s.read ? "read" : "not read"}</small></li>`
   ).join('<li class="arrow" aria-hidden="true">→</li>');
   return `<ol class="flow">${nodes}</ol>`;

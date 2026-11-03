@@ -87,7 +87,7 @@ The dataset is synthetic and coherent: orders, state transitions, process timers
 | R01 | Provisioning fallout with no automatic retry | 8% of orders, 2.5 days to recover | ~USD 12,750 (400 orders × (5 min + 2.5 days × 15 min follow-up)) |
 | R02 | Missing catalog attribute forces a manual capacity check | 83% of orders (those sold before the offer's second version), ~5 min each | ~USD 15,626 (4,167 orders × 5 min) |
 | R03 | BPM timer expires without compensation | 3% stuck in "pending activation" | ~USD 14,267 (50 stuck × (5 min + ~25 days × 15 min)); plus USD 3,250 revenue at risk (50 stuck × ARPU 65), reported apart |
-| R04 | OMS retry duplicates service orders | 5% of retries, double activation | ~USD 1,590 (20 orders × (90 min clean-up + USD 12 duplicate activation)) |
+| R04 | A retry duplicates service orders | 5% of retries, double activation | ~USD 1,590 (20 orders × (90 min clean-up + USD 12 duplicate activation)) |
 | R05 | No end-to-end correlation id | ~45 min per incident to investigate | ~USD 10,125 (300 incidents × 45 min) |
 
 Labour at the loaded rate of USD 45/hour, all inputs from `data/demo/config.json`. That

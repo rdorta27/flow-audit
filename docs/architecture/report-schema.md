@@ -264,7 +264,7 @@ sample up to twenty. A test validates this exact block.
     {
       "id": "R04",
       "rule_version": "R04@1",
-      "title": "OMS retry duplicates service orders",
+      "title": "A retry duplicates service orders",
       "plain_summary": "When activation failed, someone retried by hand and the order manager created a second service order for the same line.",
       "where": "OMS",
       "severity": "medium",
