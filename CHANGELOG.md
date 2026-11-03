@@ -5,6 +5,11 @@ tag when it publishes that version.
 
 ## Unreleased
 
+- M1-01: `src/adapters/ingest/` reads TMF622 product orders over HTTP as an `EvidenceSource`:
+  `GET` only, paginated, bearer token and limits from environment variables
+  (`FLOW_AUDIT_TMF_*`), clear errors for HTTP failures, bad bodies, timeouts and
+  cancellation. Tests run with no network and once against the stub.
+
 ## 0.2.0 — 2026-10-29
 
 Closes milestone M0 ([ADR 0003](docs/decisions/0003-tmf-stub-as-primary-source-and-typescript-adapters.md)):

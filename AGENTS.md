@@ -1,8 +1,8 @@
 # AGENTS
 
 - This repo is at **version 0.2.0, milestone Demo 1** (next: Client-ready): dataset, simulated TMF stub and a
-  report preview in the site. There is no ingest adapter, no rule and no generated report
-  yet; do not add them ahead of their milestone. The plan is `../specs/backlog.md`.
+  report preview in the site. There is a TMF622 product order reader (`src/adapters/ingest/`), but no
+  service order reader, no rule and no generated report yet; do not add them ahead of their milestone. The plan is `../specs/backlog.md`.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).
 - Read `README.md`, then `docs/product.md`, then `docs/architecture/`.

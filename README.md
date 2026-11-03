@@ -5,7 +5,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 It does not implement, configure or monitor those systems. It observes them.
 
 > **Under construction — version 0.2.0, milestone Demo 1.** The dataset, the simulated TMF
-> stub and a preview of the report exist. There is no ingest adapter, no rule and no
+> stub and a preview of the report exist. There is a TMF622 product order reader, but no service order reader, no rule and no
 > generated report yet: the command exits with a clear message instead of pretending to audit.
 
 ## Why
