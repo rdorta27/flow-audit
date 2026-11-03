@@ -32,7 +32,14 @@
  * serial as absent, so it never joins on it.
  */
 
-import type { Order, OrderState, ProvisioningAttempt, ServiceOrder } from "../../domain/model.ts";
+import type {
+  AttemptOperation,
+  AttemptOutcome,
+  Order,
+  OrderState,
+  ProvisioningAttempt,
+  ServiceOrder,
+} from "../../domain/model.ts";
 import type { RawRecord } from "../../ports/evidence_source.ts";
 import { TmfError } from "./tmf_client.ts";
 
@@ -121,10 +128,32 @@ export function mapServiceOrder(record: RawRecord): ServiceOrder {
   };
 }
 
+const OPERATIONS: readonly AttemptOperation[] = ["activate", "suspend", "deactivate", "modify"];
+const OUTCOMES: readonly AttemptOutcome[] = ["succeeded", "failed", "timeout", "pending"];
+
+/** Reads an optional enum field; a value outside the list is left out, never guessed. */
+function pick<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
+  return typeof value === "string" ? allowed.find((a) => a === normalize(value)) : undefined;
+}
+
 export function mapActivation(record: RawRecord): ProvisioningAttempt {
   const link = record.value.serviceOrder as Json | undefined;
   const completion = record.value.completionDate;
+  const v = record.value;
+  const optional: Partial<ProvisioningAttempt> = {};
+  if (Number.isInteger(v.attemptNo) && (v.attemptNo as number) > 0) {
+    optional.attemptNo = v.attemptNo as number;
+  }
+  const operation = pick(v.operation, OPERATIONS);
+  if (operation) optional.operation = operation;
+  if (typeof v.requestId === "string" && v.requestId !== "") optional.requestId = v.requestId;
+  if (typeof v.callbackDate === "string" && !Number.isNaN(Date.parse(v.callbackDate))) {
+    optional.callbackAt = v.callbackDate;
+  }
+  const outcome = pick(v.outcome, OUTCOMES);
+  if (outcome) optional.outcome = outcome;
   return {
+    ...optional,
     attemptId: record.provenance.externalId,
     soRef: typeof link?.id === "string" ? link.id : null,
     serial: "",

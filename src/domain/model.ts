@@ -207,8 +207,19 @@ export interface ProvisioningAttempt {
   errorCode: string | null;
   startedAt: string;
   endedAt: string | null;
+  /** M2-07, all optional: filled when the source has them, required by nothing. */
+  attemptNo?: number;
+  operation?: AttemptOperation;
+  requestId?: string;
+  /** When the provisioning system called back, ISO 8601 UTC. */
+  callbackAt?: string;
+  /** `timeout` means the outcome is unknown; `failed` means it is known. */
+  outcome?: AttemptOutcome;
   provenance?: Provenance;
 }
+
+export type AttemptOperation = "activate" | "suspend" | "deactivate" | "modify";
+export type AttemptOutcome = "succeeded" | "failed" | "timeout" | "pending";
 
 // Reconstruction ------------------------------------------------------------
 
