@@ -4,9 +4,10 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — version 0.3.0, milestone Demo 1.** The engine reads orders and
-> service orders from a simulated source, but detects nothing and produces no report yet:
-> `deno task audit` exits with a clear message instead of pretending to audit.
+> **Under construction — version 0.3.0, milestone Demo 1.** The engine reads orders,
+> service orders and activations from a simulated source, joins them and runs rule R04,
+> but produces no report yet: `deno task audit` exits with a clear message instead of
+> pretending to audit, and `deno task explain` shows R04 on one order.
 
 ## Where we are
 
@@ -18,21 +19,22 @@ The full picture, in Spanish and with every card's status, is in
 | Synthetic data | 5,000 made-up orders of a fictional operator, with the defects planted on purpose | `data/demo/` |
 | Simulated TMF server | Serves that data like a real system would, read-only | `deno task stub` |
 | Readers and join | Fetch product orders (TMF622), service orders (TMF641) and activation attempts (TMF640), join them and print counts and how sure each join is | `deno task read` |
+| Rule R04 | Finds the 20 duplicated orders and prices them at USD 1,590 (USD 1,350 clean-up + USD 240 duplicate activations) | `deno task explain` |
 
-**Not yet:** no rule detects a problem, nothing computes a cost, no report comes out of the
-engine. The 20 duplicated orders show up as a count, not as a finding.
+**Not yet:** only R04 exists, `deno task audit` does not run it, and no `findings.json` or
+report comes out of the engine.
 
 **Where it goes:**
 
 1. **Demo 1** — one real report: finding R04 (a retry creates a second service order),
-   read from the simulated server, with its cost in USD and the formula.
-2. **Client-ready** — read the files a real client exports and also detect R01, R02 and R05.
+   read from the simulated server, with its cost in USD (1,590) and the formula.
+2. **Client-ready** — read the files a real client exports and also detect R01, R02, R03 and R05.
 
 Done in Demo 1 so far: the three readers (milestone M1 is closed), provenance on every record,
 the join of orders, service orders and activations with a confidence per link, the
 classification of time as work, wait or gap (milestone M2 is closed) and the written spec of
-R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. Next card: M4-01. The plan is in
-[`../specs/backlog.md`](../specs/backlog.md).
+R04, and R04 itself: it finds the 20 duplicated orders and prices them at USD 1,590. `deno task explain` writes a page that follows one duplicated order step by step. Next card: M3-06 (wire R04 into `deno task audit`). The plan is in
+[`../specs/backlog.md`](../specs/backlog.md); finished cards are in [`../specs/done/`](../specs/done/README.md).
 
 ## Why
 
@@ -82,7 +84,7 @@ The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 | — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
 | M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.3.0) |
 | Demo 1 | One real report: R04 read from the TMF stub, with its cost in USD and formula | planned |
-| Client-ready | Audit a client's file exports through `mapping.yml`; R01, R02, R04, R05 | planned |
+| Client-ready | Audit a client's file exports through a mapping file; R01–R05 | planned |
 
 ## Versions
 

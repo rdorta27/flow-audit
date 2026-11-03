@@ -134,10 +134,11 @@ usd   = hours × loaded_hour_usd + duplicates × duplicate_activation_cost_usd
 ```
 
 `duplicates` counts the product order items with more than one service order, once each,
-however many extra orders they have. Without activations the second term cannot be
-observed: the finding reports only the first term, lists the second as **not observed in
-this source** and never estimates it. On the synthetic dataset that is 30 h and **USD
-1,350**; with activations it is USD 1,590.
+however many extra orders they have. On the synthetic dataset, with the activations
+correlated, that is 30 h and **USD 1,590** (USD 1,350 of clean-up plus 20 × USD 12); Demo 1
+reports this figure. A source without activations cannot observe the second term: the
+finding reports only the first (USD 1,350), lists the second as **not observed in this
+source** and never estimates it.
 
 **Severity.** Derived from impact, as for every rule: on the demo, 0.4% of orders and
 30 h/month, so `medium`.

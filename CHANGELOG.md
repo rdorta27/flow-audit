@@ -5,6 +5,15 @@ tag when it publishes that version.
 
 ## Unreleased
 
+- Docs: R04's Demo 1 cost is USD 1,590 (decision (b): duplicate activations counted from the
+  correlated activations) in `docs/architecture/rules.md` and the backlog; USD 1,350 is only
+  the figure for a source without activations. `AGENTS.md` and the README describe what
+  exists today (three readers, correlation, R04).
+- Planning: finished cards moved to `../specs/done/`, one file per milestone (`m0-log.md` is
+  now `done/m0.md`; links in `THIRD-PARTY.md` and ADR 0003 updated); the backlog keeps only
+  pending work, with full cards, a "Start here" section for newcomers and rules for working
+  a card in parallel. R03 and BPM file ingest move to Client-ready (D-05).
+
 ## 0.3.0 — 2026-11-03
 
 Milestones M1 (the readers) and M2 (join and time classification) are closed and the first rule runs: R04 finds the 20 duplicated orders and prices them at USD 1,590.
