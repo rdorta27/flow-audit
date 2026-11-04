@@ -32,4 +32,5 @@ out| Coverage data/demo/bpm_history.jsonl: 5,021 rows · 100% with every state m
 out| Coverage data/demo/provisioning.jsonl: 5,390 rows · 100% with every state mapped · attempt states 100% mapped
 err| flow-audit: wrote <tmp>/findings.json
 err| flow-audit: wrote <tmp>/report.html
+err| flow-audit: wrote <tmp>/findings.csv
 err| flow-audit: wrote <tmp>/quality.json

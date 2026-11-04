@@ -484,3 +484,17 @@ the same data print `No differences`. The file lists a sample of at most 20 orde
 (`evidence`), so the orders that enter or leave are those of the sample, and the line says so;
 the counts (`affected_orders`) and hours are complete. Exit code 0 when compared, 1 when a file
 cannot be read or is not a `findings.json`, 2 on a usage error.
+
+## `findings.csv` (with `--out`)
+
+For a finance team that wants to recalculate. One row per finding (`row_type` = `finding`) and
+one per affected order (`order`); columns `row_type, rule, order, estimated_hours, rates, basis,
+orders_listed, orders_total`. `rates` lists every rate the finding used, as `key=value (source)`,
+the source being the text recorded in the config or `assumed`; `basis` is `measured`,
+`rate_assumption` or `not_observed`. Hours are an estimate; there is no money. Order rows come
+from what each rule charges to each order, so for a finding that is not truncated they add up to
+the finding's hours. At most 1,000 order rows are written per finding (`CSV_ORDER_LIMIT`, largest
+first); the finding row states `orders_total` and `orders_listed`, and its hours cover all of
+them. R05, which is outside the total and charges no order, lists the orders of its evidence
+sample with an even share of its hours, so its rows are a sample. Order ids are the ones in
+`findings.json` (pseudonyms under `--redact`).

@@ -15,6 +15,8 @@ import { summarizeLinks } from "../domain/correlation.ts";
 import { configFromFile } from "../domain/data_files.ts";
 import type { AuditReport, ImpactConfig } from "../domain/model.ts";
 import { renderFindingsJson } from "../adapters/report/json_renderer.ts";
+import { renderFindingsCsv } from "../adapters/export/findings_csv.ts";
+import type { OrderCharge } from "../domain/totals.ts";
 import { renderHtml } from "../adapters/report/html_renderer.ts";
 
 const DEFAULT_CONFIG = new URL("../../data/demo/config.json", import.meta.url);
@@ -35,7 +37,7 @@ Options:
                    FLOW_AUDIT_TMF_TIMEOUT_MS, FLOW_AUDIT_TMF_PAGE_SIZE,
                    FLOW_AUDIT_TMF_MAX_REQUESTS.
   --config <file>  Impact rates and thresholds (default: data/demo/config.json).
-  --out <dir>      Write findings.json, report.html and quality.json into this existing
+  --out <dir>      Write findings.json, findings.csv, report.html and quality.json into this existing
                    directory (with --check, only quality.json). The \`audit\` task may write
                    only under ./out.
   --dataset <dir>  Read the four exports in this directory (catalog.json, oms_orders.csv,
@@ -191,7 +193,11 @@ async function readConfig(path: string | undefined): Promise<ImpactConfig> {
 }
 
 /** Writes `findings.json` and `report.html`; the directory must already exist and be writable. */
-export async function writeReports(dir: string, report: AuditReport): Promise<string[]> {
+export async function writeReports(
+  dir: string,
+  report: AuditReport,
+  charges?: readonly OrderCharge[],
+): Promise<string[]> {
   try {
     if (!(await Deno.stat(dir)).isDirectory) throw new Error("not a directory");
   } catch (error) {
@@ -203,6 +209,7 @@ export async function writeReports(dir: string, report: AuditReport): Promise<st
     [`${dir}/findings.json`, renderFindingsJson(report)],
     [`${dir}/report.html`, renderHtml(report)],
   ];
+  if (charges) files.push([`${dir}/findings.csv`, renderFindingsCsv(report.findings, charges)]);
   for (const [path, text] of files) {
     try {
       await Deno.writeTextFile(path, text);
@@ -465,7 +472,9 @@ export async function main(
       for (const line of coverageLines(await fileSources.coverage())) console.log(line);
     }
     if (options.out) {
-      for (const path of await writeReports(options.out, result.report)) progress(M.wrote(path));
+      for (const path of await writeReports(options.out, result.report, result.charges)) {
+        progress(M.wrote(path));
+      }
       if (quality) progress(M.wrote(await writeQuality(options.out, quality)));
     }
     return 0;
