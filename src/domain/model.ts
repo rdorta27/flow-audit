@@ -324,7 +324,7 @@ export interface OrderJourney {
 export type Severity = "critical" | "high" | "medium";
 
 /** Version of the file contract in `docs/architecture/report-schema.md`. */
-export const SCHEMA_VERSION = "findings/1";
+export const SCHEMA_VERSION = "findings/2";
 
 /** At most this many orders go in `Finding.evidence`; `evidenceTotal` says how many exist. */
 export const EVIDENCE_SAMPLE_MAX = 20;
@@ -385,6 +385,12 @@ export interface Cost {
   /** How the amount became "per month", or null when it did not need to. */
   normalisation: string | null;
   hoursMonth: number;
+  /**
+   * The same hours with every rate at its `low` and at its `high` value (M5-07). With rates
+   * that are a single number both equal `hoursMonth`.
+   */
+  hoursLow: number;
+  hoursHigh: number;
   /** The formula of `rules.md`, as text. */
   formula: string;
   inputs: CostInput[];
@@ -405,6 +411,23 @@ export interface Confidence {
   level: "confirmed" | "possible";
   /** Share of the links the evidence rests on that are not `explicit`. */
   inferredLinkShare: number;
+}
+
+/**
+ * What would change if the cause were fixed (M4-09). Always a projection: it is derived from
+ * the same orders and rates as the estimate and says which orders it assumes the fix removes.
+ */
+export interface Scenario {
+  /** The fix, in words: add the attribute, retry within 24 h, deduplicate. */
+  fix: string;
+  /** Why those orders, and only those, are assumed to drop out. */
+  mechanism: string;
+  /** Orders the fix is assumed to remove. */
+  fixedOrders: number;
+  ordersAfter: number;
+  /** The estimate that remains for the orders that stay, at the base rates. */
+  hoursAfter: number;
+  kind: "projection";
 }
 
 export interface Finding {
@@ -431,10 +454,12 @@ export interface Finding {
   /** Rule-specific counts (R04@2): groups, extras, cause, reached activation. */
   breakdown?: Record<string, number>;
   cost: Cost;
+  /** The projection "if the cause is fixed" (M4-09). */
+  scenario: Scenario;
   recommendation: string;
 }
 
-// The report (findings/1) -----------------------------------------------------
+// The report (findings/2) -----------------------------------------------------
 
 export interface ReportRun {
   id: string;
@@ -493,6 +518,47 @@ export interface ReportSystem {
 
 export interface ReportTotals {
   hours: number;
+  /** The same total with every rate at its low and at its high value (M5-07). */
+  hoursLow: number;
+  hoursHigh: number;
+}
+
+/** Where a parameter comes from. `example` means the config declares no source. */
+export type ParameterSource = "client" | "benchmark" | "assumption" | "example";
+
+/** One row of the assumptions table (M4-09, M5-07): a rate or threshold a rule used. */
+export interface AssumptionRow {
+  /** Dotted key of `config.json`, for example `rates.cleanup_minutes`. */
+  key: string;
+  unit: "minutes" | "hours";
+  value: number;
+  low: number;
+  high: number;
+  source: ParameterSource;
+  owner: string | null;
+  date: string | null;
+  /** Ids of the findings that use it. */
+  usedBy: string[];
+}
+
+/** How far the net total moves when one rate goes from its low to its high value (M5-07). */
+export interface SensitivityRow {
+  key: string;
+  low: number;
+  high: number;
+  hoursAtLow: number;
+  hoursAtHigh: number;
+  /** `hoursAtHigh - hoursAtLow`; rows are ordered by it, largest first. */
+  swing: number;
+}
+
+/** What happened to each rule in this run: `nothing_found` is not `not_evaluable`. */
+export interface RuleOutcome {
+  id: string;
+  title: string;
+  version: string;
+  outcome: "found" | "nothing_found" | "not_evaluable";
+  reason: string | null;
 }
 
 export interface ReportOverlap {
@@ -524,7 +590,7 @@ export interface ReportJourney extends OrderJourney {
   story: StoryStep[];
 }
 
-/** The whole report: this is `findings/1`. The file uses the snake_case form of these keys. */
+/** The whole report: this is `findings/2`. The file uses the snake_case form of these keys. */
 export interface AuditReport {
   schemaVersion: typeof SCHEMA_VERSION;
   engineVersion: string;
@@ -538,6 +604,14 @@ export interface AuditReport {
   overlap: ReportOverlap;
   /** `gross` adds every finding in the total; `net` counts each order once (M4-05). */
   totals: { gross: ReportTotals; net: ReportTotals };
+  /** Every rate and threshold the findings use, with its source (M4-09). */
+  assumptions: AssumptionRow[];
+  /** Which rate moves the net total most; empty when no rate has a range (M5-07). */
+  sensitivity: SensitivityRow[];
+  /** One entry per registered rule, so "0 findings" and "not evaluated" stay apart (M5-13). */
+  rules: RuleOutcome[];
+  /** What the run read, for the cover (M5-13). */
+  scope: { orders: number };
   journeys: ReportJourney[];
 }
 
@@ -608,9 +682,24 @@ export interface RuleSettings {
   r03?: R03Config;
 }
 
+/**
+ * What `config.json` says about one rate or threshold beyond its base value (M5-07). A rate
+ * written as a plain number has no entry. Keys of `ImpactConfig.parameters` are the dotted
+ * snake_case keys of the file, for example `rates.cleanup_minutes`.
+ */
+export interface ParameterMeta {
+  low?: number;
+  high?: number;
+  source?: ParameterSource;
+  owner?: string;
+  date?: string;
+}
+
 export interface ImpactConfig {
   ordersPerMonth: number;
+  /** The base value of each rate. */
   rates: ImpactRates;
   thresholds: ImpactThresholds;
   rules?: RuleSettings;
+  parameters?: Record<string, ParameterMeta>;
 }

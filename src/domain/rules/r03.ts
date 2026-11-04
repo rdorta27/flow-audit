@@ -31,6 +31,7 @@ import type { RuleContext } from "./index.ts";
 import { severityFor } from "./severity.ts";
 
 export const R03_ID = "R03";
+export const R03_TITLE = "Timer expires and nobody compensates";
 export const R03_VERSION = "R03@1";
 export const R03_FORMULA =
   "hours = stuck × (manual_minutes + days_stuck × daily_followup_minutes) / 60";
@@ -259,7 +260,7 @@ export function detectR03(
   return {
     id: R03_ID,
     ruleVersion: R03_VERSION,
-    title: "Timer expires and nobody compensates",
+    title: R03_TITLE,
     plainSummary: scan.snapshot
       ? "A process timer seems to have expired and nothing followed it, so the order is " +
         "probably stuck; the evidence is a snapshot, so this is suspected, not confirmed."
@@ -297,6 +298,8 @@ export function detectR03(
       periodDays: null,
       normalisation: null,
       hoursMonth: hours,
+      hoursLow: hours,
+      hoursHigh: hours,
       formula: R03_FORMULA,
       inputs: [
         input("rates.manual_minutes", manualMinutes),
@@ -305,6 +308,15 @@ export function detectR03(
       ],
       terms,
       unmeasured,
+    },
+    scenario: {
+      fix: "give every watched timer a compensation task or a queue a person owns",
+      mechanism: "an expired timer then leads somewhere at once, so no order is assumed to " +
+        "stay stuck past the threshold",
+      fixedOrders: affected,
+      ordersAfter: 0,
+      hoursAfter: 0,
+      kind: "projection",
     },
     recommendation: "Give every timer an exit: a compensation task or a queue a person owns, " +
       "so an expired timer never leaves an order waiting.",

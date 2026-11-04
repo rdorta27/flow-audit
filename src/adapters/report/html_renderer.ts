@@ -5,7 +5,13 @@
  * never money. Counts are "measured", hours are an "estimate" from assumed rates, and the two are never mixed
  * in one figure. Nothing here is specific to one rule: names and advice come from the finding.
  */
-import type { AuditReport, Finding, ReportSystem, SystemId } from "../../domain/model.ts";
+import type {
+  AssumptionRow,
+  AuditReport,
+  Finding,
+  ReportSystem,
+  SystemId,
+} from "../../domain/model.ts";
 import type { ReportRenderer } from "../../ports/report_renderer.ts";
 import { API_PLAIN, glossaryFor, inputPlain, lookup, SYSTEM_PLAIN } from "./glossary.ts";
 import { REPORT_CSS } from "./report_css.ts";
@@ -37,6 +43,29 @@ function term(key: string, shown?: string): string {
   }</abbr>`;
 }
 
+/** Escapes a sentence and puts a chip with the plain name where a system code appears. */
+const withChips = (text: string) =>
+  esc(text).replace(/\b(CAT|OMS|BPM|PROV)\b/g, (code) => chip(code));
+
+/** The anchor of a row of the assumptions table. */
+const rowId = (key: string) => `a-${key.replace(/\./g, "-")}`;
+
+/** An hour figure that links to the row of the assumption it rests on (M4-09). */
+const hoursLink = (n: number, keys: readonly string[]) =>
+  keys.length === 0
+    ? hours(n)
+    : `<a class="ahr" href="#${esc(rowId(keys[0]))}" title="Rests on: ${
+      esc(keys.map(inputPlain).join("; "))
+    }">${hours(n)}</a>`;
+
+/** "20 to 40 h" next to an estimate; says so when the rates are single numbers. */
+function rangeText(base: number, low: number, high: number): string {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  return r(low) === r(base) && r(high) === r(base)
+    ? "no range: the rates are single numbers"
+    : `range ${num(r(low))} to ${hours(high)} with the low and high rates`;
+}
+
 const plain = (system: string) => SYSTEM_PLAIN[system as SystemId] ?? system;
 
 /** A system always shows its plain name with the code beside it. */
@@ -58,18 +87,19 @@ const touched = (where: string) => where.split(/→|->/).map((s) => s.trim()).fi
 function arithmetic(t: Finding["cost"]["terms"][number]): string {
   if (t.observed === null || t.observed === 0 || t.hours === 0) return "";
   const minutes = Math.round(t.hours * 60 / t.observed * 100) / 100;
-  return `${num(t.observed)} ${term("case", "cases")} × ${num(minutes)} min = ${
-    num(Math.round(t.hours * 60 * 100) / 100)
-  } min = ${hours(t.hours)}`;
+  const rate = `${num(minutes)} min`;
+  return `${num(t.observed)} ${term("case", "cases")} × ${
+    t.inputKeys.length ? `<a class="ahr" href="#${esc(rowId(t.inputKeys[0]))}">${rate}</a>` : rate
+  } = ${num(Math.round(t.hours * 60 * 100) / 100)} min = ${hoursLink(t.hours, t.inputKeys)}`;
 }
 
 function findingSection(f: Finding): string {
   const c = f.cost;
   const counted = c.terms.map((t) => {
     const math = arithmetic(t);
-    return `<li><strong>${esc(t.name)}:</strong> ${math ? `${math}` : hours(t.hours)} (${
-      term("assumption", "assumption")
-    }) · ${term(t.basis)}</li>`;
+    return `<li><strong>${esc(t.name)}:</strong> ${
+      math ? `${math}` : hoursLink(t.hours, t.inputKeys)
+    } (${term("assumed", "assumed")}) · ${term(t.basis)}</li>`;
   }).join("");
   const unmeasured = c.unmeasured.map((u) =>
     `<li><strong>${esc(u.term)}</strong> ${term("not_observed", "not counted")}: ${
@@ -77,10 +107,11 @@ function findingSection(f: Finding): string {
     }</li>`
   ).join("");
   const minutes = c.inputs.map((i) =>
-    `<li>${esc(inputPlain(i.key))}: <strong>${num(i.value)}</strong> (<code>${esc(i.key)}</code>${
-      i.source ? `, ${esc(i.source)}` : ""
-    })</li>`
+    `<li><a href="#${esc(rowId(i.key))}">${esc(inputPlain(i.key))}</a>: <strong>${
+      num(i.value)
+    }</strong> (<code>${esc(i.key)}</code>, ${esc(i.source ?? "example")})</li>`
   ).join("");
+  const sc = f.scenario;
   const sample = f.evidence.slice(0, 5).map((e) =>
     `<li><code>${esc(e.orderRef)}</code>${e.note ? ` ${esc(words(e.note))}` : ""}</li>`
   ).join("");
@@ -109,14 +140,25 @@ function findingSection(f: Finding): string {
     num(f.evidenceTotal)
   } orders shown</summary><ul>${sample}</ul>${breakdown}</details></dd>
 <dt>What to do</dt><dd>${esc(f.recommendation)}</dd>
-<dt>Estimate</dt><dd><span class="tag">${term("projected")}</span> <span class="big">${
-    hours(c.hoursMonth)
-  }</span> a month, ${term("estimate", "an estimate")} from ${term("assumption", "assumptions")}${
-    c.kind === "recurring" ? "" : ` · ${term(c.kind)}`
-  }${c.normalisation ? ` · ${esc(c.normalisation)}` : ""}<ul>${counted}</ul>${
+<dt>Estimate</dt><dd><span class="tag">${term("assumed")}</span> <span class="big">${
+    hoursLink(c.hoursMonth, c.inputs.map((i) => i.key).filter((k) => k.startsWith("rates.")))
+  }</span> a month (${rangeText(c.hoursMonth, c.hoursLow, c.hoursHigh)}), ${
+    term("estimate", "an estimate")
+  } from ${term("assumption", "assumptions")}${c.kind === "recurring" ? "" : ` · ${term(c.kind)}`}${
+    c.normalisation ? ` · ${esc(c.normalisation)}` : ""
+  }<ul>${counted}</ul>${
     unmeasured ? `<ul class="note">${unmeasured}</ul>` : ""
   }<p class="formula">${term("formula")}: <code>${esc(c.formula)}</code></p>
 <details><summary>Minutes used (you can change them)</summary><ul>${minutes}</ul></details></dd>
+<dt>If the cause is fixed</dt><dd><span class="tag">${term("projected")}</span> Fix: ${
+    esc(sc.fix)
+  }. Orders drop from <strong>${num(f.affectedOrders)}</strong> to <strong>${
+    num(sc.ordersAfter)
+  }</strong> and the estimate from ${hours(c.hoursMonth)} to ${
+    hours(sc.hoursAfter)
+  }. <span class="note">A projection, not a promise: ${
+    esc(sc.mechanism)
+  }. Flow Audit finds the problem; making the fix is the operator's work.</span></dd>
 </dl>
 </article>`;
 }
@@ -207,7 +249,14 @@ function journeys(report: AuditReport): string {
 function totalsBlock(report: AuditReport): string {
   const { gross, net } = report.totals;
   const rows = report.findings.map((f) =>
-    `<tr><td>${ruleName(f)}</td><td class="n">${hours(f.cost.hoursMonth)}</td></tr>`
+    `<tr><td>${ruleName(f)}</td><td class="n">${
+      hoursLink(
+        f.cost.hoursMonth,
+        f.cost.inputs.map((i) => i.key).filter((k) => k.startsWith("rates.")),
+      )
+    }</td><td class="n">${num(Math.round(f.cost.hoursLow * 10) / 10)} to ${
+      hours(f.cost.hoursHigh)
+    }</td></tr>`
   ).join("");
   const shared = Object.keys(report.overlap.byOrder).length;
   const why = shared === 0
@@ -224,10 +273,14 @@ function totalsBlock(report: AuditReport): string {
     }). Each such order is counted once, at its largest charge; the ${
       hours(gross.hours - net.hours)
     } difference is the smaller charges removed, order by order in the findings file.`;
-  return `<table><thead><tr><th>Per finding</th><th class="n">Hours (estimate)</th></tr></thead><tbody>${rows}
-<tr><td>${term("gross")}</td><td class="n">${hours(gross.hours)}</td></tr>
+  return `<table><thead><tr><th>Per finding</th><th class="n">Hours (estimate)</th><th class="n">Range</th></tr></thead><tbody>${rows}
+<tr><td>${term("gross")}</td><td class="n">${hours(gross.hours)}</td><td class="n">${
+    num(Math.round(gross.hoursLow * 10) / 10)
+  } to ${hours(gross.hoursHigh)}</td></tr>
 <tr><th>${term("net")}, each order counted once</th><th class="n">${
     hours(net.hours)
+  }</th><th class="n">${num(Math.round(net.hoursLow * 10) / 10)} to ${
+    hours(net.hoursHigh)
   }</th></tr></tbody></table>
 <p class="note">${why}</p>`;
 }
@@ -304,33 +357,47 @@ function distinctAffected(report: AuditReport): number {
   return sum - repeats;
 }
 
-/** Each rate used: its value, where it comes from and the findings that use it. */
+const SOURCE_PLAIN: Record<AssumptionRow["source"], string> = {
+  client: "given by the client",
+  benchmark: "from a benchmark",
+  assumption: "an assumption someone declared",
+  example: "example, no source declared",
+};
+
+/** Each rate and threshold a finding used: value, range, source, owner, date and users. */
 function assumptionsBox(report: AuditReport): string {
-  const rows = new Map<string, { value: number; source: string | null; used: Finding[] }>();
-  for (const f of report.findings) {
-    for (const i of f.cost.inputs) {
-      if (!i.key.startsWith("rates.")) continue;
-      const r = rows.get(i.key) ?? { value: i.value, source: i.source, used: [] };
-      r.used.push(f);
-      rows.set(i.key, r);
-    }
-  }
-  const body = [...rows].map(([key, r]) =>
-    `<tr><td>${esc(inputPlain(key))}</td><td class="n">${num(r.value)} min</td><td>${
-      r.source
-        ? `declared in the config (${esc(r.source)})`
-        : "example, not measured at any operator"
-    }</td><td>${r.used.map(ruleName).join(", ")}</td></tr>`
-  ).join("");
+  const rows = report.assumptions;
+  const body = rows.map((r) => {
+    const unit = r.unit === "hours" ? "h" : "min";
+    const ranged = r.low !== r.value || r.high !== r.value;
+    return `<tr id="${esc(rowId(r.key))}"><td>${esc(inputPlain(r.key))}</td><td class="n">${
+      num(r.value)
+    } ${unit}</td><td>${
+      ranged ? `${num(r.low)} to ${num(r.high)} ${unit}` : "a single number"
+    }</td><td>${esc(SOURCE_PLAIN[r.source])}${r.owner ? `, owner ${esc(r.owner)}` : ""}${
+      r.date ? `, ${esc(r.date)}` : ""
+    }</td><td>${
+      r.usedBy.map((id) => {
+        const f = report.findings.find((x) => x.id === id);
+        return f ? ruleName(f) : esc(id);
+      }).join(", ")
+    }</td></tr>`;
+  }).join("");
+  const anyRange = rows.some((r) => r.low !== r.value || r.high !== r.value);
+  const t = report.totals.net;
   return `<aside class="card assume" aria-labelledby="as"><h2 id="as">Assumptions behind the hours</h2>
-<p><span class="tag">${term("projected")}</span> <strong>Estimate with these assumptions: ${
-    hours(report.totals.net.hours)
-  } a month</strong>, each order counted once. It is ${
+<p><span class="tag">${term("assumed")}</span> <strong>Estimate with these assumptions: ${
+    hours(t.hours)
+  } a month</strong> (${
+    rangeText(t.hours, t.hoursLow, t.hoursHigh)
+  }), each order counted once. It is ${
     term("estimate", "an estimate")
-  }, not a measurement and not money. Change a rate and it changes.</p>
-<table><thead><tr><th>Rate (${
+  }, not a measurement and not money. Change a rate and it changes. Every hour figure in this report links to its row here.${
+    anyRange ? "" : " No rate was given a low and a high value, so the range equals the estimate."
+  }</p>
+<table><thead><tr><th>Parameter (${
     term("assumption", "assumption")
-  })</th><th class="n">Value</th><th>Where it comes from</th><th>Used by</th></tr></thead><tbody>${body}</tbody></table></aside>`;
+  })</th><th class="n">Value</th><th>Range</th><th>Source, owner and date</th><th>Used by</th></tr></thead><tbody>${body}</tbody></table></aside>`;
 }
 
 /** Waiting time read from dated history; never part of the estimate. */
@@ -356,9 +423,126 @@ function waitingBlock(report: AuditReport): string {
   }</ul></aside>`;
 }
 
+/** What a rule's caveats are, computed from its fields; nothing is typed per rule. */
+function caveats(f: Finding): string[] {
+  const out: string[] = [];
+  if (!f.inTotal) out.push("not added to the totals");
+  if (f.breakdown?.weakLinks !== undefined) {
+    out.push("counts weak links, not orders; a person had to infer each one");
+  }
+  if (f.status === "suspected") {
+    out.push("suspected: the evidence is a snapshot, so the days and hours are not certain");
+  }
+  if (f.evidenceLevel === "weak" && f.status !== "suspected") out.push("weak evidence");
+  if (f.cost.unmeasured.length) {
+    out.push(
+      `${num(f.cost.unmeasured.length)} term(s) not counted: ${
+        f.cost.unmeasured.map((u) => u.term).join("; ")
+      }`,
+    );
+  }
+  return out;
+}
+
+/** Everything on the cover is read from the report, so the same claims can be rebuilt from the file. */
+function cover(report: AuditReport): string {
+  const notRead = report.systems.filter((s) => !s.read);
+  const sysRows = [...report.systems].sort((a, b) => a.position - b.position).map((s) =>
+    `<tr><td>${chip(s.system)}</td><td>${
+      s.read ? `read, ${num(s.records)} records` : "<strong>NOT READ</strong>"
+    }</td><td class="n">${s.coverage === null ? "n/a" : pct(s.coverage)}</td><td>${
+      s.findings.length
+        ? s.findings.map((id) => {
+          const f = report.findings.find((x) => x.id === id);
+          return f ? ruleName(f) : esc(id);
+        }).join(", ")
+        : "none"
+    }</td></tr>`
+  ).join("");
+  const skipped = report.rules.filter((r) => r.outcome === "not_evaluable");
+  const empty = report.rules.filter((r) => r.outcome === "nothing_found");
+  const ran = report.rules.filter((r) => r.outcome !== "not_evaluable");
+  const ruleLabel = (id: string) => {
+    const f = report.findings.find((x) => x.id === id);
+    if (f) return ruleName(f);
+    const r = report.rules.find((x) => x.id === id);
+    return `<span data-term="${esc(id)}">${esc(r?.title ?? id)} (${esc(id)})</span>`;
+  };
+  const findingRows = report.findings.map((f) =>
+    `<tr><td>${ruleName(f)}</td><td>${
+      term(f.status === "suspected" ? "suspected" : f.confidence.level)
+    }, ${pct(f.confidence.inferredLinkShare)} of links ${
+      term("inferred", "inferred")
+    }</td><td class="n">${num(f.affectedOrders)}</td><td class="n">${
+      hoursLink(
+        f.cost.hoursMonth,
+        f.cost.inputs.map((i) => i.key).filter((k) => k.startsWith("rates.")),
+      )
+    } (${num(Math.round(f.cost.hoursLow * 10) / 10)} to ${hours(f.cost.hoursHigh)})</td><td>${
+      caveats(f).map(esc).join("; ") || "none"
+    }</td></tr>`
+  ).join("");
+  const sens = report.sensitivity.length === 0
+    ? `<p class="note">No rate has a low and a high value, so no rate can move the total: the range equals the estimate.</p>`
+    : `<table><thead><tr><th>Rate, from low to high</th><th class="n">Net total at low</th><th class="n">at high</th><th class="n">Moves the total by</th></tr></thead><tbody>${
+      report.sensitivity.map((r) =>
+        `<tr><td><a href="#${esc(rowId(r.key))}">${esc(inputPlain(r.key))}</a>: ${num(r.low)} to ${
+          num(r.high)
+        } min</td><td class="n">${hours(r.hoursAtLow)}</td><td class="n">${
+          hours(r.hoursAtHigh)
+        }</td><td class="n">${hours(r.swing)}</td></tr>`
+      ).join("")
+    }</tbody></table>`;
+  const t = report.totals.net;
+  return `<section class="cover" id="cover" aria-labelledby="cv"><h2 id="cv">What this audit covers</h2>
+<h3>What was audited</h3>
+<p>${num(report.scope.orders)} orders, read from ${
+    num(report.systems.length - notRead.length)
+  } of ${num(report.systems.length)} systems. ${num(ran.length)} of ${
+    num(report.rules.length)
+  } rules ran: ${num(report.findings.length)} found something, ${num(empty.length)} found nothing${
+    empty.length ? ` (${empty.map((r) => ruleLabel(r.id)).join(", ")})` : ""
+  }.</p>
+<table><thead><tr><th>System</th><th>Read</th><th class="n">Orders with a record</th><th>Findings that touch it</th></tr></thead><tbody>${sysRows}</tbody></table>
+<h3>What was not audited</h3>
+${
+    notRead.length === 0 && skipped.length === 0
+      ? `<p>Every system was read and every rule was evaluated.</p>`
+      : `<ul>${
+        notRead.map((s) =>
+          `<li>${chip(s.system)} was not read, so nothing it holds was checked.</li>`
+        )
+          .join("")
+      }${
+        skipped.map((r) =>
+          `<li>${ruleLabel(r.id)} was <strong>not evaluated</strong>: ${
+            withChips(r.reason ?? "its data is missing")
+          }. This is not "0 findings".</li>`
+        ).join("")
+      }</ul>`
+  }
+<h3>How confident</h3>
+<table><thead><tr><th>Finding</th><th>Confidence</th><th class="n">Orders (${
+    term("measured")
+  })</th><th class="n">Hours (${term("assumed")})</th><th>Caveats</th></tr></thead><tbody>${
+    findingRows || `<tr><td colspan="5">No finding.</td></tr>`
+  }</tbody></table>
+<p><span class="tag">${
+    term("measured")
+  }</span> orders, records and links are counted in the records. <span class="tag">${
+    term("assumed")
+  }</span> every hour rests on a minute rate from the <a href="#as">assumptions table</a>. Net total: <strong>${
+    hours(t.hours)
+  }</strong> a month (${
+    rangeText(t.hours, t.hoursLow, t.hoursHigh)
+  }). Orders lead; hours follow from them.</p>
+<h3>Which rate moves the total most</h3>
+${sens}
+</section>`;
+}
+
 function firstScreen(report: AuditReport): string {
-  const orders = report.sources.find((s) => s.name.includes("622"))?.records ??
-    report.config.ordersPerMonth;
+  const orders = report.scope.orders;
   const top = [...report.findings].filter((f) => f.status === "detected")
     .sort((a, b) => b.affectedOrders - a.affectedOrders).slice(0, 3);
   const sys = report.systems.filter((s) => s.read).map((s) => plain(s.system));
@@ -387,7 +571,7 @@ function firstScreen(report: AuditReport): string {
     term("measured")
   }: the orders and records counted here. Hours are ${
     term("estimate", "an estimate")
-  } and sit in the assumptions below.</p>
+  } and sit in the assumptions below. Flow Audit finds and measures; fixing the cause is the operator's work.</p>
 ${list ? `<h2 class="sub">Most orders affected</h2>${list}` : ""}
 ${assumptionsBox(report)}
 ${waitingBlock(report)}
@@ -442,6 +626,7 @@ export function renderHtml(report: AuditReport): string {
 <p class="labels">${labels}</p>
 </header>
 ${firstScreen(report)}
+${cover(report)}
 ${howToRead()}
 <section aria-labelledby="find"><h2 id="find">Findings</h2>${
     report.findings.map(findingSection).join("\n") || `<p class="note">No findings.</p>`
@@ -471,7 +656,7 @@ ${howToRead()}
 <p>Inputs <code>${esc(report.run.inputsHash)}</code> · config <code>${
     esc(report.run.configHash)
   }</code> · rules <code>${esc(report.run.rulesHash)}</code></p>
-<p>Flow Audit ${esc(report.engineVersion)}. ${
+<p>Flow Audit ${esc(report.engineVersion)}. It finds; the fix is the operator's. ${
     report.labels.syntheticData ? "Synthetic data. " : ""
   }Impact is an estimate from configurable rates.</p>
 </footer>

@@ -2,7 +2,7 @@
 import type { AuditReport } from "../domain/model.ts";
 
 /**
- * Everything a renderer is allowed to see. `AuditReport` is the `findings/1` schema
+ * Everything a renderer is allowed to see. `AuditReport` is the `findings/2` schema
  * (`docs/architecture/report-schema.md`); no analysis happens down here.
  */
 export type { AuditReport };

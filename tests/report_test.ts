@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-/** The `findings/1` schema (M4-01): validator, file shape and R04's cost block. */
+/** The `findings/2` schema (M4-01): validator, file shape and R04's cost block. */
 
 import { correlate } from "../src/domain/correlation.ts";
 import { toFileShape } from "../src/domain/report_json.ts";
@@ -52,7 +52,7 @@ Deno.test("the validator rejects bad enums, camelCase files and an oversized sam
   report.findings[0].cost.kind = "monthly";
   report.findings[0].cost.terms[0].basis = "guess";
   assert(validateReport(report, configJson).length >= 3);
-  assert(validateReport({ schemaVersion: "findings/1" }).length > 0);
+  assert(validateReport({ schemaVersion: "findings/2" }).length > 0);
   const big = example();
   big.findings[0].evidence = Array.from({ length: 21 }, () => big.findings[0].evidence[0]);
   assert(validateReport(big, configJson).some((e) => e.includes("more than 20")));
@@ -62,7 +62,7 @@ Deno.test("the engine's report validates, and the serializer maps to snake_case"
   const { report } = await auditStub();
   const file = toFileShape(report) as Json;
   assertEquals(validateReport(file, configJson), []);
-  assertEquals(file.schema_version, "findings/1");
+  assertEquals(file.schema_version, "findings/2");
   const r04 = file.findings.find((f: Json) => f.id === "R04");
   assertEquals(r04.rule_version, "R04@2");
   assertEquals(r04.cost.hours_month, 30);
@@ -74,7 +74,7 @@ Deno.test("the engine's report validates, and the serializer maps to snake_case"
   // The config is printed as the file has it: snake_case, and the same as config.json.
   assertEquals(file.config, configJson);
   assertEquals(file.config.orders_per_month, 5000);
-  assertEquals(file.config.rates.cleanup_minutes, 90);
+  assertEquals(file.config.rates.cleanup_minutes.base, 90);
   // No camelCase key leaks anywhere.
   assert(!/"[a-z]+[A-Z][A-Za-z]*":/.test(JSON.stringify(file)), "a camelCase key leaked");
 });
@@ -149,3 +149,110 @@ Deno.test("R04 cost without activations is the same 30 h", () => {
   assertEquals(one.cost.hoursMonth, 30);
   assertEquals(one.breakdown?.reachedActivation, 1);
 });
+
+// Assumptions, ranges and scenarios (M4-09, M5-07) -------------------------------------
+
+Deno.test("every rate a rule reads is a row of the assumptions table", async () => {
+  const { RULES } = await import("../src/domain/rules/index.ts");
+  const { report, correlation } = await auditStubWithCorrelation();
+  const rows = new Set(report.assumptions.map((a) => a.key));
+  const snake = (k: string) => k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+  let checked = 0;
+  for (const rule of RULES) {
+    const touched = new Set<string>();
+    const spy = (group: "rates" | "thresholds") =>
+      new Proxy(demoConfig[group] as unknown as Record<string, number>, {
+        get(target, key) {
+          if (typeof key === "string") touched.add(`${group}.${snake(key)}`);
+          return Reflect.get(target, key);
+        },
+      });
+    const config = { ...demoConfig, rates: spy("rates"), thresholds: spy("thresholds") };
+    const finding = rule.detect(correlation.orders, config as unknown as typeof demoConfig, {
+      correlation,
+    });
+    if (!finding) continue;
+    const named = new Set(finding.cost.inputs.map((i) => i.key));
+    for (const key of touched) {
+      assert(named.has(key), `${rule.id} reads ${key} but does not list it in cost.inputs`);
+      assert(rows.has(key), `${rule.id} uses ${key}, which is not in the assumptions table`);
+      checked++;
+    }
+  }
+  assert(checked >= 4, "the spy saw the rules read their rates");
+});
+
+Deno.test("the demo gives hours as a range, the assumptions carry source, owner and date", async () => {
+  const { report } = await auditStub();
+  const cleanup = report.assumptions.find((a) => a.key === "rates.cleanup_minutes")!;
+  assertEquals([cleanup.low, cleanup.value, cleanup.high], [60, 90, 120]);
+  assertEquals(cleanup.source, "assumption");
+  assert(cleanup.owner !== null && cleanup.date !== null);
+  const r04 = report.findings.find((f) => f.id === "R04")!;
+  assertEquals([r04.cost.hoursLow, r04.cost.hoursMonth, r04.cost.hoursHigh], [20, 30, 40]);
+  assertEquals(r04.cost.inputs[0].source, "assumption");
+  const net = report.totals.net;
+  assert(net.hoursLow < net.hours && net.hours < net.hoursHigh);
+  // The sensitivity table is ordered by effect on the net total.
+  const swings = report.sensitivity.map((r) => r.swing);
+  assertEquals(swings, [...swings].sort((a, b) => b - a));
+  assert(report.sensitivity.length >= 2);
+});
+
+Deno.test("with plain numbers the range equals the estimate and nothing is ranked", async () => {
+  const { runAudit } = await import("../src/app/run_audit.ts");
+  const { stubSources } = await import("./stub_sources.ts");
+  const plain = { ...demoConfig, parameters: undefined };
+  const { report } = await runAudit({}, {
+    clock: { nowIso: () => "2026-09-01T00:00:00Z" },
+    sources: stubSources(),
+    config: plain,
+  });
+  for (const f of report.findings) {
+    assertEquals([f.cost.hoursLow, f.cost.hoursHigh], [f.cost.hoursMonth, f.cost.hoursMonth]);
+  }
+  assertEquals(report.sensitivity, []);
+  assert(report.assumptions.every((a) => a.source === "example" && a.low === a.high));
+  assert(renderHtmlText(report).includes("range equals the estimate"));
+});
+
+Deno.test("the scenario is derived from the findings and never exceeds them", async () => {
+  const { findings } = await auditStub();
+  for (const f of findings) {
+    const s = f.scenario;
+    assertEquals(s.kind, "projection");
+    assert(s.fixedOrders + s.ordersAfter === f.affectedOrders, `${f.id} orders add up`);
+    assert(s.hoursAfter <= f.cost.hoursMonth + 1e-9, `${f.id} hours after`);
+  }
+  const r04 = findings.find((f) => f.id === "R04")!;
+  assertEquals([r04.scenario.ordersAfter, r04.scenario.hoursAfter], [0, 0]);
+});
+
+Deno.test("a config with low above base is refused", async () => {
+  const { configFromFile } = await import("../src/domain/data_files.ts");
+  let caught = "";
+  try {
+    configFromFile({ rates: { a_minutes: { low: 9, base: 5 } }, thresholds: {} });
+  } catch (e) {
+    caught = (e as Error).message;
+  }
+  assert(caught.includes("low <= base <= high"), caught);
+});
+
+Deno.test("the validator rejects a rate used by a finding that has no assumptions row", async () => {
+  const { report } = await auditStub();
+  const file = toFileShape(report) as Json;
+  file.assumptions = [];
+  const errors = validateReport(file, configJson);
+  assert(errors.some((e) => e.includes("has no row in assumptions")), errors.join("\n"));
+});
+
+async function auditStubWithCorrelation() {
+  const result = await auditStub();
+  return { report: result.report, correlation: result.correlation };
+}
+
+function renderHtmlText(report: Parameters<typeof renderHtmlSync>[0]): string {
+  return renderHtmlSync(report);
+}
+import { renderHtml as renderHtmlSync } from "../src/adapters/report/html_renderer.ts";

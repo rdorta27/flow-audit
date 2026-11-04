@@ -109,7 +109,10 @@ Deno.test("each finding reads in the fixed order and money never appears", () =>
     assert(i > at, `${l} out of order`);
     at = i;
   }
-  assert(/20 <abbr[^>]*>cases<\/abbr> × 90 min = 1,800 min = 30 h/.test(sec), "example minutes");
+  assert(
+    /20 cases × 90 min = 1,800 min = 30 h/.test(sec.replace(/<[^>]+>/g, "")),
+    "example minutes",
+  );
   assert(!/USD|\$|€/.test(text), "money");
 });
 
@@ -136,4 +139,52 @@ Deno.test("the story of ORD-1005 is drawn: four stations, six stops, the gap in 
   assertEquals((svg.match(/class="ring"/g) ?? []).length, 1);
   assert(svg.includes("problem starts here") && svg.includes("not seen"));
   assert(!/https?:/.test(svg.replace('xmlns="http://www.w3.org/2000/svg"', "")));
+});
+
+// The cover and the links to the assumptions (M4-09, M5-13) -------------------------------
+
+const coverOf = (h: string) =>
+  h.slice(
+    h.indexOf('<section class="cover"'),
+    h.indexOf("</section>", h.indexOf('<section class="cover"')),
+  );
+
+Deno.test("every hour figure links to a row of the assumptions table", () => {
+  const rows = new Set([...html.matchAll(/<tr id="(a-[^"]+)"/g)].map((m) => m[1]));
+  assert(rows.size >= 3, "rows");
+  const links = [...html.matchAll(/<a class="ahr" href="#([^"]+)"/g)].map((m) => m[1]);
+  assert(links.length > 5, "links");
+  for (const l of links) assert(rows.has(l), `no row ${l}`);
+  for (const a of report.assumptions) assert(rows.has(`a-${a.key.replace(/\./g, "-")}`), a.key);
+});
+
+Deno.test("the cover is computed from the report: counts, ranges, caveats and sensitivity", () => {
+  const cover = coverOf(html);
+  const flat = cover.replace(/<[^>]+>/g, " ");
+  assert(flat.includes(`${report.scope.orders.toLocaleString("en-US")} orders`));
+  for (const f of report.findings) {
+    assert(cover.includes(`id="`) || cover.includes(f.id), f.id);
+    assert(flat.includes(f.id), `${f.id} on the cover`);
+  }
+  assert(flat.includes("not added to the totals"), "R05 caveat");
+  assert(flat.includes("counts weak links, not orders"), "R05 caveat");
+  const top = report.sensitivity[0];
+  assert(top && cover.includes(`href="#a-${top.key.replace(/\./g, "-")}"`), "sensitivity");
+  assert(flat.includes("finds") || html.includes("Flow Audit finds"), "who fixes");
+});
+
+Deno.test("a rule that is not evaluable is told apart from one that found nothing", () => {
+  const cover = coverOf(html).replace(/<[^>]+>/g, " ");
+  const skipped = report.rules.filter((r) => r.outcome === "not_evaluable");
+  assert(skipped.length >= 1, "the stub has no catalog or processes");
+  assert(cover.includes("not evaluated") && cover.includes('not "0 findings"'));
+  for (const r of skipped) assert(cover.includes(r.id));
+});
+
+Deno.test("a report with a missing system shows it on the cover", () => {
+  const copy = structuredClone(report);
+  copy.systems.find((s) => s.system === "PROV")!.read = false;
+  const cover = coverOf(renderHtml(copy)).replace(/<[^>]+>/g, " ");
+  assert(cover.includes("NOT READ") && cover.includes("Activation system"));
+  assertEquals(renderHtml(report) === renderHtml(copy), false);
 });

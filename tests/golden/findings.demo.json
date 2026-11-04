@@ -1,11 +1,11 @@
 {
-  "schema_version": "findings/1",
+  "schema_version": "findings/2",
   "engine_version": "0.4.3",
   "run": {
     "id": "<run>",
     "generated_at": "<time>",
     "inputs_hash": "49ba83853d734335c457cbb10e76de777d950c4183bb9380d8c5123902db557c",
-    "config_hash": "9ee6bb8e49f06d376ae382dbfaecedd591a853b4fe857360b68b69a72c93c582",
+    "config_hash": "ff9044288aeb6422203b643f5489e9762799fd6dfd0a61041f829e3acaa00501",
     "rules_hash": "da820c47e526c16888c046cba6ab6966120f770da40bfa765193feb727e46a85"
   },
   "sources": [
@@ -54,15 +54,58 @@
   "config": {
     "orders_per_month": 5000,
     "rates": {
-      "manual_minutes": 5,
-      "daily_followup_minutes": 15,
-      "cleanup_minutes": 90,
-      "investigation_minutes": 45
+      "manual_minutes": {
+        "low": 3,
+        "base": 5,
+        "high": 8,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "daily_followup_minutes": {
+        "low": 10,
+        "base": 15,
+        "high": 25,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "cleanup_minutes": {
+        "low": 60,
+        "base": 90,
+        "high": 120,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "investigation_minutes": {
+        "low": 30,
+        "base": 45,
+        "high": 90,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      }
     },
     "thresholds": {
-      "retry_window_hours": 24,
-      "stuck_after_hours": 72,
-      "duplicate_window_minutes": 10
+      "retry_window_hours": {
+        "base": 24,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "stuck_after_hours": {
+        "base": 72,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "duplicate_window_minutes": {
+        "base": 10,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      }
     },
     "rules": {
       "r01": {
@@ -750,28 +793,30 @@
         "period_days": null,
         "normalisation": null,
         "hours_month": 283.3,
+        "hours_low": 186.7,
+        "hours_high": 470,
         "formula": "hours = affected × (manual_minutes + wait_days × daily_followup_minutes) / 60",
         "inputs": [
           {
             "key": "rates.manual_minutes",
             "value": 5,
-            "source": null,
-            "owner": null,
-            "date": null
+            "source": "assumption",
+            "owner": "Flow Audit (example values)",
+            "date": "2026-11-04"
           },
           {
             "key": "rates.daily_followup_minutes",
             "value": 15,
-            "source": null,
-            "owner": null,
-            "date": null
+            "source": "assumption",
+            "owner": "Flow Audit (example values)",
+            "date": "2026-11-04"
           },
           {
             "key": "thresholds.retry_window_hours",
             "value": 24,
-            "source": null,
-            "owner": null,
-            "date": null
+            "source": "assumption",
+            "owner": "Flow Audit (example values)",
+            "date": "2026-11-04"
           }
         ],
         "terms": [
@@ -795,6 +840,14 @@
           }
         ],
         "unmeasured": []
+      },
+      "scenario": {
+        "fix": "retry a failed activation automatically within 24 h",
+        "mechanism": "a retry clears the failures whose error code the config classes as transient; failures with a code it does not classify are assumed to stay",
+        "fixed_orders": 400,
+        "orders_after": 0,
+        "hours_after": 0,
+        "kind": "projection"
       },
       "recommendation": "Retry a failed activation automatically, or raise it to a queue a person owns, within the retry window."
     },
@@ -1464,14 +1517,16 @@
         "period_days": null,
         "normalisation": null,
         "hours_month": 30,
+        "hours_low": 20,
+        "hours_high": 40,
         "formula": "hours = groups × cleanup_minutes / 60",
         "inputs": [
           {
             "key": "rates.cleanup_minutes",
             "value": 90,
-            "source": null,
-            "owner": null,
-            "date": null
+            "source": "assumption",
+            "owner": "Flow Audit (example values)",
+            "date": "2026-11-04"
           }
         ],
         "terms": [
@@ -1486,6 +1541,14 @@
           }
         ],
         "unmeasured": []
+      },
+      "scenario": {
+        "fix": "make the retry reuse the existing service order instead of creating a new one",
+        "mechanism": "removes the duplicates created by a retry after a failure; duplicates created in parallel need a separate deduplication and are assumed to stay",
+        "fixed_orders": 20,
+        "orders_after": 0,
+        "hours_after": 0,
+        "kind": "projection"
       },
       "recommendation": "Make the retry reuse the existing service order, and confirm in billing the orders whose duplicate reached activation."
     },
@@ -1800,14 +1863,16 @@
         "period_days": null,
         "normalisation": null,
         "hours_month": 225,
+        "hours_low": 150,
+        "hours_high": 450,
         "formula": "hours = incidents × investigation_minutes / 60",
         "inputs": [
           {
             "key": "rates.investigation_minutes",
             "value": 45,
-            "source": null,
-            "owner": null,
-            "date": null
+            "source": "assumption",
+            "owner": "Flow Audit (example values)",
+            "date": "2026-11-04"
           }
         ],
         "terms": [
@@ -1822,6 +1887,14 @@
           }
         ],
         "unmeasured": []
+      },
+      "scenario": {
+        "fix": "carry the order id (or the service order id) on every record",
+        "mechanism": "every link then names its parent, so no link has to be inferred and none needs investigating",
+        "fixed_orders": 300,
+        "orders_after": 0,
+        "hours_after": 0,
+        "kind": "projection"
       },
       "recommendation": "Carry the order id (or the service order id) on every record, so no link has to be inferred."
     }
@@ -1921,11 +1994,156 @@
   },
   "totals": {
     "gross": {
-      "hours": 313.3
+      "hours": 313.3,
+      "hours_low": 206.7,
+      "hours_high": 510
     },
     "net": {
-      "hours": 299.2
+      "hours": 299.2,
+      "hours_low": 197.3,
+      "hours_high": 486.5
     }
+  },
+  "assumptions": [
+    {
+      "key": "rates.cleanup_minutes",
+      "unit": "minutes",
+      "value": 90,
+      "low": 60,
+      "high": 120,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04",
+      "used_by": [
+        "R04"
+      ]
+    },
+    {
+      "key": "rates.daily_followup_minutes",
+      "unit": "minutes",
+      "value": 15,
+      "low": 10,
+      "high": 25,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04",
+      "used_by": [
+        "R01"
+      ]
+    },
+    {
+      "key": "rates.investigation_minutes",
+      "unit": "minutes",
+      "value": 45,
+      "low": 30,
+      "high": 90,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04",
+      "used_by": [
+        "R05"
+      ]
+    },
+    {
+      "key": "rates.manual_minutes",
+      "unit": "minutes",
+      "value": 5,
+      "low": 3,
+      "high": 8,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04",
+      "used_by": [
+        "R01"
+      ]
+    },
+    {
+      "key": "thresholds.retry_window_hours",
+      "unit": "hours",
+      "value": 24,
+      "low": 24,
+      "high": 24,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04",
+      "used_by": [
+        "R01"
+      ]
+    }
+  ],
+  "sensitivity": [
+    {
+      "key": "rates.daily_followup_minutes",
+      "low": 10,
+      "high": 25,
+      "hours_at_low": 220,
+      "hours_at_high": 457.5,
+      "swing": 237.5
+    },
+    {
+      "key": "rates.manual_minutes",
+      "low": 3,
+      "high": 8,
+      "hours_at_low": 286.5,
+      "hours_at_high": 318.2,
+      "swing": 31.7
+    },
+    {
+      "key": "rates.cleanup_minutes",
+      "low": 60,
+      "high": 120,
+      "hours_at_low": 289.2,
+      "hours_at_high": 309.2,
+      "swing": 20
+    },
+    {
+      "key": "rates.investigation_minutes",
+      "low": 30,
+      "high": 90,
+      "hours_at_low": 299.2,
+      "hours_at_high": 299.2,
+      "swing": 0
+    }
+  ],
+  "rules": [
+    {
+      "id": "R01",
+      "title": "Activation fails and nobody retries",
+      "version": "R01@1",
+      "outcome": "found",
+      "reason": null
+    },
+    {
+      "id": "R02",
+      "title": "Missing catalog attribute forces a manual task",
+      "version": "R02@1",
+      "outcome": "not_evaluable",
+      "reason": "BPM and CAT were not read"
+    },
+    {
+      "id": "R03",
+      "title": "Timer expires and nobody compensates",
+      "version": "R03@1",
+      "outcome": "not_evaluable",
+      "reason": "BPM was not read"
+    },
+    {
+      "id": "R04",
+      "title": "Duplicate service order",
+      "version": "R04@2",
+      "outcome": "found",
+      "reason": null
+    },
+    {
+      "id": "R05",
+      "title": "No end-to-end correlation id",
+      "version": "R05@1",
+      "outcome": "found",
+      "reason": null
+    }
+  ],
+  "scope": {
+    "orders": 5000
   },
   "journeys": [
     {

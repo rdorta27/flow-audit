@@ -42,7 +42,7 @@ Hexagonal, with the domain at the center and no I/O inside it.
 | `domain/` | Canonical model types: events, catalog, orders, journeys, findings, impact | Reconstruction (M2), rules (M3), impact math (M4) |
 | `ports/` | `EvidenceSource`, `CatalogSource`, `ReportRenderer`, `Clock` | — |
 | `adapters/` | `clock/`, `export/`, TMF readers in `ingest/`, JSON and HTML renderers in `report/` | File readers (Client-ready) |
-| `app/` | `runAudit()`: reads the TMF sources, maps, correlates, runs the rule registry and returns the `findings/1` report; the CLI writes it with `--out` | — |
+| `app/` | `runAudit()`: reads the TMF sources, maps, correlates, runs the rule registry and returns the `findings/2` report; the CLI writes it with `--out` | — |
 | `cli/` | `audit` and `dataset` commands, exit codes | — |
 | `dataset/` | Deterministic generator: 5,000 orders from a fixed seed | — |
 

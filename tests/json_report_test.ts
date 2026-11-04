@@ -19,7 +19,7 @@ const stable = (text: string) =>
     '"generated_at": "<time>"',
   );
 
-Deno.test("findings.json matches the golden file and validates against findings/1", async () => {
+Deno.test("findings.json matches the golden file and validates against findings/2", async () => {
   const text = renderFindingsJson((await auditStub()).report);
   assertEquals(validateReport(JSON.parse(text), configJson), []);
   if (Deno.env.get("UPDATE_GOLDEN")) await Deno.writeTextFile(GOLDEN, stable(text));

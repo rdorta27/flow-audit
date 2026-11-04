@@ -65,5 +65,5 @@ abbr.term{text-decoration:underline dotted;cursor:help}
 .story-svg line.st-cat,.story-svg line.st-oms,.story-svg line.st-bpm,.story-svg line.st-prov{fill:none}
 .gloss dt{font-weight:700;margin-top:.5rem}.gloss dd{margin:0;color:var(--muted)}
 main{overflow-wrap:anywhere}details{margin:.4rem 0}summary{cursor:pointer}
-a{color:inherit}
+a{color:inherit}a.ahr{text-decoration:underline dotted}.cover h3{margin:1rem 0 .3rem;font-size:1.05rem}
 `;
