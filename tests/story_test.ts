@@ -74,16 +74,19 @@ const charge = (ruleId: string, orderRef: string, hours: number): OrderCharge =>
   hours,
 });
 
-Deno.test("with only R04, net equals gross and nothing overlaps", () => {
+Deno.test("the 20 R04 orders also carry R01: the overlap keeps the larger charge", () => {
   const t = audit.report.totals;
-  assertEquals(t.net, t.gross);
-  assertEquals(audit.report.overlap, { byOrder: {}, pairs: [] });
+  assertEquals(Object.keys(audit.report.overlap.byOrder).length, 20);
+  assertEquals(audit.report.overlap.pairs, [{ rules: ["R01", "R04"], orders: 20 }]);
+  assert(t.net.hours < t.gross.hours);
+  // R04 (90 min) beats R01 (42.5 min) on each of the 20, so R01 loses 20 × 42.5 min.
+  assert(Math.abs(t.gross.hours - t.net.hours - 20 * 42.5 / 60) < 1e-9);
 });
 
 Deno.test("R04 charges add up to the finding's cost", () => {
   const charges = chargesR04(audit.correlation.orders, demoConfig);
   assertEquals(charges.length, 20);
-  const f = audit.findings[0];
+  const f = audit.findings.find((x) => x.id === "R04")!;
   assert(Math.abs(charges.reduce((s, c) => s + c.hours, 0) - f.cost.hoursMonth) < 1e-9);
 });
 

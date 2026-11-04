@@ -96,7 +96,10 @@ Deno.test("an export in local time gives the same findings once its zone is decl
     for (const b of ["oms", "bpm", "prov"]) m[b].time_zone = zone;
     const same = await gated(DEMO, demoMapping);
     const shifted = await gated(dir, JSON.stringify(m));
-    assertEquals(shifted.findings.map((f) => f.ruleVersion), ["R04@2"]);
+    assertEquals(
+      shifted.findings.map((f) => f.ruleVersion),
+      same.findings.map((f) => f.ruleVersion),
+    );
     assertEquals(
       shifted.report.sources.map((s) => s.sha256),
       same.report.sources.map((s) => s.sha256),
@@ -112,7 +115,10 @@ Deno.test("the demo passes the gate from files and from the stub", async () => {
   assertEquals(files.quality?.passed, true);
   assertEquals(files.quality?.notEvaluable, []);
   assertEquals(files.findings.map((f) => [f.ruleVersion, f.affectedOrders, f.cost.hoursMonth]), [
+    ["R01@1", 400, 283.3333333333333],
+    ["R02@1", 4167, 347.25],
     ["R04@2", 20, 30],
+    ["R05@1", 300, 225],
   ]);
   const stub = await runAudit({}, {
     clock,
@@ -122,7 +128,9 @@ Deno.test("the demo passes the gate from files and from the stub", async () => {
   });
   assertEquals(stub.quality?.passed, true);
   assertEquals(stub.findings.map((f) => [f.ruleVersion, f.affectedOrders, f.cost.hoursMonth]), [
+    ["R01@1", 400, 283.3333333333333],
     ["R04@2", 20, 30],
+    ["R05@1", 300, 225],
   ]);
 });
 
@@ -163,7 +171,12 @@ Deno.test("a doubled file is de-duplicated by key and the count is reported", as
     const [oms, , prov] = result.quality!.systems;
     assertEquals([oms.rows, oms.duplicateKeys, oms.exactDuplicates], [5000, 5021, 5021]);
     assertEquals([prov.rows, prov.duplicateKeys, prov.exactDuplicates], [5390, 5390, 5390]);
-    assertEquals(result.findings.map((f) => [f.ruleVersion, f.affectedOrders]), [["R04@2", 20]]);
+    assertEquals(result.findings.map((f) => [f.ruleVersion, f.affectedOrders]), [
+      ["R01@1", 400],
+      ["R02@1", 4167],
+      ["R04@2", 20],
+      ["R05@1", 300],
+    ]);
     assert(
       qualityLines(result.quality!).some((l) => l.includes("5,390 repeated records dropped")),
       qualityLines(result.quality!).join("\n"),

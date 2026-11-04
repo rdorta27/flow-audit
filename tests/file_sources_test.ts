@@ -173,8 +173,8 @@ Deno.test("full-size run over data/demo: counts, links and R04 as on the stub", 
   assertEquals(r.workOrders.length, EXPECTED.work_orders);
   assertEquals(r.processes.length, EXPECTED.processes);
   assertEquals(r.activations.length, EXPECTED.attempts);
-  assertEquals(result.findings.map((f) => f.id), ["R04"]);
-  assertEquals(summaryLines(result).at(-1), "R04@2 · 20 orders · 30 h");
+  assertEquals(result.findings.map((f) => f.id), ["R01", "R02", "R04", "R05"]);
+  assert(summaryLines(result).includes("R04@2 · 20 orders · 30 h"));
   const attempts = result.report.correlation.links["attempt->service_order"];
   assertEquals(attempts.explicit, EXPECTED.attempts - 300);
   assertEquals(attempts.inferred + attempts.ambiguous, 300);

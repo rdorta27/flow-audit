@@ -63,10 +63,12 @@ Deno.test("the engine's report validates, and the serializer maps to snake_case"
   const file = toFileShape(report) as Json;
   assertEquals(validateReport(file, configJson), []);
   assertEquals(file.schema_version, "findings/1");
-  assertEquals(file.findings[0].rule_version, "R04@2");
-  assertEquals(file.findings[0].cost.hours_month, 30);
+  const r04 = file.findings.find((f: Json) => f.id === "R04");
+  assertEquals(r04.rule_version, "R04@2");
+  assertEquals(r04.cost.hours_month, 30);
   assertEquals(file.sources[0].rows_read, 5000);
-  assertEquals(file.totals.gross.hours, 30);
+  // R01 + R04 (R05 is shown apart, D-11); the stub has no catalog or processes, so no R02.
+  assertEquals(Math.round(file.totals.gross.hours * 10) / 10, 313.3);
   // The JSON round trip is what a file would hold.
   assertEquals(validateReport(JSON.parse(JSON.stringify(file)), configJson), []);
   // The config is printed as the file has it: snake_case, and the same as config.json.
@@ -113,7 +115,8 @@ const attempt = (id: string, soRef: string): ProvisioningAttempt => ({
 
 Deno.test("R04 cost: one hours term, 30 h, one_off, activations kept as counts", async () => {
   const { findings } = await auditStub();
-  const cost = findings[0].cost;
+  const r04 = findings.find((f) => f.id === "R04")!;
+  const cost = r04.cost;
   assertEquals(cost.kind, "one_off");
   assertEquals(cost.terms.map((t) => t.hours), [30]);
   assertEquals(cost.terms.map((t) => t.basis), ["rate_assumption"]);
@@ -121,9 +124,9 @@ Deno.test("R04 cost: one hours term, 30 h, one_off, activations kept as counts",
   assertEquals(cost.unmeasured, []);
   assertEquals(cost.hoursMonth, 30);
   assertEquals(cost.inputs.map((i) => i.key), ["rates.cleanup_minutes"]);
-  assertEquals(findings[0].breakdown?.reachedActivation, 20);
-  assertEquals(findings[0].evidenceTotal, 20);
-  assert(findings[0].evidence.length <= 20);
+  assertEquals(r04.breakdown?.reachedActivation, 20);
+  assertEquals(r04.evidenceTotal, 20);
+  assert(r04.evidence.length <= 20);
 });
 
 Deno.test("R04 cost without activations is the same 30 h", () => {

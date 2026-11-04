@@ -214,7 +214,14 @@ function totalsBlock(report: AuditReport): string {
   const why = shared === 0
     ? "No order is charged by more than one finding, so the net total equals the sum."
     : `${num(shared)} order${shared === 1 ? " is" : "s are"} charged by more than one finding (${
-      report.overlap.pairs.map((p) => `${esc(p.rules.join(" and "))}: ${num(p.orders)}`).join("; ")
+      report.overlap.pairs.map((p) =>
+        `${
+          p.rules.map((r) => {
+            const f = report.findings.find((x) => x.id === r);
+            return f ? ruleName(f) : esc(r);
+          }).join(" and ")
+        }: ${num(p.orders)}`
+      ).join("; ")
     }). Each such order is counted once, at its largest charge; the ${
       hours(gross.hours - net.hours)
     } difference is the smaller charges removed, order by order in the findings file.`;

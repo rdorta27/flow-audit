@@ -5,14 +5,20 @@ err| flow-audit: read 5,021 rows from data/demo/bpm_history.jsonl
 err| flow-audit: read 5,390 rows from data/demo/provisioning.jsonl
 err| flow-audit: joined 5,000 orders: 15,132 links sure, 300 inferred, 0 not joined
 err| flow-audit: gate passed
+err| flow-audit: R01@1 found 400 orders, 283.3 h
+err| flow-audit: R02@1 found 4,167 orders, 347.3 h
 err| flow-audit: R04@2 found 20 orders, 30 h
+err| flow-audit: R05@1 found 300 orders, 225 h
 out| Orders read: 5,000 · service orders: 5,021 · activations: 5,390
 out| Work orders read: 5,000 · processes: 5,021
 out| Links service_order->order: explicit 5,021
 out| Links process->service_order: explicit 5,021
 out| Links process->order: none
 out| Links attempt->service_order: explicit 5,090 · inferred 300
+out| R01@1 · 400 orders · 283.3 h
+out| R02@1 · 4,167 orders · 347.3 h
 out| R04@2 · 20 orders · 30 h
+out| R05@1 · 300 orders · 225 h
 out| Quality gate: passed
 out| Quality OMS OMS orders (file): 5,000 records · 2026-09-01 to 2026-10-01 · window covered 100%
 out| Quality BPM BPM processes (file): 5,021 records · 2026-09-01 to 2026-10-01 · window covered 99.7%

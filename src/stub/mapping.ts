@@ -126,6 +126,8 @@ export function buildStubState(
     state: attemptTmfState[attempt.state],
     activationDate: attempt.startedAt,
     ...(attempt.endedAt === null ? {} : { completionDate: attempt.endedAt }),
+    // A failed attempt says why (an extension field, as TMF allows); R01 classifies it.
+    ...(attempt.errorCode === null ? {} : { errorCode: attempt.errorCode }),
     // R05 leaves the weak-link attempts with no service-order link at all.
     ...(attempt.soRef === null ? {} : {
       serviceOrder: {

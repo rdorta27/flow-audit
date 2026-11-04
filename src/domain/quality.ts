@@ -30,7 +30,10 @@ export const DEFAULT_THRESHOLDS: QualityThresholds = {
 
 /** What each registered rule needs to be evaluated; a rule not listed needs the orders. */
 export const RULE_SYSTEMS: Readonly<Record<string, readonly SystemId[]>> = {
+  R01: ["OMS", "PROV"],
+  R02: ["OMS", "BPM", "CAT"],
   R04: ["OMS"],
+  R05: ["OMS", "PROV"],
 };
 
 /** Systems the audit cannot run without; the others are optional evidence. */
@@ -235,7 +238,8 @@ export function notEvaluableRules(
   for (const rule of rules) {
     for (const system of needs[rule] ?? ["OMS"]) {
       const s = quality.systems.find((q) => q.system === system);
-      const thin = s !== undefined && s.rows > 0 && s.rows < quality.thresholds.minRows;
+      const thin = s !== undefined && s.rows > 0 && s.rows < quality.thresholds.minRows &&
+        system !== "CAT";
       const short = s !== undefined && s.coverage !== null &&
         s.coverage < quality.thresholds.minWindowCoverage && system !== "OMS";
       if (!s || s.rows === 0) {

@@ -18,11 +18,11 @@ import {
   type ProvisioningAttempt,
   type RecordRef,
   type ServiceOrder,
-  type Severity,
   type SystemId,
 } from "../model.ts";
 import type { Link, Linked } from "../correlation.ts";
 import type { OrderCharge } from "../totals.ts";
+import { severityFor } from "./severity.ts";
 
 export const R04_ID = "R04";
 export const R04_VERSION = "R04@2";
@@ -33,13 +33,6 @@ function recordRef(system: SystemId, provenance: Provenance | undefined): Record
   return provenance
     ? [{ system, externalId: provenance.externalId, endpoint: provenance.endpoint }]
     : [];
-}
-
-/** Severity is derived from impact, never declared by hand (rules.md). */
-export function severityFor(shareOfOrders: number, hoursMonth: number): Severity {
-  if (shareOfOrders > 0.1 || hoursMonth > 200) return "critical";
-  if (shareOfOrders > 0.02 || hoursMonth > 50) return "high";
-  return "medium";
 }
 
 export type R04Cause = "retry_new_order" | "parallel_duplicate";

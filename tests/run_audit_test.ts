@@ -23,7 +23,7 @@ import { auditStub, demoConfig, stubSources } from "./stub_sources.ts";
 import { EXPECTED } from "../src/dataset/generator.ts";
 import { main, summaryLines } from "../src/cli/main.ts";
 
-Deno.test("the pipeline over the stub gives exactly one finding, R04, 30 h", async () => {
+Deno.test("the pipeline over the stub gives R01, R04 and R05 (no catalog, so no R02)", async () => {
   const progress: string[] = [];
   const result = await runAudit({}, {
     clock,
@@ -35,19 +35,16 @@ Deno.test("the pipeline over the stub gives exactly one finding, R04, 30 h", asy
   assertEquals(result.records.productOrders.length, EXPECTED.orders);
   assertEquals(result.records.serviceOrders.length, EXPECTED.service_orders);
   assertEquals(result.records.activations.length, EXPECTED.attempts);
-  assertEquals(result.findings.length, 1);
-  const finding = result.findings[0];
-  assertEquals(finding.id, "R04");
+  assertEquals(result.findings.map((f) => f.id), ["R01", "R04", "R05"]);
+  const finding = result.findings.find((f) => f.id === "R04")!;
   assertEquals(finding.ruleVersion, "R04@2");
   assertEquals(finding.affectedOrders, EXPECTED.findings.R04.affected_orders);
   assertEquals(finding.cost.hoursMonth, 30);
-  assertEquals(result.report.totals.gross, { hours: 30 });
+  // R01 (283.3 h) + R04 (30 h); R05 (225 h) is shown apart from the total (D-11).
+  assertEquals(Math.round(result.report.totals.gross.hours * 10) / 10, 313.3);
   assertEquals(result.report.run.generatedAt, "2026-09-01T00:00:00Z");
   assert(progress.some((m) => m.includes("R04@2")), "progress should name the rule");
-  assertEquals(
-    summaryLines(result).at(-1),
-    "R04@2 \u00b7 20 orders \u00b7 30 h",
-  );
+  assert(summaryLines(result).includes("R04@2 \u00b7 20 orders \u00b7 30 h"));
 });
 
 Deno.test("the report counts links as the demo expects (300 activations without a reference)", async () => {
