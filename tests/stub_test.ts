@@ -185,19 +185,23 @@ Deno.test("R04: exactly the duplicated orders appear as two service orders on on
   const duplicated = [...byProductOrderItem.entries()].filter(([, sos]) => sos.length > 1);
   assertEquals(
     duplicated.length,
-    EXPECTED.findings.R04.affected_orders,
-    "the R04 cohort size must match the golden numbers",
+    EXPECTED.findings.R04.affected_orders + EXPECTED.findings.R04.amendment_groups,
+    "the R04 cohort plus the amendment must match the golden numbers",
   );
   // Pairs, except the one planted order whose retry was retried (three service orders).
   const triples = duplicated.filter(([, sos]) => sos.length === 3);
-  assertEquals(triples.length, EXPECTED.cases.three_service_order_duplicates);
+  assertEquals(
+    triples.length,
+    EXPECTED.cases.three_service_order_duplicates + EXPECTED.cases.amendment_orders,
+  );
   for (const [item, sos] of duplicated) {
     assert(sos.length === 2 || sos.length === 3, `${item}: ${sos.length} service orders`);
   }
 
   // The parents are exactly the generator's deliberate duplicates.
+  const defects = generateDemoDataset().defects;
   const parents = duplicated.map(([item]) => item.replace(/-\d+$/, "")).sort();
-  const expectedParents = generateDemoDataset().defects.duplicates.slice().sort();
+  const expectedParents = [...defects.duplicates, ...defects.legit.amendments].sort();
   assertEquals(parents, expectedParents);
 });
 

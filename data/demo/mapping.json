@@ -17,6 +17,7 @@
       "offer_id": "offer_id",
       "offer_version": "offer_version",
       "replaces_order_ref": "replaces_order_ref",
+      "so_action": "so_action",
       "so_ref": "so_ref",
       "spec_id": "spec_id",
       "so_state": "so_state",

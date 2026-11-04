@@ -170,7 +170,7 @@ Deno.test("a doubled file is de-duplicated by key and the count is reported", as
     const result = await gated(dir, demoMapping);
     assertEquals(result.quality?.passed, true);
     const [oms, , prov] = result.quality!.systems;
-    assertEquals([oms.rows, oms.duplicateKeys, oms.exactDuplicates], [5000, 5021, 5021]);
+    assertEquals([oms.rows, oms.duplicateKeys, oms.exactDuplicates], [5000, 5023, 5023]);
     assertEquals([prov.rows, prov.duplicateKeys, prov.exactDuplicates], [5390, 5390, 5390]);
     assertEquals(result.findings.map((f) => [f.ruleVersion, f.affectedOrders]), [
       ["R01@1", 400],

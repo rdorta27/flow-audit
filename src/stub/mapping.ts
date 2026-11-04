@@ -76,24 +76,46 @@ export function buildStubState(
     catalog.offers.map((offer) => [offer.offerId, offer]),
   );
 
+  const replacedBy = new Map(
+    orders.flatMap((o) => o.replacesOrderRef ? [[o.replacesOrderRef, o.orderRef] as const] : []),
+  );
   const productOrders: TmfProductOrder[] = orders.map((order) => {
-    const item: TmfProductOrderItem = {
-      id: productOrderItemId(order.orderRef),
-      action: "add",
-      state: orderTmfState[order.state] ?? order.state,
+    const state = orderTmfState[order.state] ?? order.state;
+    const lines: TmfProductOrderItem[] = (order.items ?? [{
+      itemRef: productOrderItemId(order.orderRef),
+      offerId: order.offerId,
+    }]).map((line) => ({
+      id: line.itemRef,
+      action: line.action ?? "add",
+      state,
       productOffering: {
-        id: order.offerId,
-        href: `/tmf-api/productCatalogManagement/v4/productOffering/${order.offerId}`,
-        name: offeringByName.get(order.offerId)?.name ?? order.offerId,
+        id: line.offerId,
+        href: `/tmf-api/productCatalogManagement/v4/productOffering/${line.offerId}`,
+        name: offeringByName.get(line.offerId)?.name ?? line.offerId,
       },
-    };
+      ...(line.specId ? { product: { productSpecification: { id: line.specId } } } : {}),
+      ...(line.parentItem ? { parentItem: { id: line.parentItem } } : {}),
+      ...(line.replacesItem || line.supersededByItem
+        ? {
+          productOrderItemRelationship: [
+            ...(line.replacesItem ? [{ id: line.replacesItem, relationshipType: "replaces" }] : []),
+            ...(line.supersededByItem
+              ? [{ id: line.supersededByItem, relationshipType: "replacedBy" }]
+              : []),
+          ],
+        }
+        : {}),
+    }));
+    const successor = order.supersededByOrderRef ?? replacedBy.get(order.orderRef);
     return {
       "@type": "ProductOrder",
       id: order.orderRef,
       href: `${PRODUCT_ORDER_PATH}/${order.orderRef}`,
-      state: item.state,
+      state,
       orderDate: order.submittedAt,
-      productOrderItem: [item],
+      ...(order.replacesOrderRef ? { replaces: { id: order.replacesOrderRef } } : {}),
+      ...(successor ? { supersededBy: { id: successor } } : {}),
+      productOrderItem: lines,
     };
   });
 
@@ -101,7 +123,7 @@ export function buildStubState(
     const state = orderTmfState[so.state] ?? so.state;
     const item: TmfServiceOrderItem = {
       id: serviceOrderItemId(so.soRef),
-      action: "add",
+      action: so.action ?? "add",
       state,
       productOrderItem: {
         id: productOrderItemId(so.orderRef),

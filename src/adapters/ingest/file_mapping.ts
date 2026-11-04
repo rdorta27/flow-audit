@@ -4,7 +4,9 @@
 import type {
   Activity,
   Actor,
+  ItemAction,
   Order,
+  OrderItem,
   OrderState,
   ProcessInstance,
   ProcessTask,
@@ -24,6 +26,36 @@ const optional = (v: unknown): string | null => (typeof v === "string" && v !== 
 /** With `single_line_orders` every order sells one line, as the stub assumes: `<order>-1`. */
 export const itemOf = (orderRef: string) => `${orderRef}-1`;
 
+const ACTIONS: Record<string, ItemAction> = {
+  add: "add",
+  modify: "modify",
+  delete: "delete",
+  nochange: "noChange",
+};
+
+/** Case and separators are ignored; a value outside the four actions is left out. */
+const actionOf = (v: unknown): ItemAction | undefined =>
+  typeof v === "string" ? ACTIONS[v.replace(/[\s_-]/g, "").toLowerCase()] : undefined;
+
+function fileItems(v: Record<string, unknown>): OrderItem[] {
+  if (!Array.isArray(v.items)) return [];
+  return v.items.map((raw: Record<string, unknown>) => {
+    const item: OrderItem = {
+      itemRef: str(raw.item_ref),
+      offerId: optional(raw.offer_id) ?? str(v.offer_id),
+    };
+    const spec = optional(raw.spec_id);
+    if (spec) item.specId = spec;
+    const action = actionOf(raw.action);
+    if (action) item.action = action;
+    const parent = optional(raw.parent_item);
+    if (parent) item.parentItem = parent;
+    const replaces = optional(raw.replaces_item);
+    if (replaces) item.replacesItem = replaces;
+    return item;
+  });
+}
+
 export function mapFileOrder(r: RawRecord): Order {
   const v = r.value;
   const order: Order = {
@@ -35,7 +67,11 @@ export function mapFileOrder(r: RawRecord): Order {
     offerVersion: optional(v.offer_version) ?? "unknown",
     provenance: r.provenance,
   };
-  if (v.single_line === true) order.itemRefs = [itemOf(str(v.order_ref))];
+  const lines = fileItems(v);
+  if (lines.length > 0) {
+    order.items = lines;
+    order.itemRefs = lines.map((l) => l.itemRef);
+  } else if (v.single_line === true) order.itemRefs = [itemOf(str(v.order_ref))];
   const replaces = optional(v.replaces_order_ref);
   if (replaces) order.replacesOrderRef = replaces;
   return order;
@@ -52,7 +88,11 @@ export function mapFileServiceOrder(r: RawRecord): ServiceOrder {
     createdAt: str(v.so_created_at),
     provenance: r.provenance,
   };
-  if (v.single_line === true) so.productOrderItemRef = itemOf(str(v.order_ref));
+  const item = optional(v.item_ref);
+  if (item) so.productOrderItemRef = item;
+  else if (v.single_line === true) so.productOrderItemRef = itemOf(str(v.order_ref));
+  const action = actionOf(v.so_action);
+  if (action) so.action = action;
   const serial = optional(v.terminal_serial);
   if (serial) so.terminalSerial = serial;
   return so;

@@ -28,6 +28,8 @@ interface Parsed {
   order: { id: string; value: Value };
   serviceOrder: { id: string; value: Value };
   workOrder: { id: string; value: Value } | null;
+  /** The order line this row's service order decomposes, when the export names one (M2-08). */
+  item: Value | null;
 }
 
 type Kind = "order" | "service_order" | "work_order";
@@ -95,7 +97,16 @@ export class OmsFile {
       if (view.unmappedState) this.coverage.rowsWithUnmappedState++;
 
       const woRef = hasWork ? view.id("wo_ref") : null;
+      const itemRef = view.id("item_ref");
       parsed.push({
+        item: itemRef === null ? null : {
+          item_ref: itemRef,
+          offer_id: view.text("item_offer_id"),
+          spec_id: view.text("item_spec_id"),
+          action: view.text("item_action"),
+          parent_item: view.id("parent_item_ref"),
+          replaces_item: view.id("replaces_item_ref"),
+        },
         line: row.line,
         order: {
           id: orderRef,
@@ -118,6 +129,8 @@ export class OmsFile {
             spec_id: view.requiredText("spec_id"),
             so_state: soState.value,
             so_state_raw: soState.raw,
+            so_action: view.text("so_action"),
+            item_ref: itemRef,
             so_created_at: view.date("so_created_at", true),
             terminal_serial: view.id("terminal_serial"),
             single_line: block.singleLineOrders,
@@ -159,7 +172,17 @@ export class OmsFile {
 
   async *#read(kind: Kind): AsyncIterable<RawRecord> {
     const seen = new Set<string>();
-    for (const parsed of await this.#load()) {
+    const all = await this.#load();
+    // The lines of each order, from the rows that name an item; first mention of an item wins.
+    const lines = new Map<string, Map<string, Value>>();
+    for (const parsed of all) {
+      if (parsed.item === null) continue;
+      const own = lines.get(parsed.order.id) ?? new Map<string, Value>();
+      const ref = String(parsed.item.item_ref);
+      if (!own.has(ref)) own.set(ref, parsed.item);
+      lines.set(parsed.order.id, own);
+    }
+    for (const parsed of all) {
       const entry = kind === "order"
         ? parsed.order
         : kind === "service_order"
@@ -167,11 +190,12 @@ export class OmsFile {
         : parsed.workOrder;
       if (entry === null || seen.has(entry.id)) continue;
       seen.add(entry.id);
+      const own = kind === "order" ? lines.get(entry.id) : undefined;
       yield {
         system: "OMS",
         source: this.path,
         line: parsed.line,
-        value: entry.value,
+        value: own ? { ...entry.value, items: [...own.values()] } : entry.value,
         provenance: provenance(this.options, this.path, entry.id, this.block.evidenceKind),
       };
     }

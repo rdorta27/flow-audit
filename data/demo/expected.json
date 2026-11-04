@@ -1,6 +1,6 @@
 {
   "orders": 5000,
-  "service_orders": 5021,
+  "service_orders": 5023,
   "work_orders": 5000,
   "processes": 5021,
   "attempts": 5390,
@@ -25,7 +25,8 @@
     },
     "R04": {
       "affected_orders": 20,
-      "share_of_orders": 0.004
+      "share_of_orders": 0.004,
+      "amendment_groups": 1
     },
     "R05": {
       "affected_orders": 300,
@@ -43,6 +44,8 @@
     "replaced_orders": 10,
     "three_service_order_duplicates": 1,
     "reused_serial_orders": 5,
+    "amendment_orders": 1,
+    "amendment_service_orders": 2,
     "offer_v2_valid_from": "2026-09-15T23:58:00.000Z",
     "maintenance_window": {
       "from": "2026-09-14T02:00:00.000Z",

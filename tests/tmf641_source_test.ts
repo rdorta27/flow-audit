@@ -96,7 +96,8 @@ Deno.test("against the TMF stub it reads all service orders, every item linked",
     perProductOrder.set(parent, (perProductOrder.get(parent) ?? 0) + 1);
   }
   const duplicated = [...perProductOrder.values()].filter((n) => n > 1).length;
-  assertEquals(duplicated, 20, "the R04 cohort must be visible as 20 duplicated orders");
+  // The 20 duplicated orders plus the amended one: R04 tells them apart by action.
+  assertEquals(duplicated, 20 + EXPECTED.cases.amendment_orders);
 });
 
 Deno.test("read summary counts orders, service orders and the duplicated cohort", async () => {
@@ -120,7 +121,7 @@ Deno.test("read summary counts orders, service orders and the duplicated cohort"
   assertEquals(summary.productOrders, EXPECTED.orders);
   assertEquals(summary.serviceOrders, EXPECTED.service_orders);
   assertEquals(summary.activations, EXPECTED.attempts);
-  assertEquals(summary.productOrdersWithSeveralServiceOrders, 20);
+  assertEquals(summary.productOrdersWithSeveralServiceOrders, 20 + EXPECTED.cases.amendment_orders);
   assertEquals(summary.links["service_order->order"].explicit, EXPECTED.service_orders);
   assertEquals(summary.links["attempt->service_order"].explicit, EXPECTED.attempts - 300);
   assertEquals(summary.links["attempt->service_order"].missing, 300);

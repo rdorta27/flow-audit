@@ -217,7 +217,8 @@ clean-up per item), so it is unchanged from `R04@1`. The finding also reports, i
 `retry_new_order` / `parallel_duplicate` / `needs_review` (groups by cause), and
 `activation_attempts` (attempts that ran on an extra service order) next to
 `reached_activation` (groups with at least one such attempt). On the synthetic dataset that is
-20 groups, 21 extras (ORD-1017 has three service orders), all `retry_new_order`, 30 h and
+20 groups (plus 1 amendment group, ORD-4500: an `add`, a `modify` and a second `add` over one
+item, not counted), 21 extras (ORD-1017 has three service orders), all `retry_new_order`, 30 h and
 **30 h** (20 × 90 min of clean-up). The duplicate activations are counts in `breakdown`, not a
 cost term: they had only a money value, and the engine reports hours (D-21). A low/base/high range arrives with
 M5-07; until then the cost is one value, every term `basis: rate_assumption`.
@@ -229,10 +230,14 @@ is the original.
 |---|---|
 | `retry_new_order` | the original ended `FAILED` and a new service order was created: the demo's 20, what the rule exists to catch |
 | `parallel_duplicate` | the original is still live |
+| `amendment` | a later service order over the item has `action` `modify` or `delete` (M2-08), for example a plan change plus an added component: not counted, not priced, reported in `breakdown.amendments` |
 | `needs_review` | the service orders have different known specs (for example an amendment): not counted, not priced; if no group is a duplicate there is no finding |
 
-A spec of `unknown` (a source that sends none) cannot show a difference. The action of a
-service order is not modelled yet, so it is not compared (M2-08/M2-10). The finding is titled
+A spec of `unknown` (a source that sends none) cannot show a difference. The `action` of a
+service order is read (`add`, `modify`, `delete`, `noChange`); an absent or unreadable action is
+unknown and never makes an amendment. Two `add` over one item stay a duplicate. Limit: one
+`modify` in a group makes the whole group an amendment, so a real duplicate hidden in the same
+group is not counted. The finding is titled
 "Duplicate service order", not "duplicate activation": the activation is a separate question,
 answered by `reached_activation`.
 
@@ -262,6 +267,12 @@ to check in billing.
 ## R05 — No end-to-end correlation id
 
 **Rule version.** `R05@1`.
+
+**Amendments (M2-08).** R05 reads the correlation and so consults amendments through it: a
+service order whose order was replaced follows the replacement (an `explicit` link, not
+`missing`), and an attempt whose terminal is shared by a cancelled replaced order and its
+replacement is placed on the replacement (`inferred`, not `ambiguous`). It is still one weak link
+when only the serial joins them.
 
 **Signal.** Every link of the correlation report that is not `explicit` (`inferred`,
 `ambiguous`, `conflicting` or `missing`) is one incident. The rule reads the correlation and

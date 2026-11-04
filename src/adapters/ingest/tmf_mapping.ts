@@ -35,7 +35,9 @@
 import type {
   AttemptOperation,
   AttemptOutcome,
+  ItemAction,
   Order,
+  OrderItem,
   OrderState,
   ProvisioningAttempt,
   ServiceOrder,
@@ -89,17 +91,68 @@ function items(record: RawRecord, field: string): Json[] {
   return list as Json[];
 }
 
+const ACTIONS: Record<string, ItemAction> = {
+  add: "add",
+  modify: "modify",
+  delete: "delete",
+  nochange: "noChange",
+};
+
+/** An action outside the four TMF values is left out, never guessed. */
+function actionOf(value: unknown): ItemAction | undefined {
+  return typeof value === "string" ? ACTIONS[normalize(value)] : undefined;
+}
+
+/** A reference written as `{id}` or as the bare id. */
+function refOf(value: unknown): string | undefined {
+  if (typeof value === "string" && value !== "") return value;
+  const id = (value as Json | undefined)?.id;
+  return typeof id === "string" && id !== "" ? id : undefined;
+}
+
+/** Offer, spec, action, bundle parent and replacement of one product order line (M2-08). */
+function mapLine(line: Json): OrderItem {
+  const offering = line.productOffering as Json | undefined;
+  const item: OrderItem = {
+    itemRef: String(line.id),
+    offerId: typeof offering?.id === "string" ? offering.id : "unknown",
+  };
+  const spec = refOf((line.product as Json | undefined)?.productSpecification);
+  if (spec) item.specId = spec;
+  const action = actionOf(line.action);
+  if (action) item.action = action;
+  const parent = refOf(line.parentItem);
+  if (parent) item.parentItem = parent;
+  const relations = Array.isArray(line.productOrderItemRelationship)
+    ? line.productOrderItemRelationship as Json[]
+    : [];
+  for (const relation of relations) {
+    const kind = normalize(String(relation.relationshipType));
+    const id = refOf(relation);
+    if (!id) continue;
+    if (kind === "replaces") item.replacesItem = id;
+    else if (kind === "replacedby" || kind === "supersededby") item.supersededByItem = id;
+    else if (kind === "bundledby" && !item.parentItem) item.parentItem = id;
+  }
+  return item;
+}
+
 export function mapProductOrder(record: RawRecord): Order {
   const lines = items(record, "productOrderItem");
-  const offering = lines[0].productOffering as Json | undefined;
+  const mapped = lines.map(mapLine);
+  const replaces = refOf(record.value.replaces);
+  const supersededBy = refOf(record.value.supersededBy);
   return {
+    ...(replaces ? { replacesOrderRef: replaces } : {}),
+    ...(supersededBy ? { supersededByOrderRef: supersededBy } : {}),
+    items: mapped,
     orderRef: record.provenance.externalId,
     submittedAt: String(record.value.orderDate),
     state: state(record, ORDER_STATES, "UNMAPPED"),
     rawState: String(record.value.state),
-    offerId: typeof offering?.id === "string" ? offering.id : "unknown",
+    offerId: mapped[0].offerId,
     offerVersion: "unknown",
-    itemRefs: lines.map((line) => String(line.id)),
+    itemRefs: mapped.map((item) => item.itemRef),
     provenance: record.provenance,
   };
 }
@@ -116,10 +169,13 @@ export function mapServiceOrder(record: RawRecord): ServiceOrder {
   if (parents.size > 1) {
     fail(record, `has items that decompose different product orders (${[...parents].join(", ")})`);
   }
+  const action = actionOf(lines[0].action);
+  const spec = refOf((lines[0].service as Json | undefined)?.serviceSpecification);
   return {
+    ...(action ? { action } : {}),
     soRef: record.provenance.externalId,
     orderRef: link.productOrderId,
-    specId: "unknown",
+    specId: spec ?? "unknown",
     state: state(record, ORDER_STATES, "UNMAPPED"),
     rawState: String(record.value.state),
     createdAt: String(record.value.orderDate),
