@@ -6,7 +6,7 @@
  * are camelCase. Pure: the text comes in, a validated `Mapping` or a `MappingError` goes out.
  */
 
-import { checkDateFormat, parseOffset } from "./dates.ts";
+import { checkDateFormat, isNamedZone, parseOffset } from "./dates.ts";
 
 /** A mapping that cannot be used. The message names the file, the line and the field. */
 export class MappingError extends Error {
@@ -35,8 +35,10 @@ export interface BlockMapping {
   encoding: string;
   evidenceKind: "snapshot" | "history";
   dateFormat: string;
-  /** Minutes east of UTC. */
+  /** Minutes east of UTC; 0 for a named zone, which is read through `zone`. */
   offsetMinutes: number;
+  /** A named IANA zone (`America/Bogota`); null for `UTC` or a fixed offset. */
+  timeZone: string | null;
   /** Canonical field to the client's column or key; null declares it not observable. */
   columns: Record<string, string | null>;
   ids: Record<string, IdRule>;
@@ -55,7 +57,24 @@ export interface CatalogMapping {
   evidenceKind: "snapshot" | "history";
 }
 
+/** The audited period, as UTC instants (M5-08); the gate measures each system against it. */
+export interface PeriodMapping {
+  start: string;
+  end: string;
+}
+
+/** Gate thresholds a client may change (M5-10); absent keys keep the defaults. */
+export interface QualityMapping {
+  minRows?: number;
+  minWindowCoverage?: number;
+  maxOrphanShare?: number;
+  maxUnknownStateShare?: number;
+}
+
 export interface Mapping {
+  /** The audited period; absent means the span of the order export. */
+  period?: PeriodMapping;
+  quality?: QualityMapping;
   /** True when the files hold invented data; the report then says so. */
   simulated: boolean;
   catalog?: CatalogMapping;
@@ -217,7 +236,7 @@ export function parseMapping(text: string, where: string): Mapping {
     return out;
   };
 
-  const top = object(raw, [], ["simulated", "catalog", "oms", "bpm", "prov"]);
+  const top = object(raw, [], ["simulated", "period", "quality", "catalog", "oms", "bpm", "prov"]);
   if (top.oms === undefined) fail([], 'the block "oms" is required');
   if (top.prov === undefined) fail([], 'the block "prov" is required');
 
@@ -246,11 +265,15 @@ export function parseMapping(text: string, where: string): Mapping {
     const badFormat = checkDateFormat(dateFormat);
     if (badFormat) fail([name, "date_format"], badFormat);
     const zone = b.time_zone === undefined ? "UTC" : str(b.time_zone, [name, "time_zone"]);
-    const offset = parseOffset(zone);
-    if (offset === null) {
-      fail([name, "time_zone"], `"${zone}" is not UTC or an offset like -05:00`);
+    const fixed = parseOffset(zone);
+    if (fixed === null && !isNamedZone(zone)) {
+      fail(
+        [name, "time_zone"],
+        `"${zone}" is not UTC, an offset like -05:00 or a zone name like America/Bogota`,
+      );
     }
-    const offsetMinutes = offset as number;
+    const offsetMinutes = fixed ?? 0;
+    const timeZone = fixed === null ? zone : null;
     const encoding = b.encoding === undefined ? "utf-8" : str(b.encoding, [name, "encoding"]);
     try {
       new TextDecoder(encoding);
@@ -331,6 +354,7 @@ export function parseMapping(text: string, where: string): Mapping {
       evidenceKind: kind(b.evidence_kind, [name, "evidence_kind"]),
       dateFormat,
       offsetMinutes,
+      timeZone,
       columns,
       ids,
       states,
@@ -350,6 +374,43 @@ export function parseMapping(text: string, where: string): Mapping {
     oms: block("oms", top.oms),
     prov: block("prov", top.prov),
   };
+  if (top.period !== undefined) {
+    const p = object(top.period, ["period"], ["start", "end"]);
+    const bound = (key: "start" | "end") => {
+      const text = str(p[key], ["period", key]);
+      const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(text);
+      const ms = Date.parse(dateOnly || /(Z|[+-]\d{2}:\d{2})$/.test(text) ? text : `${text}Z`);
+      if (Number.isNaN(ms)) fail(["period", key], `"${text}" is not an ISO 8601 date`);
+      // A bare end date means the whole day.
+      return new Date(dateOnly && key === "end" ? ms + 86_400_000 - 1 : ms).toISOString();
+    };
+    mapping.period = { start: bound("start"), end: bound("end") };
+    if (mapping.period.start >= mapping.period.end) {
+      fail(["period", "end"], "must be after period.start");
+    }
+  }
+  if (top.quality !== undefined) {
+    const q = object(top.quality, ["quality"], [
+      "min_rows",
+      "min_window_coverage",
+      "max_orphan_share",
+      "max_unknown_state_share",
+    ]);
+    const num = (key: string, share: boolean) => {
+      const v = q[key];
+      if (v === undefined) return undefined;
+      if (typeof v !== "number" || !(v >= 0) || (share && v > 1)) {
+        fail(["quality", key], share ? "must be a number from 0 to 1" : "must be a number >= 0");
+      }
+      return v as number;
+    };
+    mapping.quality = {
+      minRows: num("min_rows", false),
+      minWindowCoverage: num("min_window_coverage", true),
+      maxOrphanShare: num("max_orphan_share", true),
+      maxUnknownStateShare: num("max_unknown_state_share", true),
+    };
+  }
   if (top.bpm !== undefined) mapping.bpm = block("bpm", top.bpm);
   if (top.catalog !== undefined) {
     const c = object(top.catalog, ["catalog"], ["file", "format", "evidence_kind"]);

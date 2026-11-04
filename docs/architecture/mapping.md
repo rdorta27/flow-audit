@@ -12,6 +12,8 @@ A client's mapping is private: `*.mapping.json` and `mapping.*.json` are ignored
 ```
 {
   "simulated": true,                       // the files hold invented data (report label)
+  "period": { "start", "end" },            // optional: the audited period (ISO dates)
+  "quality": { ... },                      // optional: gate thresholds (quality.md)
   "catalog": { "file", "evidence_kind" },  // optional
   "oms":  { ... },                         // required: orders, service orders, work orders
   "bpm":  { ... },                         // optional: processes and their activities
@@ -29,7 +31,7 @@ Each of `oms`, `bpm` and `prov` takes:
 | `encoding` | any `TextDecoder` label (`utf-8`, `windows-1252`) | `utf-8` |
 | `evidence_kind` | `history` (transitions with their own times) or `snapshot` | `history` |
 | `date_format` | `iso8601` or a pattern of `yyyy MM dd HH mm ss SSS` (`dd/MM/yyyy HH:mm`) | `iso8601` |
-| `time_zone` | `UTC` or a fixed offset (`-05:00`); named zones come with M5-08 | `UTC` |
+| `time_zone` | `UTC`, a fixed offset (`-05:00`) or a named IANA zone (`America/Bogota`, `Europe/Madrid`) | `UTC` |
 | `columns` (`oms`) / `fields` (`bpm`, `prov`) | canonical field to the client's column or key | required |
 | `ids` | per id field: `case`, `strip_prefix`, `strip_leading_zeros`, `add_prefix` | none |
 | `states` | per table, the client's value to the canonical one | canonical names only |
@@ -81,7 +83,26 @@ After the audit, one `Coverage` line per file says how many rows were read, the 
 state mapped, the share of values mapped per state table (and which were not), the repeated rows
 merged, and the fields declared not observable.
 
+## Time zones and the period
+
+Every timestamp is stored in UTC. A text that carries `Z` or an offset keeps it; a text with
+none is read as wall-clock time in the file's `time_zone`. A named zone is resolved with
+`Intl` on the date of each timestamp, so daylight saving is applied where the zone has it
+(`Europe/Madrid`: 2026-07-01 12:00 is 10:00Z, 2026-01-15 12:00 is 11:00Z). A wall time that
+happens twice (clocks go back) is read as the first; one that never happens (clocks go
+forward) moves on by the gap. An unknown name is a mapping error naming `time_zone`. A copy of
+an export written in local time gives the same records, and the same findings, once its zone
+is declared (tested with `Europe/Madrid`).
+
+`period` gives `start` and `end` (`2026-09-01`, or a full ISO instant; a bare `end` date means
+the end of that day). It is the window the gate measures every system against; without it the
+window is the span of the order export. `quality` may override the gate's thresholds
+(`min_rows`, `min_window_coverage`, `max_orphan_share`, `max_unknown_state_share`); see
+`quality.md`.
+
 ## Not done yet
 
 Catalog blocks (`offer_key`, nested characteristics, validity gaps), BPM as several tables
-joined by process id, named time zones and daylight saving (M5-08), and joins across files.
+joined by process id, and joins across files. From M5-08 still open: keeping the original timestamp text next to
+the UTC value, business-hour thresholds (`retry_window_hours` and `stuck_after_hours` are
+calendar hours), and the per-month scaling printed in the report.

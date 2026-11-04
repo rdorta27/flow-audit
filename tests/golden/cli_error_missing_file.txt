@@ -1,0 +1,4 @@
+exit 1
+err| flow-audit: error: cannot read the file: No such file or directory (os error 2): readfile '<tmp>/provisioning.jsonl'
+err|   where: <tmp>/provisioning.jsonl
+err|   next:  check that --dataset points at the folder with the exports and that the file names in the mapping (`file`) match

@@ -55,17 +55,20 @@ abstract class JsonlSource implements EvidenceSource {
   protected abstract readonly system: "BPM" | "PROV";
 
   async *read(): AsyncIterable<RawRecord> {
-    const seen = new Set<string>();
+    const seen = new Map<string, string>();
     for await (const { line, row } of jsonLines(this.path, this.block.encoding)) {
       const view = new RowView(this.path, line, this.block, (key) => row[key], this.coverage);
       this.coverage.rows++;
       const { id, value } = this.record(view, row);
       if (view.unmappedState) this.coverage.rowsWithUnmappedState++;
+      const text = JSON.stringify(value);
       if (seen.has(id)) {
         this.coverage.repeatedRows++;
+        this.coverage.repeatedKeys++;
+        if (seen.get(id) === text) this.coverage.exactRepeats++;
         continue;
       }
-      seen.add(id);
+      seen.set(id, text);
       yield {
         system: this.system,
         source: this.path,
