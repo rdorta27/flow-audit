@@ -333,6 +333,43 @@ export function correlate(input: CorrelationInput): CorrelationResult {
     processLinks.set(process, link);
   }
 
+  // Child processes hang on their root (M2-10) ---------------------------------
+  // A call activity starts a child process that may carry its own references, or none. The
+  // child belongs to the order of the process it descends from, so it is placed once, there,
+  // whatever it says about itself.
+  const processById = new Map(processes.map((p) => [p.processId, p]));
+  const rootOf = (process: ProcessInstance): ProcessInstance | undefined => {
+    let current = process;
+    const seen = new Set([process.processId]);
+    for (;;) {
+      const next = processById.get(present(current.parentProcessId) ?? "") ??
+        processById.get(present(current.rootProcessId) ?? "");
+      if (!next || seen.has(next.processId)) break;
+      seen.add(next.processId);
+      current = next;
+    }
+    return current === process ? undefined : current;
+  };
+  for (const process of processes) {
+    const root = rootOf(process);
+    if (!root) continue;
+    const own = processLinks.get(process)!;
+    const rootLink = processLinks.get(root)!;
+    const agrees = own.confidence === "explicit" && own.toId === rootLink.toId &&
+      own.kind === rootLink.kind;
+    own.kind = rootLink.kind;
+    own.toId = rootLink.toId;
+    own.candidates = rootLink.candidates;
+    if (agrees) continue;
+    const mine = own.basis;
+    own.confidence = rootLink.confidence === "explicit" ? "inferred" : rootLink.confidence;
+    own.basis = `child of process ${root.processId}` +
+      (rootLink.confidence === "explicit" ? "" : ` (${rootLink.confidence}: ${rootLink.basis})`) +
+      (present(process.soRef) || present(process.businessKey)
+        ? `; its own reference was: ${mine}`
+        : "");
+  }
+
   // Attempt -> service order -------------------------------------------------
   const attemptLinks = new Map<ProvisioningAttempt, Link>();
   for (const attempt of input.attempts) {

@@ -157,6 +157,13 @@ needs it. Records that cannot be placed under exactly one order are kept in `unr
 with the link that says why; nothing is dropped. Duplicate ids are reported, and every
 link that points at one is `ambiguous`. The result does not depend on input order.
 
+A child process (`parent_process_id`, `root_process_id`) hangs on the order of its root, once,
+whatever it says about itself: with no reference of its own it is `inferred` (basis "child of
+process X"); when its own reference points elsewhere the root wins and the basis records what
+it said. A child whose root is not in the data keeps its own link. The audit prints a warning
+when a process carries a `loop_index` (multi-instance) or an activity flagged
+`event_subprocess`: both are read as ordinary records, not modelled.
+
 ### TMF states
 
 Readers map TMF states to the canonical lifecycle in `tmf_mapping.ts`. The translation is

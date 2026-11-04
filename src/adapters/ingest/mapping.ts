@@ -184,6 +184,7 @@ export const ACTIVITY_EXTRA_FIELDS: readonly string[] = [
   "created_at",
   "claimed_at",
   "due_at",
+  "event_subprocess",
 ];
 
 /** Fields that hold an id, and so may carry id rules. */

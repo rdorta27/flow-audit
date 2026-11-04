@@ -14,6 +14,7 @@
  */
 
 import type { CorrelatedOrder, Linked } from "../correlation.ts";
+import { elapsedHours } from "../calendar.ts";
 import {
   type Activity,
   type Cost,
@@ -79,11 +80,12 @@ export function r03Settings(config: ImpactConfig): R03Config {
 }
 
 /**
- * The end of the audited period: the newest order intake, which is also the window the quality
+ * The end of the audited period: the declared one (`RuleContext.period`) or else the newest order intake, which is also the window the quality
  * gate measures every system against. Records of a later date (a retry the day after) do not
  * move it, so the days stuck do not depend on when the export was cut. No wall clock.
  */
-function periodEnd(orders: readonly CorrelatedOrder[]): number {
+function periodEnd(orders: readonly CorrelatedOrder[], declared?: string): number {
+  if (declared !== undefined && !Number.isNaN(ms(declared))) return ms(declared);
   let latest = 0;
   for (const entry of orders) {
     const t = ms(entry.order.submittedAt);
@@ -95,11 +97,10 @@ function periodEnd(orders: readonly CorrelatedOrder[]): number {
 export function scanR03(
   orders: readonly CorrelatedOrder[],
   config: ImpactConfig,
-  _context?: RuleContext,
+  context?: RuleContext,
 ): R03Scan {
   const settings = r03Settings(config);
-  const thresholdMs = config.thresholds.stuckAfterHours * HOUR;
-  const end = periodEnd(orders);
+  const end = periodEnd(orders, context?.period?.end);
   const scan: R03Scan = {
     hits: [],
     expired: 0,
@@ -155,7 +156,11 @@ export function scanR03(
       }
       const expiredAt = timer.firedAt ?? timer.endedAt;
       const t = expiredAt === null ? NaN : ms(expiredAt);
-      if (!Number.isNaN(t) && end - t <= thresholdMs) {
+      if (
+        !Number.isNaN(t) &&
+        elapsedHours(t, end, config.thresholds.stuckAfterBasis, config.calendar) <=
+          config.thresholds.stuckAfterHours
+      ) {
         scan.withinThreshold++;
         continue;
       }

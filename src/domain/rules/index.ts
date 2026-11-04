@@ -17,6 +17,8 @@ import { chargesR05, detectR05, R05_ID, R05_VERSION } from "./r05.ts";
 export interface RuleContext {
   correlation?: CorrelationResult;
   catalog?: Catalog;
+  /** The declared audited period (M5-08); absent means the span of the orders. */
+  period?: { start: string; end: string };
 }
 
 export interface Rule {

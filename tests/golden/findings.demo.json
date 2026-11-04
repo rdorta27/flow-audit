@@ -1927,6 +1927,25 @@
       "hours": 299.2
     }
   },
+  "period": {
+    "start": "2026-09-01T00:00:27.000Z",
+    "end": "2026-09-30T23:51:42.600Z",
+    "declared": false,
+    "removed": {
+      "orders": 0,
+      "service_orders": 0,
+      "processes": 0,
+      "attempts": 0
+    }
+  },
+  "scaling": {
+    "orders_in_period": 5000,
+    "orders_per_month": 5000,
+    "period_days": 29.993930555555554,
+    "observed_orders_per_month": 5001.011778771909,
+    "factor": 1,
+    "formula": "hours per month = hours in the audited period × orders_per_month / orders in the period"
+  },
   "journeys": [
     {
       "order_ref": "ORD-1000",

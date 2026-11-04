@@ -63,7 +63,7 @@ error naming the field it was mapped from.
   `incidents` (a nested list of `type`, `created_at`, `resolved_at`, `message`); in
   `activity_fields` `timer_kind`, `interrupting`, `attached_to`, `due_date`, `fired_at`,
   `next_activity_id`, `task_id`, `assignee`, `candidate_group`, `created_at`, `claimed_at`,
-  `due_at`. R03 reads which timers and which compensations to watch from `rules.r03` of
+  `due_at`, `event_subprocess` (a flag; the engine warns when it is true). R03 reads which timers and which compensations to watch from `rules.r03` of
   `config.json` (`timer_activities`, `compensation_activities`, `compensation_processes`,
   `human_management_tasks`), not from the mapping.
 - `prov`: required `attempt_id`, `state`, `started_at`; optional `so_ref`, `serial`,
@@ -110,13 +110,17 @@ is declared (tested with `Europe/Madrid`).
 
 `period` gives `start` and `end` (`2026-09-01`, or a full ISO instant; a bare `end` date means
 the end of that day). It is the window the gate measures every system against; without it the
-window is the span of the order export. `quality` may override the gate's thresholds
+window is the span of the order export. Orders submitted outside a declared `period` are
+removed before the rules run, together with the service orders, processes and attempts
+correlated to them; the counts are in `period.removed` of `findings.json`. R03 ends its days stuck
+at the declared `period.end`. A timestamp that was not already `...Z` keeps its original
+text next to the UTC value (`submittedAtRaw`, `createdAtRaw`, `startedAtRaw`, `endedAtRaw`);
+the text is not part of the source fingerprint. `quality` may override the gate's thresholds
 (`min_rows`, `min_window_coverage`, `max_orphan_share`, `max_unknown_state_share`); see
 `quality.md`.
 
 ## Not done yet
 
 Catalog blocks (`offer_key`, nested characteristics, validity gaps), BPM as several tables
-joined by process id, and joins across files. From M5-08 still open: keeping the original timestamp text next to
-the UTC value, business-hour thresholds (`retry_window_hours` and `stuck_after_hours` are
-calendar hours), and the per-month scaling printed in the report.
+joined by process id, and joins across files. The report text for the period and the per-month
+scaling (the data is in `findings.json`) is not written yet.

@@ -33,6 +33,8 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `findings[]` | See below. |
 | `overlap` | `by_order`: order id to the rule ids that charge it, only for orders charged by two or more rules (`{}` when none). `pairs[]`: `rules` (two ids) and `orders` (how many orders they share). |
 | `totals` | `gross`: `hours` summed over findings with `in_total` true. `net`: the same with each order counted once, at its largest charge (`rules.md`, "Overlap"); equals `gross` when nothing overlaps. |
+| `period` | The audited period: `start`, `end`, `declared` (false when it is the span of the orders) and `removed` (`orders`, `service_orders`, `processes`, `attempts` taken out for being outside a declared period). |
+| `scaling` | `orders_in_period`, `orders_per_month` (from `config`), `period_days`, `observed_orders_per_month`, `factor` (`orders_per_month / orders_in_period`) and `formula`. `cost.hours_month` is over the audited data and is not rescaled. |
 | `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story[]`: the order step by step (`at`, `system`, `what` (one plain sentence), `record` (`id` and `endpoint`, or `null`), `finding` (the rule id that starts at this step, or `null`), `observed`, `reason` (why a step is not observed)). A step the source cannot show stays in the list with `observed` false. |
 
 ## Findings
