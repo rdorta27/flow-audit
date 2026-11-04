@@ -25,7 +25,7 @@ open-source (MIT) technical demo under construction; there is no commercial offe
 | Data | **Simulated** | 5,000 made-up orders of a fictional operator, defects planted on purpose (`data/demo/`) |
 | Rates (minutes per action) | **Example** | From `data/demo/config.json`, not measured at any operator |
 | R01, R02, R03, R05 | **Missing** | Specified in `docs/architecture/rules.md`; arrive in 0.5.0 (Client-ready) |
-| Reading a client's export files | **Missing** | Arrives in 0.5.0 |
+| Reading an operator's export files (CSV, JSON, JSONL) through a mapping | **Real** | `deno task audit --dataset data/demo`; the demo files are our own design (D-03), not yet a real operator's |
 | Catalog and process steps of the story | **Missing** | The simulated source does not carry them; shown as "not observed" |
 
 What the engine finds today: R04, 20 duplicated orders (21 extra service orders),
@@ -63,6 +63,10 @@ Commands available today:
   boundaries, the TMF stub, the readers, the join, R04, the findings schema and its validator.
 - `deno task audit --source stub` (start `deno task stub` first) prints counts, links and
   `R04@2 · 20 orders · 30 h`, and with `--out out` writes the two report files; without a source it exits with code 2.
+- `deno task audit --dataset data/demo --out out` reads the four exports from files through
+  `data/demo/mapping.json` (`--mapping <path>` for another) and gives the same
+  `R04@2 · 20 orders · 30 h`; it prints one coverage line per file. See
+  `docs/architecture/mapping.md`.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts
   (TMF640) from the stub and prints counts. Start `deno task stub` first. It is a data check, not an audit.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs

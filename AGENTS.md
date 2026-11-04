@@ -8,7 +8,7 @@
   (`R04@2`, with causes) and writes `findings.json` and `report.html` with `--out`, including
   the story of one order (`story.ts`) and the net total (`totals.ts`); schema in
   `docs/architecture/report-schema.md`. Data files use snake_case keys (TS stays camelCase).
-  Do not add R01, R02, R03 or R05 ahead of their milestone (0.5.0). The plan is
+  `--dataset <dir>` reads the four file exports through a mapping (`src/adapters/ingest/file_*.ts`, `mapping.ts`). Do not add R01, R02, R03 or R05 ahead of their card. The plan is
   `../specs/backlog.md`.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).

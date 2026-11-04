@@ -4,6 +4,19 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.4.1 — 2026-11-03
+
+First step to 0.5.0: the engine reads files.
+
+- `deno task audit --dataset <dir>` reads `catalog.json`, `oms_orders.csv`,
+  `bpm_history.jsonl` and `provisioning.jsonl` with our own CSV reader (M5-02); the counts
+  equal `expected.json` and R04 gives the same finding as on the stub. The 300 attempts
+  without a service order are placed by terminal serial (inferred).
+- A mapping file (`mapping.json`, `--mapping`) turns another export's column names, states,
+  dates, delimiters and ids into the canonical model; an unknown state fails by name; a
+  coverage line is printed per file; client mappings are ignored by git (M5-05).
+- The site gained automatic page checks (S-19): overflow, tiny text, translations, links.
+
 ## 0.4.0 — 2026-11-03 · Demo 1
 
 Milestone Demo 1 is closed: the engine, not a mock, reads the simulated TMF server, joins
