@@ -239,7 +239,7 @@ function journeys(report: AuditReport): string {
     return `<details class="card"${n === 0 ? " open" : ""}><summary>Order <code>${
       esc(j.orderRef)
     }</code> · findings: ${flagged}</summary>
-<div class="figure">${storySvg(j.story, j.orderRef)}</div>
+<div class="figure">${storySvg(j.story, j.orderRef, n)}</div>
 <p class="note">Colours are fixed per system. A red dashed line or circle is a step the source cannot show, or where a finding starts.</p>${story}<details><summary>Time segments</summary>${body}</details>${
       j.correlation.gaps.length
         ? `<ul class="note">${j.correlation.gaps.map((g) => `<li>${esc(g)}</li>`).join("")}</ul>`
@@ -385,6 +385,14 @@ function assumptionsBox(report: AuditReport): string {
       }).join(", ")
     }</td></tr>`;
   }).join("");
+  const per = report.period;
+  const periodRow = per
+    ? `<tr id="assume-period"><td>Audited period</td><td class="n">${esc(day(per.start))} to ${
+      esc(day(per.end))
+    }</td><td>a single range</td><td>${
+      per.declared ? "declared in the mapping" : "the span of the order records"
+    }</td><td>every rule; waiting that never ended is counted up to ${esc(day(per.end))}</td></tr>`
+    : "";
   const anyRange = rows.some((r) => r.low !== r.value || r.high !== r.value);
   const t = report.totals.net;
   return `<aside class="card assume" aria-labelledby="as"><h2 id="as">Assumptions behind the hours</h2>
@@ -399,7 +407,7 @@ function assumptionsBox(report: AuditReport): string {
   }</p>
 <table><thead><tr><th>Parameter (${
     term("assumption", "assumption")
-  })</th><th class="n">Value</th><th>Range</th><th>Source, owner and date</th><th>Used by</th></tr></thead><tbody>${body}</tbody></table></aside>`;
+  })</th><th class="n">Value</th><th>Range</th><th>Source, owner and date</th><th>Used by</th></tr></thead><tbody>${body}${periodRow}</tbody></table></aside>`;
 }
 
 /** Waiting time read from dated history; never part of the estimate. */
@@ -444,6 +452,39 @@ function caveats(f: Finding): string[] {
     );
   }
   return out;
+}
+
+const day = (iso: string) => iso.slice(0, 10);
+
+/** The audited dates, what was removed to fit them, and whether the hours were rescaled (M5-19). */
+function periodText(report: AuditReport): string {
+  const p = report.period;
+  if (!p) return "";
+  const removed = p.removed;
+  const gone = removed.orders + removed.serviceOrders + removed.processes + removed.attempts;
+  const range = `${esc(day(p.start))} to ${esc(day(p.end))}`;
+  const first = p.declared
+    ? `<strong>Period audited: ${range}</strong>, declared in the mapping. ${
+      gone === 0
+        ? "No record fell outside it."
+        : `Removed before the rules ran: ${num(removed.orders)} orders, ${
+          num(removed.serviceOrders)
+        } service orders, ${num(removed.processes)} processes and ${
+          num(removed.attempts)
+        } activation attempts.`
+    }`
+    : `<strong>Period audited: ${range}</strong>. No period was declared, so this is the span of the order records and nothing was removed.`;
+  const sc = report.scaling;
+  const second = !sc
+    ? ""
+    : Math.abs(sc.factor - 1) <= 0.01
+    ? ` The period is about a month (${
+      num(Math.round(sc.periodDays))
+    } days), so the hours are the hours found in the records and were not rescaled.`
+    : ` The hours are the hours found in this period and were <strong>not rescaled</strong> to a month: the period holds ${
+      num(sc.ordersInPeriod)
+    } orders against ${num(sc.ordersPerMonth)} a month.`;
+  return `<p>${first}${second}</p>`;
 }
 
 /** Everything on the cover is read from the report, so the same claims can be rebuilt from the file. */
@@ -505,6 +546,7 @@ function cover(report: AuditReport): string {
   } rules ran: ${num(report.findings.length)} found something, ${num(empty.length)} found nothing${
     empty.length ? ` (${empty.map((r) => ruleLabel(r.id)).join(", ")})` : ""
   }.</p>
+${periodText(report)}
 <table><thead><tr><th>System</th><th>Read</th><th class="n">Orders with a record</th><th>Findings that touch it</th></tr></thead><tbody>${sysRows}</tbody></table>
 <h3>What was not audited</h3>
 ${

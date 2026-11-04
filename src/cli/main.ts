@@ -59,7 +59,7 @@ What to write:
   --out <dir>         Existing folder for findings.json, findings.csv, report.html and
                       quality.json (with --check, only quality.json). The \`audit\` task
                       writes only under ./out.
-  --quiet             No progress lines on stderr; the result on stdout is unchanged.
+  --quiet             No progress lines on stderr, and one line on stdout: the result.
 
 Before trusting the result:
   --check             Read, map and run the data-quality gate, nothing else. Use it first
@@ -287,6 +287,26 @@ export async function writeReports(
 }
 
 const n = (value: number) => value.toLocaleString("en-US");
+
+/** One line on the assumptions behind the hours, and where the full table is (M5-22). */
+export function assumptionsLine(result: AuditResult, reportPath?: string): string {
+  const rows = result.report.assumptions;
+  if (rows.length === 0) return "Assumptions: none, no finding uses a rate.";
+  const example = rows.filter((r) => r.source === "example").length;
+  const where = reportPath
+    ? `table with range, source and owner: ${reportPath}#as`
+    : "write the report with --out to see the table with range, source and owner";
+  const sources = example === 0
+    ? "each with a declared source"
+    : `${n(example)} of them example values with no declared source`;
+  return `Assumptions: ${n(rows.length)} rates and thresholds, ${sources}; ${where}`;
+}
+
+/** What `--quiet` prints on stdout: the result in one line. */
+export function headlineLine(result: AuditResult): string {
+  const lines = summaryLines(result);
+  return lines[lines.length - 1];
+}
 
 /** The lines printed on stdout: counts, how sure the joins are, one line per finding. */
 export function summaryLines(result: AuditResult): string[] {
@@ -570,10 +590,15 @@ export async function main(
       );
     }
     for (const e of quality?.notEvaluable ?? []) progress(M.ruleNotEvaluable(e.rule, e.reason));
-    for (const line of summaryLines(result)) console.log(line);
-    if (quality) { for (const line of qualityLines(quality)) console.log(line); }
-    if (fileSources) {
-      for (const line of coverageLines(await fileSources.coverage())) console.log(line);
+    if (options.quiet) {
+      console.log(headlineLine(result));
+    } else {
+      for (const line of summaryLines(result)) console.log(line);
+      console.log(assumptionsLine(result, outDir ? `${outDir}/report.html` : undefined));
+      if (quality) { for (const line of qualityLines(quality)) console.log(line); }
+      if (fileSources) {
+        for (const line of coverageLines(await fileSources.coverage())) console.log(line);
+      }
     }
     if (outDir) {
       let confidential: { redactor: Redactor; client: string } | undefined;

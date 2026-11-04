@@ -308,7 +308,7 @@ Deno.test("the CLI takes --mapping and reports a mapping error with exit 1", asy
   console.log = (...a: unknown[]) => void logs.push(a.join(" "));
   console.error = (...a: unknown[]) => void errors.push(a.join(" "));
   try {
-    assertEquals(await main(["--dataset", DEMO, "--mapping", `${DEMO}mapping.json`, "--quiet"]), 0);
+    assertEquals(await main(["--dataset", DEMO, "--mapping", `${DEMO}mapping.json`]), 0);
     assert(
       logs.some((l) => l.startsWith("Coverage ") && l.includes("oms_orders.csv")),
       logs.join("\n"),

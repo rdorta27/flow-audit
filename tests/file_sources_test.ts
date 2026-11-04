@@ -190,7 +190,7 @@ Deno.test("the CLI reads --dataset and refuses --source with it", async () => {
   console.log = (...a: unknown[]) => void logs.push(a.join(" "));
   console.error = () => {};
   try {
-    assertEquals(await main(["--dataset", DEMO, "--quiet"]), 0);
+    assertEquals(await main(["--dataset", DEMO]), 0);
     assertEquals(await main(["--dataset", DEMO, "--source", "stub"]), 2);
     assertEquals(await main(["--dataset", "/nonexistent", "--quiet"]), 1);
   } finally {

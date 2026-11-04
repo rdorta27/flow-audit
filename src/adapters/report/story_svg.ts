@@ -54,8 +54,8 @@ function flagBox(system: SystemId, text: string): { x: number; width: number } {
   return { x: Math.round(x * 10) / 10, width: Math.round(width * 10) / 10 };
 }
 
-/** Draws the steps in order. A step with `observed: false` or a `finding` is a gap, in red. */
-export function storySvg(steps: readonly StoryStep[], orderRef: string): string {
+/** Draws the steps in order; `uid` keeps the SVG ids unique and carries no order id (M5-23). A step with `observed: false` or a `finding` is a gap, in red. */
+export function storySvg(steps: readonly StoryStep[], orderRef: string, uid = 0): string {
   const ys: number[] = [];
   let cursor = TOP;
   for (const s of steps) {
@@ -70,9 +70,9 @@ export function storySvg(steps: readonly StoryStep[], orderRef: string): string 
   ).join(" ");
   const out: string[] = [
     `<svg class="story-svg" viewBox="0 0 ${W} ${height}" role="img" ` +
-    `aria-labelledby="t-${esc(orderRef)} d-${esc(orderRef)}" xmlns="http://www.w3.org/2000/svg">`,
-    `<title id="t-${esc(orderRef)}">Journey of order ${esc(orderRef)}</title>`,
-    `<desc id="d-${esc(orderRef)}">${esc(desc)}</desc>`,
+    `aria-labelledby="t-${uid} d-${uid}" xmlns="http://www.w3.org/2000/svg">`,
+    `<title id="t-${uid}">Journey of order ${esc(orderRef)}</title>`,
+    `<desc id="d-${uid}">${esc(desc)}</desc>`,
   ];
   for (const s of ORDER) {
     const x = laneX(s);

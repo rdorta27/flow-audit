@@ -115,5 +115,27 @@ Deno.test("--help shows worked examples; --quiet silences the stage lines", asyn
   );
   const quiet = await run(["--dataset", "data/demo", "--quiet"]);
   assert(!quiet.text.includes("err|"), quiet.text);
-  assert(quiet.text.includes("out| R04@2 · 20 orders · estimate 30 h"), quiet.text);
+  assertEquals(
+    quiet.text,
+    "exit 0\nout| 4,467 of 5,000 orders have a problem (estimate 925.9 h with the example rates, each order once)\n",
+  );
+  const normal = await run(["--dataset", "data/demo"]);
+  assert(normal.text.includes("out| Assumptions: "), "a normal run names the assumptions");
+  assert(normal.text.includes("write the report with --out"), normal.text);
+});
+
+Deno.test("--redact: no order id of the input reaches stdout or stderr (M5-23)", async () => {
+  const out = await Deno.makeTempDir();
+  try {
+    const r = await run(
+      ["--dataset", "data/demo", "--out", out, "--redact", "--client", "Ortelis"],
+      out,
+    );
+    assertEquals(r.code, 0);
+    assert(!/ORD-\d{4}/.test(r.text), "a raw order id was printed");
+    const report = await Deno.readTextFile(`${out}/report.html`);
+    assert(!/ORD-\d{4}/.test(report), "a raw order id is in the report");
+  } finally {
+    await Deno.remove(out, { recursive: true });
+  }
 });

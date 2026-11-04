@@ -22,6 +22,7 @@ out| R03@1 · 50 orders · estimate 317 h
 out| R04@2 · 20 orders · estimate 30 h
 out| R05@1 · 300 orders · estimate 225 h
 out| 4,467 of 5,000 orders have a problem (estimate 925.9 h with the example rates, each order once)
+out| Assumptions: 6 rates and thresholds, each with a declared source; table with range, source and owner: <tmp>/report.html#as
 out| Quality gate: passed
 out| Quality OMS OMS orders (file): 5,000 records · 2026-09-01 to 2026-10-01 · window covered 100%
 out| Quality BPM BPM processes (file): 5,021 records · 2026-09-01 to 2026-10-01 · window covered 99.7%

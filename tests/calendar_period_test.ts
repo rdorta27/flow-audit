@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 /** M5-08: business hours, the audited period, the raw timestamp text and the monthly scaling. */
 
+import { renderHtml } from "../src/adapters/report/html_renderer.ts";
 import { runAudit } from "../src/app/run_audit.ts";
 import { createFileSources } from "../src/adapters/ingest/file_sources.ts";
 import { parseMapping } from "../src/adapters/ingest/mapping.ts";
@@ -178,6 +179,11 @@ Deno.test("records outside the declared period are removed, counted and shown", 
   assertEquals(s.periodDays, 10);
   assertEquals(s.observedOrdersPerMonth, 6);
   assert(s.formula.includes("orders_per_month"));
+  const html = renderHtml(result.report);
+  assert(html.includes("Period audited: 2026-09-01 to 2026-09-11"), "the declared dates");
+  assert(html.includes("Removed before the rules ran: 1 orders, 1 service orders"), "removed");
+  assert(html.includes("<strong>not rescaled</strong>"), "says the hours were not rescaled");
+  assert(html.includes('id="assume-period"'), "the period is a row of the assumptions table");
 });
 
 Deno.test("without a declared period the span of the orders is reported", async () => {
@@ -192,6 +198,8 @@ Deno.test("without a declared period the span of the orders is reported", async 
   });
   assertEquals(result.report.period?.declared, false);
   assertEquals(result.report.period?.removed.orders, 0);
+  const html = renderHtml(result.report);
+  assert(html.includes("No period was declared, so this is the span of the order records"), "span");
 });
 
 Deno.test("the original timestamp text is kept next to the UTC value", async () => {

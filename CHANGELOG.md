@@ -4,6 +4,13 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## Next, not yet cut — corrections for 0.5.0
+
+- The report's cover and assumptions table state the audited period, how many records were removed and that the hours were not rescaled (M5-19).
+- A normal run prints one line on the assumptions and where their table is; `--quiet` prints one line, the result (M5-22).
+- `--redact` no longer leaves the raw order id in the report's SVG ids; a test checks stdout, stderr and the report (M5-23).
+- `deno task audit --help` opens with a quick start and groups options by task; `explain`, `read` and `dataset` answer `--help`.
+
 ## 0.4.5 — 2026-11-04
 
 Candidate for Client-ready. The file audit is checked as one command, the report draws ORD-1005, and it measures waiting time per stage. The site shows that run. A later review and a comprehension test remain before 0.5.0.
