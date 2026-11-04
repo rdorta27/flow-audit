@@ -10,6 +10,7 @@
  * Pure: it reads what correlation already joined and the rule settings of the config.
  */
 
+import { elapsedHours } from "../calendar.ts";
 import type { CorrelatedOrder, Linked } from "../correlation.ts";
 import {
   type Cost,
@@ -102,7 +103,6 @@ export function scanR01(
   context?: RuleContext,
 ): R01Scan {
   const settings = r01Settings(config);
-  const windowMs = config.thresholds.retryWindowHours * HOUR;
   const windows = settings.maintenanceWindows.map((w) => [ms(w.from), ms(w.to)] as const);
   const end = asOf(orders);
   const scan: R01Scan = {
@@ -165,7 +165,15 @@ export function scanR01(
         b !== a && itemOf(b) === key && ms(b.item.startedAt) > start
       );
       // Inside the window (the boundary included) there was a retry: not fallout.
-      if (next && ms(next.item.startedAt) - start <= windowMs) continue;
+      if (
+        next &&
+        elapsedHours(
+            start,
+            ms(next.item.startedAt),
+            config.thresholds.retryWindowBasis,
+            config.calendar,
+          ) <= config.thresholds.retryWindowHours
+      ) continue;
 
       let errorClass = classOf(at.errorCode, settings);
       if (
@@ -259,6 +267,9 @@ export function detectR01(
     input("rates.daily_followup_minutes", dailyFollowupMinutes),
     input("thresholds.retry_window_hours", config.thresholds.retryWindowHours),
   ];
+  if (config.thresholds.retryWindowBasis === "business") {
+    inputs[2].source = "counted in business hours of the configured calendar";
+  }
   const unmeasured: Cost["unmeasured"] = [];
   if (scan.unmeasuredAttempts > 0) {
     unmeasured.push({

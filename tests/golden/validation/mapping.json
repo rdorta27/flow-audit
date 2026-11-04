@@ -1,0 +1,97 @@
+{
+  "simulated": true,
+  "oms": {
+    "file": "oms_orders.csv",
+    "format": "csv",
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "evidence_kind": "history",
+    "date_format": "iso8601",
+    "time_zone": "UTC",
+    "single_line_orders": true,
+    "columns": {
+      "order_ref": "order_ref",
+      "submitted_at": "submitted_at",
+      "order_state": "order_state",
+      "offer_id": "offer_id",
+      "offer_version": "offer_version",
+      "replaces_order_ref": "replaces_order_ref",
+      "so_action": "so_action",
+      "so_ref": "so_ref",
+      "spec_id": "spec_id",
+      "so_state": "so_state",
+      "so_created_at": "so_created_at",
+      "terminal_serial": "terminal_serial",
+      "wo_ref": "wo_ref",
+      "wo_kind": "wo_kind",
+      "wo_state": "wo_state",
+      "wo_created_at": "wo_created_at"
+    },
+    "states": {
+      "order": {
+        "SUBMITTED": "SUBMITTED",
+        "PROVISIONING": "PROVISIONING",
+        "ACTIVE": "ACTIVE",
+        "FAILED": "FAILED",
+        "CANCELLED": "CANCELLED",
+        "REJECTED": "REJECTED",
+        "HELD": "HELD",
+        "PARTIAL": "PARTIAL"
+      },
+      "service_order": {
+        "SUBMITTED": "SUBMITTED",
+        "PROVISIONING": "PROVISIONING",
+        "ACTIVE": "ACTIVE",
+        "FAILED": "FAILED",
+        "CANCELLED": "CANCELLED",
+        "REJECTED": "REJECTED",
+        "HELD": "HELD",
+        "PARTIAL": "PARTIAL"
+      }
+    }
+  },
+  "bpm": {
+    "file": "bpm_history.jsonl",
+    "format": "jsonl",
+    "evidence_kind": "history",
+    "fields": {
+      "process_id": "process_id",
+      "so_ref": "so_ref",
+      "business_key": "business_key",
+      "state": "state",
+      "started_at": "started_at",
+      "ended_at": "ended_at",
+      "activities": "activities"
+    },
+    "activity_fields": {
+      "sequence": "sequence",
+      "kind": "kind",
+      "name": "name",
+      "actor": "actor",
+      "started_at": "started_at",
+      "ended_at": "ended_at",
+      "timer_expired": "timer_expired"
+    }
+  },
+  "prov": {
+    "file": "provisioning.jsonl",
+    "format": "jsonl",
+    "evidence_kind": "history",
+    "fields": {
+      "attempt_id": "attempt_id",
+      "so_ref": "so_ref",
+      "serial": "serial",
+      "state": "state",
+      "error_code": "error_code",
+      "started_at": "started_at",
+      "ended_at": "ended_at"
+    },
+    "states": {
+      "attempt": {
+        "pending": "pending",
+        "failed": "failed",
+        "succeeded": "succeeded"
+      }
+    }
+  }
+}

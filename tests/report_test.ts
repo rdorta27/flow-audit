@@ -163,7 +163,9 @@ Deno.test("every rate a rule reads is a row of the assumptions table", async () 
     const spy = (group: "rates" | "thresholds") =>
       new Proxy(demoConfig[group] as unknown as Record<string, number>, {
         get(target, key) {
-          if (typeof key === "string") touched.add(`${group}.${snake(key)}`);
+          if (typeof key === "string" && !key.endsWith("Basis")) {
+            touched.add(`${group}.${snake(key)}`);
+          }
           return Reflect.get(target, key);
         },
       });

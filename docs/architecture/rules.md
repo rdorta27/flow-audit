@@ -43,7 +43,9 @@ Severity is derived from impact, not declared by hand.
 order is not `CANCELLED`. The key is the item, not the service order: R04's retry is a new
 service order over the same item, so it is still a retry and the 20 duplicated orders are not
 counted twice. The window is inclusive: a retry exactly 24 h later is a retry; 24 h and one
-second later is fallout. Only activations are read (an attempt with another `operation` is
+second later is fallout. With `thresholds.retry_window_basis: "business"` the gap is counted in
+business hours of `calendar` (`weekdays` 1 to 7, `start_hour`, `end_hour`, optional `time_zone`
+and `holidays`), so a Friday-evening failure retried on Monday morning is 2 hours, not 65. Only activations are read (an attempt with another `operation` is
 ignored).
 
 **Evidence.** The failed attempt (id, error code, error class), the next attempt if one
@@ -125,7 +127,9 @@ in the declared tie counts; a missing attribute with no such task is counted apa
 means any) expires in the activation subprocess, **no activity follows it**, the process is still
 open (not ended, not suspended) and more than `thresholds.stuck_after_hours` (default 72) have
 passed between the expiry and the end of the audited period. The end of the period is the newest
-order intake, the same window the quality gate uses; no wall clock.
+order intake, the same window the quality gate uses; no wall clock. A `period` declared in the
+mapping replaces it. `thresholds.stuck_after_basis: "business"` counts the threshold in business
+hours of `calendar`.
 
 What happens after the expiry decides the bucket, in this order:
 

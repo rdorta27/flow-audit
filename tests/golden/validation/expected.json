@@ -1,0 +1,306 @@
+{
+  "about": "Hand-written orders with borderline cases. The answers are labelled from the rule definitions in docs/architecture/rules.md, not produced by running the engine. Synthetic data.",
+  "orders": 41,
+  "findings": {
+    "R01": {
+      "affected_orders": 7,
+      "orders": [
+        "ORD-V02",
+        "ORD-V03",
+        "ORD-V07",
+        "ORD-V08",
+        "ORD-V09",
+        "ORD-V17",
+        "ORD-V19"
+      ]
+    },
+    "R03": {
+      "affected_orders": 1,
+      "orders": [
+        "ORD-V22"
+      ]
+    },
+    "R04": {
+      "affected_orders": 1,
+      "orders": [
+        "ORD-V11"
+      ]
+    },
+    "R05": {
+      "affected_orders": 5
+    }
+  },
+  "not_evaluable": [
+    "R02"
+  ],
+  "cases": [
+    {
+      "order": "ORD-V01",
+      "why": "retry exactly 24 h after the failure: inclusive window, so a retry",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V02",
+      "why": "retry 24 h and one second after the failure: fallout",
+      "expect": {
+        "R01": true
+      }
+    },
+    {
+      "order": "ORD-V03",
+      "why": "failed on a transient code and never retried: fallout",
+      "expect": {
+        "R01": true
+      }
+    },
+    {
+      "order": "ORD-V04",
+      "why": "permanent error code: a retry cannot fix it, not fallout",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V05",
+      "why": "failed inside the declared maintenance window: expected, not fallout",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V06",
+      "why": "failed exactly at the end of the maintenance window: the window includes its end",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V07",
+      "why": "failed one second after the maintenance window: fallout",
+      "expect": {
+        "R01": true
+      }
+    },
+    {
+      "order": "ORD-V08",
+      "why": "error code the client never classified: counted as fallout, flagged unknown",
+      "expect": {
+        "R01": true
+      }
+    },
+    {
+      "order": "ORD-V09",
+      "why": "two failures 10 h apart and then nothing: the first was retried, the second not; one order counted once",
+      "expect": {
+        "R01": true
+      }
+    },
+    {
+      "order": "ORD-V10",
+      "why": "the service order was cancelled: a failure there is not fallout",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V11",
+      "why": "the activation failed and a new service order over the same item succeeded an hour later: a retry for R01, a duplicate (retry_new_order) for R04",
+      "expect": {
+        "R01": false,
+        "R04": true
+      }
+    },
+    {
+      "order": "ORD-V12",
+      "why": "a pending attempt is not a failure",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V13",
+      "why": "legitimate retry two hours after the failure",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V14",
+      "why": "two orders share a terminal serial (see ORD-V15)",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V15",
+      "why": "an attempt that carries only the shared serial fits two service orders: ambiguous, one weak link, placed under no order",
+      "expect": {
+        "R05": 1
+      }
+    },
+    {
+      "order": "ORD-V16",
+      "why": "an attempt with only a unique serial joins by inference: one weak link",
+      "expect": {
+        "R05": 1,
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V17",
+      "why": "a failed attempt joined only by serial and never retried: fallout on a weak link",
+      "expect": {
+        "R05": 1,
+        "R01": true
+      }
+    },
+    {
+      "order": "ORD-V18A",
+      "why": "replaced by ORD-V18B (an amendment); shares its terminal",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V18B",
+      "why": "amendment: the attempt that carries only the shared serial belongs to the replacement, one weak link and no ambiguity",
+      "expect": {
+        "R05": 1
+      }
+    },
+    {
+      "order": "ORD-V19",
+      "why": "the failure is written +02:00 (21:30Z); a retry 24 h 15 min later is fallout, though read as UTC the gap would look like 22 h 15 min",
+      "expect": {
+        "R01": true
+      }
+    },
+    {
+      "order": "ORD-V20",
+      "why": "the failure is written -05:00 (06:00Z); a retry 23 h 30 min later is a retry, though read as UTC the gap would look like 28 h 30 min",
+      "expect": {
+        "R01": false
+      }
+    },
+    {
+      "order": "ORD-V21",
+      "why": "timer expired exactly 72 h before the end of the period: not yet stuck",
+      "expect": {
+        "R03": false
+      }
+    },
+    {
+      "order": "ORD-V22",
+      "why": "timer expired 72 h and one second before the end: stuck",
+      "expect": {
+        "R03": true
+      }
+    },
+    {
+      "order": "ORD-V23",
+      "why": "timer expired and a person ran activation_recovery: recovered",
+      "expect": {
+        "R03": false
+      }
+    },
+    {
+      "order": "ORD-V24",
+      "why": "timer expired and an open fallout_review task owns it: in human management",
+      "expect": {
+        "R03": false
+      }
+    },
+    {
+      "order": "ORD-V25",
+      "why": "timer expired but the process is suspended on purpose",
+      "expect": {
+        "R03": false
+      }
+    },
+    {
+      "order": "ORD-V26",
+      "why": "timer expired and the process went on with another task, then ended",
+      "expect": {
+        "R03": false
+      }
+    },
+    {
+      "order": "ORD-V27",
+      "why": "a timer that did not expire is a healthy wait",
+      "expect": {
+        "R03": false
+      }
+    },
+    {
+      "order": "ORD-V28",
+      "why": "an expired timer that is not in timer_activities is not watched",
+      "expect": {
+        "R03": false
+      }
+    },
+    {
+      "order": "ORD-V29",
+      "why": "a plan change (modify) over the item of an added service: an amendment, not a duplicate",
+      "expect": {
+        "R04": false
+      }
+    },
+    {
+      "order": "ORD-V30",
+      "why": "the first service order was cancelled and a new one replaced it: deliberate, not a duplicate",
+      "expect": {
+        "R04": false
+      }
+    },
+    {
+      "order": "ORD-V31",
+      "why": "a process that only carries the business key: one inferred link",
+      "expect": {
+        "R05": 1
+      }
+    },
+    {
+      "order": "ORD-V32",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V33",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V34",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V35",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V36",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V37",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V38",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V39",
+      "why": "nothing wrong: one service order, one successful attempt, one finished process",
+      "expect": {}
+    },
+    {
+      "order": "ORD-V40",
+      "why": "the newest order: its intake is the end of the audited period",
+      "expect": {}
+    }
+  ]
+}

@@ -67,6 +67,8 @@ export function mapFileOrder(r: RawRecord): Order {
     offerVersion: optional(v.offer_version) ?? "unknown",
     provenance: r.provenance,
   };
+  const rawAt = optional(v.submitted_at_raw);
+  if (rawAt) order.submittedAtRaw = rawAt;
   const lines = fileItems(v);
   if (lines.length > 0) {
     order.items = lines;
@@ -88,6 +90,8 @@ export function mapFileServiceOrder(r: RawRecord): ServiceOrder {
     createdAt: str(v.so_created_at),
     provenance: r.provenance,
   };
+  const rawAt = optional(v.so_created_at_raw);
+  if (rawAt) so.createdAtRaw = rawAt;
   const item = optional(v.item_ref);
   if (item) so.productOrderItemRef = item;
   else if (v.single_line === true) so.productOrderItemRef = itemOf(str(v.order_ref));
@@ -120,6 +124,7 @@ export function mapFileProcess(r: RawRecord): ProcessInstance {
     state: optional(v.state) ?? "unmapped",
     startedAt: str(v.started_at),
     endedAt: optional(v.ended_at),
+    ...(optional(v.started_at_raw) ? { startedAtRaw: optional(v.started_at_raw)! } : {}),
     tasks: tasksOf(v.activities),
     ...bpmV2(r),
   };
@@ -170,6 +175,8 @@ function bpmV2(r: RawRecord): Partial<ProcessInstance> {
       set("createdAt", text(a.created_at));
       set("claimedAt", text(a.claimed_at));
       set("dueAt", text(a.due_at));
+      const eventSub = flag(a.event_subprocess);
+      if (eventSub === true) act.eventSubprocess = true;
       return act;
     });
   }
@@ -208,7 +215,11 @@ function tasksOf(activities: unknown): ProcessTask[] {
 
 export function mapFileAttempt(r: RawRecord): ProvisioningAttempt {
   const v = r.value;
+  const startedRaw = optional(v.started_at_raw);
+  const endedRaw = optional(v.ended_at_raw);
   return {
+    ...(startedRaw ? { startedAtRaw: startedRaw } : {}),
+    ...(endedRaw ? { endedAtRaw: endedRaw } : {}),
     attemptId: str(v.attempt_id),
     soRef: optional(v.so_ref),
     serial: optional(v.serial) ?? "",

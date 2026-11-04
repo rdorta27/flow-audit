@@ -71,7 +71,28 @@ export interface SystemFacts {
   /** State values read and the ones the mapping did not know, by text. */
   statesRead: number;
   unknownStates: Record<string, number>;
+  /** PROV only (M6-02): consistency of the attempts with the service orders they belong to. */
+  activationChecks?: ActivationChecks;
 }
+
+/**
+ * Two cheap tests that catch a silently incomplete or shifted export. A service order that
+ * ended `ACTIVE` or `FAILED` went through activation, so one with no attempt at all points at
+ * missing PROV rows; an attempt that starts before its service order was created cannot be
+ * right and points at a time-zone mistake. Both only warn (they do not fail the gate).
+ */
+export interface ActivationChecks {
+  /** Service orders in state `ACTIVE` or `FAILED`, and the ones with no attempt placed on them. */
+  settledServiceOrders: number;
+  withoutAttempt: number;
+  /** Attempts placed on a service order, and the ones that start before it was created. */
+  placedAttempts: number;
+  beforeServiceOrder: number;
+}
+
+/** Share above which the two checks warn. */
+export const MAX_SETTLED_WITHOUT_ATTEMPT = 0.05;
+export const MAX_ATTEMPTS_BEFORE_PARENT = 0.01;
 
 export interface SystemQuality extends SystemFacts {
   /** Share of the audited window the records span; null when the system is absent. */
@@ -191,6 +212,29 @@ export function assessQuality(
         `${s.system} (${s.label}): ${pct(s.unknownShare)} of the states are not in the mapping ` +
           `(${list}); the gate allows ${pct(thresholds.maxUnknownStateShare)}`,
       );
+    }
+    const checks = s.activationChecks;
+    if (checks && checks.settledServiceOrders > 0) {
+      const share = checks.withoutAttempt / checks.settledServiceOrders;
+      if (share > MAX_SETTLED_WITHOUT_ATTEMPT) {
+        warnings.push(
+          `${s.system} (${s.label}): ${num(checks.withoutAttempt)} of ${
+            num(checks.settledServiceOrders)
+          } active or failed service orders (${pct(share)}) have no activation attempt; ` +
+            `rows may be missing from the export, and a retry that is missing reads as fallout`,
+        );
+      }
+    }
+    if (checks && checks.placedAttempts > 0) {
+      const share = checks.beforeServiceOrder / checks.placedAttempts;
+      if (share > MAX_ATTEMPTS_BEFORE_PARENT) {
+        warnings.push(
+          `${s.system} (${s.label}): ${num(checks.beforeServiceOrder)} of ${
+            num(checks.placedAttempts)
+          } attempts (${pct(share)}) start before their service order was created; ` +
+            `check the time zone declared for this file`,
+        );
+      }
     }
     if (s.duplicateKeys > 0) {
       warnings.push(

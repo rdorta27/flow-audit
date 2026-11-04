@@ -152,6 +152,8 @@ export interface OrderItem {
 export interface Order {
   orderRef: string;
   submittedAt: string;
+  /** The timestamp as the file wrote it, kept when it is not already ISO 8601 UTC (M5-08). */
+  submittedAtRaw?: string;
   state: OrderState;
   offerId: string;
   offerVersion: string;
@@ -176,6 +178,8 @@ export interface ServiceOrder {
   /** The state exactly as the source wrote it (M2-05). */
   rawState?: string;
   createdAt: string;
+  /** The timestamp as the file wrote it, kept when it is not already ISO 8601 UTC (M5-08). */
+  createdAtRaw?: string;
   /** What this service order does to its item; absent is unknown (M2-08). */
   action?: ItemAction;
   /** Terminal assigned to the service. PROV attempts link back through it. */
@@ -204,6 +208,8 @@ export interface ProcessInstance {
   state: string;
   startedAt: string;
   endedAt: string | null;
+  /** The start as the file wrote it, kept when not already ISO 8601 UTC (M5-08). */
+  startedAtRaw?: string;
   /** The tasks the process ran, when the source nests them (files do; the TMF stub does not). */
   tasks?: ProcessTask[];
   /** M2-10, all optional: filled when the source has them, required by nothing. */
@@ -261,6 +267,8 @@ export interface Activity {
   createdAt?: string;
   claimedAt?: string;
   dueAt?: string;
+  /** True for an event subprocess, which the segments and rules do not model (M2-10). */
+  eventSubprocess?: boolean;
 }
 
 export interface ProvisioningAttempt {
@@ -274,6 +282,9 @@ export interface ProvisioningAttempt {
   errorCode: string | null;
   startedAt: string;
   endedAt: string | null;
+  /** The timestamps as the file wrote them, kept when not already ISO 8601 UTC (M5-08). */
+  startedAtRaw?: string;
+  endedAtRaw?: string;
   /** M2-07, all optional: filled when the source has them, required by nothing. */
   attemptNo?: number;
   operation?: AttemptOperation;
@@ -590,6 +601,29 @@ export interface ReportJourney extends OrderJourney {
   story: StoryStep[];
 }
 
+/** The audited period and what was left out of it (M5-08). */
+export interface ReportPeriod {
+  /** ISO 8601 UTC. */
+  start: string;
+  end: string;
+  /** True when the mapping declared it; false when it is the span of the order export. */
+  declared: boolean;
+  /** Records outside a declared period, removed before the rules ran. */
+  removed: { orders: number; serviceOrders: number; processes: number; attempts: number };
+}
+
+/** How hours in the audited data become hours per month (M5-08); additive, not yet applied. */
+export interface ReportScaling {
+  ordersInPeriod: number;
+  ordersPerMonth: number;
+  periodDays: number;
+  /** Orders per 30 days seen in the period. */
+  observedOrdersPerMonth: number;
+  /** `ordersPerMonth / ordersInPeriod`: 1 when the period holds exactly the monthly volume. */
+  factor: number;
+  formula: string;
+}
+
 /** The whole report: this is `findings/2`. The file uses the snake_case form of these keys. */
 export interface AuditReport {
   schemaVersion: typeof SCHEMA_VERSION;
@@ -613,6 +647,9 @@ export interface AuditReport {
   /** What the run read, for the cover (M5-13). */
   scope: { orders: number };
   journeys: ReportJourney[];
+  /** M5-08, additive. */
+  period?: ReportPeriod;
+  scaling?: ReportScaling;
 }
 
 export interface ImpactRates {
@@ -626,6 +663,24 @@ export interface ImpactThresholds {
   retryWindowHours: number;
   stuckAfterHours: number;
   duplicateWindowMinutes: number;
+  /** Whether the two hour thresholds count calendar hours (default) or business hours (M5-08). */
+  retryWindowBasis?: HoursBasis;
+  stuckAfterBasis?: HoursBasis;
+}
+
+export type HoursBasis = "calendar" | "business";
+
+/** The client's working time, for thresholds declared in business hours (M5-08). */
+export interface BusinessCalendar {
+  /** 1 Monday to 7 Sunday. */
+  weekdays: number[];
+  /** Local hours, 0 to 24; `endHour` is after `startHour`. */
+  startHour: number;
+  endHour: number;
+  /** IANA zone the hours are local to; UTC when absent. */
+  timeZone?: string;
+  /** Local dates (`yyyy-mm-dd`) that are not working days. */
+  holidays?: string[];
 }
 
 /** How a provisioning error code is treated by R01 (M3-09). */
@@ -702,4 +757,6 @@ export interface ImpactConfig {
   thresholds: ImpactThresholds;
   rules?: RuleSettings;
   parameters?: Record<string, ParameterMeta>;
+  /** Required when a threshold is declared in business hours. */
+  calendar?: BusinessCalendar;
 }

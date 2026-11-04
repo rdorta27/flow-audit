@@ -39,6 +39,8 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `sensitivity[]` | Only when some rate has a range: for each such rate, `low`, `high`, `hours_at_low` and `hours_at_high` (the net total with only that rate moved) and `swing` (their difference). Ordered by `swing`, largest first. `[]` when no rate has a range. |
 | `rules[]` | One per registered rule: `id`, `title`, `version` and `outcome`: `found`, `nothing_found` (the rule ran) or `not_evaluable` (a system it needs was not read, or covers too little; `reason` says which). "Nothing found" and "not evaluable" are never the same. |
 | `scope` | `orders`: how many orders the run read. |
+| `period` | The audited period: `start`, `end`, `declared` (false when it is the span of the orders) and `removed` (`orders`, `service_orders`, `processes`, `attempts` taken out for being outside a declared period). |
+| `scaling` | `orders_in_period`, `orders_per_month` (from `config`), `period_days`, `observed_orders_per_month`, `factor` (`orders_per_month / orders_in_period`) and `formula`. `cost.hours_month` is over the audited data and is not rescaled. |
 | `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story[]`: the order step by step (`at`, `system`, `what` (one plain sentence), `record` (`id` and `endpoint`, or `null`), `finding` (the rule id that starts at this step, or `null`), `observed`, `reason` (why a step is not observed)). A step the source cannot show stays in the list with `observed` false. |
 
 ## Findings

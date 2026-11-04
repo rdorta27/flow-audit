@@ -17,6 +17,7 @@ import {
   joinPath,
   newCoverage,
   provenance,
+  raws,
   readFileText,
   RowView,
 } from "./file_common.ts";
@@ -113,6 +114,7 @@ export class OmsFile {
           value: {
             order_ref: orderRef,
             submitted_at: view.date("submitted_at", true),
+            ...raws(view, "submitted_at"),
             order_state: orderState.value,
             order_state_raw: orderState.raw,
             offer_id: view.requiredText("offer_id"),
@@ -132,6 +134,7 @@ export class OmsFile {
             so_action: view.text("so_action"),
             item_ref: itemRef,
             so_created_at: view.date("so_created_at", true),
+            ...raws(view, "so_created_at"),
             terminal_serial: view.id("terminal_serial"),
             single_line: block.singleLineOrders,
           },

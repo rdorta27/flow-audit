@@ -119,6 +119,16 @@ function applyId(value: string, rule: IdRule | undefined): string {
   return id;
 }
 
+/** `{<field>_raw: text}` for each date field whose text was not already UTC; else nothing. */
+export function raws(view: RowView, ...fields: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of fields) {
+    const text = view.dateRaw(f);
+    if (text !== null) out[`${f}_raw`] = text;
+  }
+  return out;
+}
+
 /** One row of a file, read through the mapping: every accessor takes a canonical field name. */
 export class RowView {
   unmappedState = false;
@@ -193,6 +203,17 @@ export class RowView {
       );
     }
     return iso;
+  }
+
+  /**
+   * The timestamp text as the file wrote it, only when it is not already ISO 8601 UTC with `Z`
+   * (M5-08): the UTC value stays the one the engine uses, this is the proof next to it.
+   */
+  dateRaw(field: string): string | null {
+    const text = this.raw(field);
+    if (text === null) return null;
+    const iso = this.date(field);
+    return iso !== null && /Z$/.test(text) && Date.parse(text) === Date.parse(iso) ? null : text;
   }
 
   /**

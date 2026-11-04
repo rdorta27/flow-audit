@@ -5,6 +5,7 @@
  * only functions that translate between the two. Pure: no I/O.
  */
 
+import { checkCalendar } from "./calendar.ts";
 import type { Catalog, ImpactConfig, ParameterMeta, ParameterSource } from "./model.ts";
 
 const toCamel = (key: string) => key.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
@@ -70,6 +71,7 @@ export function configFromFile(raw: unknown): ImpactConfig {
   const flat = (group: "rates" | "thresholds") =>
     Object.fromEntries(
       Object.entries(raw[group] as Record<string, unknown>).map(([k, v]) => {
+        if (typeof v === "string") return [k, v]; // a basis such as "business"
         const p = parameter(`${group}.${k}`, v);
         if (p.meta && Object.keys(p.meta).length > 0) parameters[`${group}.${k}`] = p.meta;
         return [k, p.base];
@@ -80,6 +82,15 @@ export function configFromFile(raw: unknown): ImpactConfig {
     toCamel,
   ) as ImpactConfig;
   if (Object.keys(parameters).length > 0) config.parameters = parameters;
+  const business = [config.thresholds.retryWindowBasis, config.thresholds.stuckAfterBasis]
+    .includes("business");
+  if (config.calendar !== undefined || business) {
+    if (config.calendar === undefined) {
+      throw new Error("a threshold is declared in business hours but the config has no calendar");
+    }
+    const why = checkCalendar(config.calendar);
+    if (why) throw new Error(`calendar: ${why}`);
+  }
   return config;
 }
 

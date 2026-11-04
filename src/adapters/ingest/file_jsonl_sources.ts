@@ -9,6 +9,7 @@ import {
   joinPath,
   newCoverage,
   provenance,
+  raws,
   readFileText,
   RowView,
 } from "./file_common.ts";
@@ -152,6 +153,7 @@ export class FileBpmSource extends JsonlSource {
           "task_id",
           "assignee",
           "candidate_group",
+          "event_subprocess",
         ], ["due_date", "fired_at", "created_at", "claimed_at", "due_at"]),
       };
     });
@@ -166,6 +168,7 @@ export class FileBpmSource extends JsonlSource {
         state_raw: state.raw,
         started_at: view.date("started_at", true),
         ended_at: view.date("ended_at"),
+        ...raws(view, "started_at"),
         activities,
         ...extras(view, [
           "suspended",
@@ -201,6 +204,7 @@ export class FileProvisioningSource extends JsonlSource {
         error_code: view.text("error_code"),
         started_at: view.date("started_at", true),
         ended_at: view.date("ended_at"),
+        ...raws(view, "started_at", "ended_at"),
       },
     };
   }

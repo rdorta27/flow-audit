@@ -71,6 +71,15 @@ export function assertFindingsFile(value: unknown, which: string): Json {
 }
 
 function flatten(value: unknown, prefix: string, out: Map<string, unknown>): void {
+  // A rate declared as {base, low, high, ...} compares by its base, like a plain number.
+  if (
+    isObject(value) && ("base" in value || "value" in value) &&
+    prefix.match(/^(rates|thresholds)\./)
+  ) {
+    out.set(prefix, "base" in value ? value.base : value.value);
+    for (const k of ["low", "high"]) if (k in value) out.set(`${prefix}.${k}`, value[k]);
+    return;
+  }
   if (isObject(value)) {
     for (const [k, v] of Object.entries(value)) flatten(v, prefix ? `${prefix}.${k}` : k, out);
   } else if (Array.isArray(value) && value.some((v) => isObject(v) || Array.isArray(v))) {

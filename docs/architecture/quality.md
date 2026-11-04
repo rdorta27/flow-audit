@@ -24,7 +24,11 @@ with no parent is over `max_orphan_share` (0.10), or the share of unknown states
 `max_unknown_state_share` (0.01). The defaults are in `DEFAULT_THRESHOLDS`; a client changes
 them in the mapping's `quality` block. Repeats do not fail the gate: they are removed and
 reported as a warning with the count (a doubled file gives the same findings as the original).
-Ranges that do not overlap add a warning. The demo passes from files and from the stub (the stub
+Ranges that do not overlap add a warning. Two more warnings (M6-02, they never fail the gate):
+more than 5% of the `ACTIVE` or `FAILED` service orders have no activation attempt (rows may be
+missing, and a missing retry reads as fallout), and more than 1% of the attempts start before
+their service order was created (a time-zone mistake). A shift that moves a whole file the same way
+forward cannot be seen this way. The demo passes from files and from the stub (the stub
 has 300 activations with no reference, 5.6%, which is why the orphan default is 10%).
 
 The gate also reports the `commonWindow`, where every present system has records. It is

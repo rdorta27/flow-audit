@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import { mapActivation, mapProductOrder, mapServiceOrder } from "../adapters/ingest/tmf_mapping.ts";
+import { bpmWarnings } from "../domain/bpm_warnings.ts";
 import { correlate, type CorrelationResult, summarizeLinks } from "../domain/correlation.ts";
 import {
   buildAssumptions,
@@ -17,6 +18,8 @@ import {
   type Finding,
   type ImpactConfig,
   type OrderJourney,
+  type ReportPeriod,
+  type ReportScaling,
   type ReportSource,
   type ReportSystem,
   type RuleOutcome,
@@ -25,6 +28,7 @@ import {
 } from "../domain/model.ts";
 import { type RuleContext, RULES } from "../domain/rules/index.ts";
 import {
+  type ActivationChecks,
   assessQuality,
   type NotEvaluable,
   notEvaluableRules,
@@ -105,6 +109,8 @@ export interface AuditResult {
   quality?: QualityReport;
   /** The full correlation: every order with its linked records. */
   correlation: CorrelationResult;
+  /** Lines for a person to read before trusting the numbers (M2-10); empty when none. */
+  warnings: string[];
   /** The records as the sources served them, for callers that show the proof. */
   records: {
     productOrders: RawRecord[];
@@ -167,6 +173,10 @@ async function sha256(text: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function withoutRawText(value: RawRecord["value"]): RawRecord["value"] {
+  return Object.fromEntries(Object.entries(value).filter(([k]) => !k.endsWith("_raw"))) as never;
+}
+
 async function describeSource(source: EvidenceSource, rows: RawRecord[]): Promise<ReportSource> {
   const first = rows[0];
   const endpoint = first?.provenance.endpoint ?? source.name;
@@ -181,7 +191,8 @@ async function describeSource(source: EvidenceSource, rows: RawRecord[]): Promis
     rowsRead: rows.length,
     rowsDiscarded: 0,
     // The records only: the time they were read changes on every run and must not.
-    sha256: await sha256(canonical(rows.map((r) => r.value))),
+    // `<field>_raw` is the text of a timestamp as the file wrote it: not part of the data's identity.
+    sha256: await sha256(canonical(rows.map((r) => withoutRawText(r.value)))),
   };
 }
 
@@ -231,6 +242,34 @@ interface Prepared {
   rawCatalog: RawRecord[];
   correlation: CorrelationResult;
   quality?: QualityReport;
+  period: ReportPeriod;
+  warnings: string[];
+}
+
+/** The consistency tests of the activation attempts against their service orders (M6-02). */
+function activationChecks(c: CorrelationResult): ActivationChecks {
+  const out: ActivationChecks = {
+    settledServiceOrders: 0,
+    withoutAttempt: 0,
+    placedAttempts: 0,
+    beforeServiceOrder: 0,
+  };
+  for (const entry of c.orders) {
+    const created = new Map(entry.serviceOrders.map((l) => [l.item.soRef, l.item]));
+    const withAttempt = new Set(entry.attempts.map((a) => a.link.toId));
+    for (const { item: so } of entry.serviceOrders) {
+      if (so.state !== "ACTIVE" && so.state !== "FAILED") continue;
+      out.settledServiceOrders++;
+      if (!withAttempt.has(so.soRef)) out.withoutAttempt++;
+    }
+    for (const { item: attempt, link } of entry.attempts) {
+      const so = created.get(link.toId ?? "");
+      if (!so) continue;
+      out.placedAttempts++;
+      if (Date.parse(attempt.startedAt) < Date.parse(so.createdAt)) out.beforeServiceOrder++;
+    }
+  }
+  return out;
 }
 
 /** Facts per system for the gate, from the mapped records and what the readers dropped. */
@@ -302,10 +341,63 @@ async function gateFacts(
     c.unresolved.attempts.length,
     p.attempts.length,
   ));
+  const prov = list.find((f) => f.system === "PROV")!;
+  prov.activationChecks = activationChecks(c);
   if (sources.catalog) {
     list.push(facts("CAT", sources.catalog.name, p.rawCatalog.length, [], 0, 0, 0));
   }
   return list;
+}
+
+/** Removes the orders submitted outside the declared period and what hangs under them (M5-08). */
+interface Mapped {
+  orders: Order[];
+  serviceOrders: ServiceOrder[];
+  processes?: ProcessInstance[];
+  attempts: ProvisioningAttempt[];
+}
+
+function withinPeriod(
+  input: Mapped,
+  period: { start: string; end: string },
+): { input: Mapped; removed: ReportPeriod["removed"] } {
+  const from = Date.parse(period.start);
+  const to = Date.parse(period.end);
+  const outside = new Set(
+    input.orders.filter((o) => {
+      const t = Date.parse(o.submittedAt);
+      return !Number.isNaN(t) && (t < from || t > to);
+    }).map((o) => o.orderRef),
+  );
+  const removed = { orders: 0, serviceOrders: 0, processes: 0, attempts: 0 };
+  if (outside.size === 0) return { input, removed };
+  const first = correlate(input);
+  const gone = {
+    so: new Set<ServiceOrder>(),
+    process: new Set<ProcessInstance>(),
+    attempt: new Set<ProvisioningAttempt>(),
+  };
+  for (const entry of first.orders) {
+    if (!outside.has(entry.order.orderRef)) continue;
+    entry.serviceOrders.forEach((l) => gone.so.add(l.item));
+    entry.processes.forEach((l) => gone.process.add(l.item));
+    entry.attempts.forEach((l) => gone.attempt.add(l.item));
+  }
+  // A service order that names a removed order but could not be placed goes with it.
+  for (const so of input.serviceOrders) if (outside.has(so.orderRef)) gone.so.add(so);
+  removed.orders = input.orders.filter((o) => outside.has(o.orderRef)).length;
+  removed.serviceOrders = gone.so.size;
+  removed.processes = gone.process.size;
+  removed.attempts = gone.attempt.size;
+  return {
+    removed,
+    input: {
+      orders: input.orders.filter((o) => !outside.has(o.orderRef)),
+      serviceOrders: input.serviceOrders.filter((s) => !gone.so.has(s)),
+      processes: input.processes?.filter((p) => !gone.process.has(p)),
+      attempts: input.attempts.filter((a) => !gone.attempt.has(a)),
+    },
+  };
 }
 
 /**
@@ -334,11 +426,32 @@ async function prepare(deps: AuditDeps): Promise<Prepared> {
     serviceOrder: mapServiceOrder,
     attempt: mapActivation,
   };
-  const orders = rawOrders.map(map.order);
-  const serviceOrders = rawServices.map(map.serviceOrder);
-  const processes = map.process ? rawProcesses.map(map.process) : undefined;
-  const attempts = rawAttempts.map(map.attempt);
+  const mapped = {
+    orders: rawOrders.map(map.order),
+    serviceOrders: rawServices.map(map.serviceOrder),
+    processes: map.process ? rawProcesses.map(map.process) : undefined,
+    attempts: rawAttempts.map(map.attempt),
+  };
+  const kept = sources.period ? withinPeriod(mapped, sources.period) : undefined;
+  const { orders, serviceOrders, processes, attempts } = kept?.input ?? mapped;
   const correlation = correlate({ orders, serviceOrders, processes, attempts });
+  const warnings = bpmWarnings(processes ?? []);
+  for (const w of warnings) say(w);
+  const submitted = orders.map((o) => o.submittedAt).filter((t) => !Number.isNaN(Date.parse(t)));
+  const span = rangeOf(submitted);
+  const period: ReportPeriod = {
+    start: sources.period?.start ?? span?.start ?? "",
+    end: sources.period?.end ?? span?.end ?? "",
+    declared: sources.period !== undefined,
+    removed: kept?.removed ?? { orders: 0, serviceOrders: 0, processes: 0, attempts: 0 },
+  };
+  if (kept && kept.removed.orders > 0) {
+    const r = kept.removed;
+    say(
+      `period ${period.start} to ${period.end}: removed ${r.orders} orders, ` +
+        `${r.serviceOrders} service orders, ${r.processes} processes and ${r.attempts} attempts outside it`,
+    );
+  }
 
   const prepared: Prepared = {
     sources,
@@ -350,6 +463,8 @@ async function prepare(deps: AuditDeps): Promise<Prepared> {
     rawProcesses,
     rawCatalog,
     correlation,
+    period,
+    warnings,
   };
   if (deps.gate) {
     say("checking the data quality");
@@ -364,9 +479,29 @@ async function prepare(deps: AuditDeps): Promise<Prepared> {
     });
     quality.notEvaluable = notEvaluableRules(quality, RULES.map((r) => r.id));
     quality.forced = !quality.passed && deps.gate.force === true;
+    quality.warnings.push(...warnings);
     prepared.quality = quality;
   }
   return prepared;
+}
+
+/** The per-month scaling and the numbers behind it (M5-08). Exposed; the hours are not rescaled. */
+export function scalingOf(
+  period: ReportPeriod,
+  ordersInPeriod: number,
+  ordersPerMonth: number,
+): ReportScaling {
+  const span = Date.parse(period.end) - Date.parse(period.start);
+  const periodDays = Number.isNaN(span) ? 0 : Math.max(0, span) / 86_400_000;
+  return {
+    ordersInPeriod,
+    ordersPerMonth,
+    periodDays,
+    observedOrdersPerMonth: periodDays > 0 ? ordersInPeriod * 30 / periodDays : ordersInPeriod,
+    factor: ordersInPeriod > 0 ? ordersPerMonth / ordersInPeriod : 1,
+    formula: "hours per month = hours in the audited period × orders_per_month / orders in the " +
+      "period",
+  };
 }
 
 /** Reads, maps and runs the gate, nothing more (`audit --check`). */
@@ -400,13 +535,17 @@ export async function runAudit(
   deps: AuditDeps,
 ): Promise<AuditResult> {
   const prepared = await prepare(deps);
-  const { sources, config, correlation, quality } = prepared;
+  const { sources, config, correlation, quality, period } = prepared;
   const { rawOrders, rawServices, rawAttempts, rawWorkOrders, rawProcesses, rawCatalog } = prepared;
   if (quality && !quality.passed && !quality.forced) throw new QualityGateError(quality);
   const say = deps.onProgress ?? (() => {});
   const skipped: NotEvaluable[] = quality?.notEvaluable ?? [];
 
-  const context: RuleContext = { correlation, catalog: catalogOf(rawCatalog) };
+  const context: RuleContext = {
+    correlation,
+    catalog: catalogOf(rawCatalog),
+    period: sources.period,
+  };
   const evaluate = (cfg: ImpactConfig, announce = false) => {
     const found: Finding[] = [];
     const charged: OrderCharge[] = [];
@@ -499,7 +638,10 @@ export async function runAudit(
     };
   });
 
-  const allJourneys = journeysWithSegments(correlation, []);
+  const activities = correlation.orders.flatMap((e) =>
+    e.processes.flatMap((p) => p.item.activities ?? [])
+  );
+  const allJourneys = journeysWithSegments(correlation, activities);
   // Orders that carry the most findings tell the most, so they are drawn first.
   const refs = [...new Set(findings.flatMap((f) => f.evidence.map((e) => e.orderRef)))];
   const carried = (ref: string) =>
@@ -572,6 +714,8 @@ export async function runAudit(
       gross: withRange(totals.gross, totalsLow.gross.hours, totalsHigh.gross.hours),
       net: withRange(totals.net, totalsLow.net.hours, totalsHigh.net.hours),
     },
+    period,
+    scaling: scalingOf(period, correlation.orders.length, config.ordersPerMonth),
     assumptions,
     sensitivity,
     rules: outcomes,
@@ -592,6 +736,7 @@ export async function runAudit(
     journeys,
     quality,
     correlation,
+    warnings: prepared.warnings,
     records: recordsOf(prepared),
   };
 }
