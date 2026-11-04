@@ -3,6 +3,7 @@ import { NoEvidenceSourceError, runAudit } from "../app/run_audit.ts";
 import type { AuditResult } from "../app/run_audit.ts";
 import { systemClock } from "../adapters/clock/system_clock.ts";
 import { TmfError } from "../adapters/ingest/tmf_client.ts";
+import { createFileSources } from "../adapters/ingest/file_sources.ts";
 import { createTmfSources, tmfConfigFromEnvOrStub } from "../adapters/ingest/tmf_sources.ts";
 import { configFromFile } from "../domain/data_files.ts";
 import type { AuditReport, ImpactConfig } from "../domain/model.ts";
@@ -14,6 +15,7 @@ const DEFAULT_CONFIG = new URL("../../data/demo/config.json", import.meta.url);
 const USAGE = `flow-audit — audit the order-to-activate flow of a BSS
 
 Usage:
+  deno task audit --dataset <dir> [--config <file>] [--out <dir>] [--quiet]
   deno task audit --source stub [--config <file>] [--out <dir>] [--quiet]
 
 Options:
@@ -26,7 +28,9 @@ Options:
   --config <file>  Impact rates and thresholds (default: data/demo/config.json).
   --out <dir>      Write findings.json and report.html into this existing directory.
                    The \`audit\` task may write only under ./out.
-  --dataset <dir>  Directory with exports; file sources arrive in M5-02.
+  --dataset <dir>  Read the four exports in this directory (catalog.json, oms_orders.csv,
+                   bpm_history.jsonl, provisioning.jsonl; the demo is data/demo).
+                   Not together with --source.
   --quiet          No progress lines on stderr. The result on stdout is unchanged.
   -h, --help       Show this help.
 
@@ -154,6 +158,14 @@ export function summaryLines(result: AuditResult): string[] {
         `${n(Math.round(f.cost.hoursMonth * 10) / 10)} h`,
     );
   }
+  const { workOrders, processes } = result.records;
+  if (workOrders.length > 0 || processes.length > 0) {
+    lines.splice(
+      1,
+      0,
+      `Work orders read: ${n(workOrders.length)} · processes: ${n(processes.length)}`,
+    );
+  }
   return lines;
 }
 
@@ -182,7 +194,18 @@ export async function main(
   try {
     let sources;
     let config: ImpactConfig | undefined;
-    if (options.source === "stub") {
+    if (options.source && options.dataset) {
+      throw new UsageError("--source and --dataset cannot be used together");
+    }
+    if (options.dataset) {
+      progress(`reading the exports in ${options.dataset}`);
+      sources = createFileSources({
+        dir: options.dataset,
+        now: () => new Date().toISOString(),
+        simulated: options.dataset.replace(/\/+$/, "").endsWith("data/demo"),
+      });
+      config = await readConfig(options.config);
+    } else if (options.source === "stub") {
       const tmf = tmfConfigFromEnvOrStub(env);
       progress(`reading from ${tmf.baseUrl}`);
       sources = createTmfSources(tmf);
@@ -198,7 +221,7 @@ export async function main(
     }
     return 0;
   } catch (error) {
-    if (error instanceof NoEvidenceSourceError) {
+    if (error instanceof NoEvidenceSourceError || error instanceof UsageError) {
       console.error(`flow-audit: ${error.message}`);
       return 2;
     }

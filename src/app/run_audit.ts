@@ -15,6 +15,7 @@ import {
   type SystemId,
 } from "../domain/model.ts";
 import { RULES } from "../domain/rules/index.ts";
+import type { Order, ProcessInstance, ProvisioningAttempt, ServiceOrder } from "../domain/model.ts";
 import type { Clock } from "../ports/clock.ts";
 import type { EvidenceSource, RawRecord } from "../ports/evidence_source.ts";
 
@@ -28,11 +29,27 @@ export interface AuditOptions {
   dataset?: string;
 }
 
-/** The three sources the audit reads today: TMF622, TMF641 and TMF640. */
+/** How a source's records become the canonical model; the TMF mappers when absent. */
+export interface RecordMappers {
+  order(record: RawRecord): Order;
+  serviceOrder(record: RawRecord): ServiceOrder;
+  attempt(record: RawRecord): ProvisioningAttempt;
+  process?(record: RawRecord): ProcessInstance;
+}
+
+/**
+ * The sources the audit reads: product orders, service orders and activations (TMF622, TMF641
+ * and TMF640 over HTTP, or the files of M5-02), and, only from files, the work orders, the
+ * processes and the catalog.
+ */
 export interface AuditSources {
   productOrders: EvidenceSource;
   serviceOrders: EvidenceSource;
   activations: EvidenceSource;
+  workOrders?: EvidenceSource;
+  processes?: EvidenceSource;
+  catalog?: EvidenceSource;
+  mappers?: RecordMappers;
 }
 
 export interface AuditDeps {
@@ -53,14 +70,22 @@ export interface AuditResult {
   /** The full correlation: every order with its linked records. */
   correlation: CorrelationResult;
   /** The records as the sources served them, for callers that show the proof. */
-  records: { productOrders: RawRecord[]; serviceOrders: RawRecord[]; activations: RawRecord[] };
+  records: {
+    productOrders: RawRecord[];
+    serviceOrders: RawRecord[];
+    activations: RawRecord[];
+    /** Empty when the source does not carry them (the TMF stub). */
+    workOrders: RawRecord[];
+    processes: RawRecord[];
+    catalog: RawRecord[];
+  };
 }
 
 export class NoEvidenceSourceError extends Error {
   constructor() {
     super(
-      "no evidence source configured. Pass --source stub (the simulated TMF stub, " +
-        "see `deno task stub`); file sources arrive in milestone M5-02.",
+      "no evidence source configured. Pass --dataset <dir> (the exports) or " +
+        "--source stub (the simulated TMF stub, see `deno task stub`).",
     );
     this.name = "NoEvidenceSourceError";
   }
@@ -107,27 +132,35 @@ async function describeSource(source: EvidenceSource, rows: RawRecord[]): Promis
 
 const SYSTEM_INFO: Record<
   SystemId,
-  { name: string; role: string; cannotObserve: string[] }
+  { name: string; role: string; cannotObserve: string[]; cannotObserveHistory: string[] }
 > = {
   CAT: {
     name: "Product catalog",
     role: "lists what is sold and the technical data needed to switch it on",
     cannotObserve: ["not read in this run: no catalog source is wired yet"],
+    cannotObserveHistory: [
+      "which version of an offer applied to an order: the catalog holds validity dates only",
+    ],
   },
   OMS: {
     name: "Order manager",
     role: "receives the order and splits it into service orders",
     cannotObserve: ["when each state change happened: the source is a snapshot, not a history"],
+    cannotObserveHistory: [
+      "when each state change happened: a row holds the current state and its creation time",
+    ],
   },
   BPM: {
     name: "Process orchestrator",
     role: "runs the tasks in order and hands some to people",
     cannotObserve: ["not read in this run: no process source is wired yet"],
+    cannotObserveHistory: [],
   },
   PROV: {
     name: "Activation system",
     role: "switches the service on in the network; can fail and retry",
     cannotObserve: ["when each attempt changed state: the source is a snapshot, not a history"],
+    cannotObserveHistory: [],
   },
 };
 const SYSTEM_ORDER: SystemId[] = ["CAT", "OMS", "BPM", "PROV"];
@@ -152,12 +185,22 @@ export async function runAudit(
   say(`reading activations (TMF640); ${rawServices.length} service orders so far`);
   const rawAttempts = await collect(sources.activations);
 
+  const rawWorkOrders = sources.workOrders ? await collect(sources.workOrders) : [];
+  const rawProcesses = sources.processes ? await collect(sources.processes) : [];
+  const rawCatalog = sources.catalog ? await collect(sources.catalog) : [];
+
   say("correlating");
-  const orders = rawOrders.map(mapProductOrder);
+  const map: RecordMappers = sources.mappers ?? {
+    order: mapProductOrder,
+    serviceOrder: mapServiceOrder,
+    attempt: mapActivation,
+  };
+  const orders = rawOrders.map(map.order);
   const correlation = correlate({
     orders,
-    serviceOrders: rawServices.map(mapServiceOrder),
-    attempts: rawAttempts.map(mapActivation),
+    serviceOrders: rawServices.map(map.serviceOrder),
+    processes: map.process ? rawProcesses.map(map.process) : undefined,
+    attempts: rawAttempts.map(map.attempt),
   });
 
   const findings: Finding[] = [];
@@ -171,15 +214,17 @@ export async function runAudit(
     }
   }
 
-  const reportSources = await Promise.all([
-    describeSource(sources.productOrders, rawOrders),
-    describeSource(sources.serviceOrders, rawServices),
-    describeSource(sources.activations, rawAttempts),
-  ]);
   // A source that served nothing cannot name its system; take it from the reader's role.
-  reportSources[0].system = "OMS";
-  reportSources[1].system = "OMS";
-  reportSources[2].system = "PROV";
+  const described: [EvidenceSource, RawRecord[], SystemId][] = [
+    [sources.productOrders, rawOrders, "OMS"],
+    [sources.serviceOrders, rawServices, "OMS"],
+    [sources.activations, rawAttempts, "PROV"],
+  ];
+  if (sources.workOrders) described.push([sources.workOrders, rawWorkOrders, "OMS"]);
+  if (sources.processes) described.push([sources.processes, rawProcesses, "BPM"]);
+  if (sources.catalog) described.push([sources.catalog, rawCatalog, "CAT"]);
+  const reportSources = await Promise.all(described.map(([s, rows]) => describeSource(s, rows)));
+  described.forEach(([, , system], index) => reportSources[index].system = system);
 
   const touched = (system: SystemId) =>
     findings.filter((f) => f.evidence.some((e) => e.records.some((r) => r.system === system)))
@@ -197,7 +242,9 @@ export async function runAudit(
       sourceKind: read ? mine[0].kind : null,
       records: mine.reduce((sum, s) => sum + s.records, 0),
       coverage: !read || total === 0 ? null : system === "PROV" ? withAttempts / total : 1,
-      cannotObserve: SYSTEM_INFO[system].cannotObserve,
+      cannotObserve: read && mine[0].evidenceKind === "history"
+        ? SYSTEM_INFO[system].cannotObserveHistory
+        : SYSTEM_INFO[system].cannotObserve,
       findings: touched(system),
     };
   });
@@ -262,6 +309,13 @@ export async function runAudit(
     findings,
     journeys,
     correlation,
-    records: { productOrders: rawOrders, serviceOrders: rawServices, activations: rawAttempts },
+    records: {
+      productOrders: rawOrders,
+      serviceOrders: rawServices,
+      activations: rawAttempts,
+      workOrders: rawWorkOrders,
+      processes: rawProcesses,
+      catalog: rawCatalog,
+    },
   };
 }
