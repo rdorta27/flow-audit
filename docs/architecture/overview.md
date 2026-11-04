@@ -1,9 +1,9 @@
 # Architecture
 
-> **Under construction — Demo 1 (0.4.0) done, on the way to 0.5.0.** The TMF readers, the join, rule R04 and
-> the findings schema run end to end through `deno task audit --source stub`, which writes
-> `findings.json` and `report.html`; file readers and the other rules do not exist yet. Complements
-> [product](../product.md).
+> **Under construction — 0.4.4 published, on the way to 0.5.0.** File readers, the TMF readers,
+> the join, the quality gate and rules R01 to R05 run end to end. `deno task audit --dataset data/demo`
+> writes `findings.json` (`findings/2`) and `report.html`. On the stub, R02 and R03 are not evaluated.
+> Complements [product](../product.md).
 
 ## Shape
 
@@ -39,12 +39,12 @@ Hexagonal, with the domain at the center and no I/O inside it.
 
 | Layer | Today | Planned |
 |---|---|---|
-| `domain/` | Canonical model types: events, catalog, orders, journeys, findings, impact | Reconstruction (M2), rules (M3), impact math (M4) |
+| `domain/` | Model, correlation, segments, quality gate, rules R01 to R05, story, totals, assumptions | R06 and the later families (0.6.0) |
 | `ports/` | `EvidenceSource`, `CatalogSource`, `ReportRenderer`, `Clock` | — |
-| `adapters/` | `clock/`, `export/`, TMF readers in `ingest/`, JSON and HTML renderers in `report/` | File readers (Client-ready) |
-| `app/` | `runAudit()`: reads the TMF sources, maps, correlates, runs the rule registry and returns the `findings/2` report; the CLI writes it with `--out` | — |
-| `cli/` | `audit` and `dataset` commands, exit codes | — |
-| `dataset/` | Deterministic generator: 5,000 orders from a fixed seed | — |
+| `adapters/` | `clock/`, `export/`, TMF and file readers in `ingest/`, JSON, HTML and CSV renderers in `report/` | A billing reader (0.6.0) |
+| `app/` | `runAudit()`: reads files or the TMF stub, maps, gates, correlates, runs the rule registry and returns the `findings/2` report | — |
+| `cli/` | `audit`, `read`, `explain`, `stub`, `dataset`, `diff`, `engagement` | — |
+| `dataset/` | Deterministic generator: 5,000 orders from a fixed seed | A billing export (0.6.0) |
 
 Rules are data plus a predicate in `domain/rules/`: they declare an id, a severity, the evidence they select and the impact formula. Adding a finding means adding a rule, not touching the pipeline.
 
@@ -81,16 +81,16 @@ speaks a weaker TMF than this; its deviations are recorded as its dialect in
 core/
   docs/            product, architecture, data model, decisions, requirements, glossary
   src/
-    domain/        model (reconstruction and rules arrive in M2 and M3)
+    domain/        model, correlation, segments, quality gate, rules R01–R05, story, totals
     ports/         four interfaces
-    adapters/      clock/, export/ (ingest/ and report/ arrive in M1 and M4)
+    adapters/      clock/, export/, ingest/ (TMF and files), report/ (JSON, HTML, CSV)
     app/           runAudit() use case
-    cli/           audit and dataset commands
+    cli/           audit, read, explain, stub, dataset, diff, engagement
     dataset/       deterministic generator
     stub/          read-only TMF-shaped HTTP view of the dataset (M0-11, test source)
   data/demo/       synthetic evidence for Ortelis Satellite
   tests/
-site/              under construction, later the built demo report
+site/              public site; the engine's report is copied to site/engine/
 ```
 
 ## Scale
@@ -110,7 +110,7 @@ site/              under construction, later the built demo report
 |---|---|---|---|
 | 1 | Scope: period, product family, systems and owners | Consultant + client | `config.json` |
 | 2 | Export one read-only file per system | Client | `raw/` |
-| 3 | Map columns to the canonical envelope | Consultant | `mapping.yml` per system |
+| 3 | Map columns to the canonical envelope | Consultant | `mapping.json` per engagement (D-13) |
 | 4 | Ingest and validate | Tool | normalized `dataset/` |
 | 5 | Reconstruct journeys and list correlation gaps | Tool | `journeys.json` |
 | 6 | Run rules and quantify with the client's rates | Tool | `findings.json` |

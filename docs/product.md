@@ -4,9 +4,10 @@ Flow Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Status: under construction — version 0.4.4, on the way to 0.5.0 (Client-ready).** The model, the dataset,
-> the simulated TMF stub and a preview of the report exist. There is no analysis and no
-> generated report yet; the demo described below is the target of the Demo 1 and Client-ready milestones.
+> **Status: under construction — version 0.4.4, published, on the way to 0.5.0 (Client-ready).**
+> `deno task audit --dataset data/demo` reads the four file exports, joins them, runs a quality
+> gate and rules R01 to R05, and writes `findings.json` and `report.html`. The data is simulated.
+> There is no commercial offer (D-17). Demo 1 (0.4.0) is closed.
 
 ## The problem
 
@@ -29,10 +30,12 @@ tool, the portability of a document.
 
 ## Who it is for
 
+There is no commercial offer yet (D-17, D-18, D-19). Today an audit analyst prepares and runs the audit; a sponsor reads the report. The commercial shape further down is a target, not a current sale.
+
 - **Consultancies** that sell BSS/OSS assessments and need to deliver them faster, consistently and with traceable evidence.
 - **Transformation and internal audit teams** at operators that need a repeatable baseline before and after a change.
 
-The buyer is the consultancy, not the operator: it is a tool that makes their delivery cheaper, not a system they operate.
+If it is sold later, the buyer would be the consultancy, not the operator: a tool that makes their delivery cheaper, not a system they operate.
 
 | Role | What they need |
 |---|---|
@@ -92,8 +95,8 @@ The dataset is synthetic and coherent: orders, state transitions, process timers
 
 Flow Audit reports hours, not money (D-21); all inputs are minute rates from `data/demo/config.json`. That
 is roughly **977.6 hours a month of manual work for R01 to R04**; R05 (225 h) is shown apart as a traceability risk (D-11), for
-a 5,000-order operator. These are illustrative figures; the engine computes them from the
-evidence from milestone M2 on, and the report shows each formula next to its number.
+a 5,000-order operator. These are illustrative figures. The engine computes them from the
+evidence today. Orders lead; hours are an estimate (D-23). The report shows each formula next to its number.
 
 R04 is more than a clean-up cost: a duplicated activation can also become a duplicated
 charge or a customer complaint. Billing accuracy stays out of scope, but the finding flags

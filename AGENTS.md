@@ -1,15 +1,14 @@
 # AGENTS
 
-- This repo is on the way to **0.5.0, Client-ready** (versions mark milestones, not semver). It has the synthetic
-  dataset, the simulated TMF stub, readers for product orders (TMF622), service orders (TMF641)
-  and activations (TMF640) in `src/adapters/ingest/`, the correlation with per-link confidence
-  and time segments (`src/domain/correlation.ts`, `segments.ts`), and rules R01 to R05
-  (`src/domain/rules/`). `deno task audit --source stub` runs R04
-  (`R04@2`, with causes) and writes `findings.json` and `report.html` with `--out`, including
-  the story of one order (`story.ts`) and the net total (`totals.ts`); schema in
-  `docs/architecture/report-schema.md`. Data files use snake_case keys (TS stays camelCase).
-  `--dataset <dir>` reads the four file exports through a mapping (`src/adapters/ingest/file_*.ts`, `mapping.ts`). R01 to R05 exist. A quality gate (`src/domain/quality.ts`) runs before the rules. The plan is
-  `../specs/backlog.md`.
+- This repo is at **0.4.4, published**, on the way to **0.5.0, Client-ready** (versions mark
+  milestones, not semver). It has the synthetic dataset, the simulated TMF stub, TMF readers
+  and file readers (`src/adapters/ingest/`), correlation, segments, a quality gate
+  (`src/domain/quality.ts`) and rules R01 to R05. `deno task audit --dataset data/demo --out out`
+  runs R01 to R05 and writes `findings.json` (`findings/2`) and `report.html`, including the
+  assumptions table, the story of one order and the net total. On the stub, R02 and R03 are not
+  evaluated. Data files use snake_case keys (TS stays camelCase). What is left is
+  `../specs/backlog.md` (M5-06, M4-10, M4-11, the site cards, and the known corrections). Closed
+  cards are in `../specs/done/`; if they disagree with the backlog, `done/` wins.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).
 - Read `README.md`, then `docs/product.md`, then `docs/architecture/`.

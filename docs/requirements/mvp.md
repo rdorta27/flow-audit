@@ -1,6 +1,6 @@
 # MVP requirements
 
-Status: written at milestone M0. Derived from [product](../product.md). No OpenSpec in this repo: this is the source of truth until it changes.
+Status: written at milestone M0. Derived from [product](../product.md). As of 0.4.4 the demo files are read, joined and checked by R01 to R05, and the report is written. This file is the requirement, not the status: the status is [`../../README.md`](../../README.md) and [`../../../specs/backlog.md`](../../../specs/backlog.md). No OpenSpec in this repo.
 
 ## R1 — Ingest the four systems
 

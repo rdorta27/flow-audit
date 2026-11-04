@@ -201,7 +201,7 @@ one service order per line, and each line has its own item id, so it does not fi
 | `weak` | two service orders share the same free-text `external_id` | a server that sends no item link, such as bss-oss-rust (a dialect reader, M1-04, was discarded); a convention, not a contract |
 | `history` | a second service order is created within `duplicate_window_minutes` of a retry attempt on the first | event exports (M5-02); the richer variant, with the retry marker and the attempts |
 
-Demo 1 implements `strong` only.
+Demo 1 implemented `strong` only. What runs today is `R04@2` (below): it classifies the cause and still keys on the item link.
 
 **Evidence.** The product order, every service order that points at its item (ids, states,
 order dates) and the provenance of each record (system, endpoint, read time). With
@@ -224,8 +224,9 @@ clean-up per item), so it is unchanged from `R04@1`. The finding also reports, i
 20 groups (plus 1 amendment group, ORD-4500: an `add`, a `modify` and a second `add` over one
 item, not counted), 21 extras (ORD-1017 has three service orders), all `retry_new_order`, 30 h and
 **30 h** (20 × 90 min of clean-up). The duplicate activations are counts in `breakdown`, not a
-cost term: they had only a money value, and the engine reports hours (D-21). A low/base/high range arrives with
-M5-07; until then the cost is one value, every term `basis: rate_assumption`.
+cost term: they had only a money value, and the engine reports hours (D-21). M5-07 is done: a
+rate may be `{low, base, high}`; with a plain number the range equals the estimate and the
+report says so.
 
 **R04@2 classification.** Service orders over one item are ordered by creation time; the first
 is the original.

@@ -4,11 +4,11 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — Demo 1 (0.4.0) is done; on the way to 0.5.0 (Client-ready).** `deno task audit --source stub`
-> reads orders, service orders and activations from a simulated source, joins them and runs
-> rule R04 with its cost; the result has a documented, validated shape (`findings/1`)
-> and is written to `out/findings.json` and a self-contained `out/report.html`. `deno task explain` follows one
-> duplicated order.
+> **Under construction — 0.4.4 is published; on the way to 0.5.0 (Client-ready).** Demo 1 (0.4.0) is done.
+> `deno task audit --dataset data/demo --out out` reads the four file exports, joins them, runs the quality
+> gate and rules R01 to R05, and writes `out/findings.json` (`findings/2`) and a self-contained `out/report.html`.
+> `deno task audit --source stub` reads the simulated server; R02 and R03 are not evaluated there, because it
+> serves no catalog or process tasks. `deno task explain` follows one duplicated order.
 
 ## Where we are
 
@@ -20,12 +20,12 @@ open-source (MIT) technical demo under construction; there is no commercial offe
 
 | Part | Status | What that means |
 |---|---|---|
-| Engine: read, join, R01 to R05, quality gate, assumptions table, diff, CSV, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --source stub --out out` |
+| Engine: read, join, R01 to R05, quality gate, assumptions table, diff, CSV, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --dataset data/demo --out out` |
 | Evidence source | **Simulated** | A TMF-shaped server over synthetic data (`deno task stub`); every response is marked simulated |
 | Data | **Simulated** | 5,000 made-up orders of a fictional operator, defects planted on purpose (`data/demo/`) |
 | Rates (minutes per action) | **Example** | From `data/demo/config.json`, not measured at any operator |
 | Reading an operator's export files (CSV, JSON, JSONL) through a mapping | **Real** | `deno task audit --dataset data/demo`; the demo files are our own design (D-03), not yet a real operator's |
-| Catalog and process steps of the story | **Missing** | The simulated source does not carry them; shown as "not observed" |
+| Catalog and process steps of the story | **Real on files, missing on the stub** | The file audit reads the catalog and the process history. The simulated server does not, so those steps are "not observed" on `--source stub` |
 
 What the engine finds today, from the demo files (hours a month): R01 283.3 h (400 orders),
 R02 347.3 h (4,167 orders), R03 317 h (50 stuck orders), R04 30 h (20 orders), and R05 225 h (300 weak links) shown apart
@@ -34,8 +34,8 @@ R02 347.3 h (4,167 orders), R03 317 h (50 stuck orders), R04 30 h (20 orders), a
 simulated server R02 does not run, because it serves no catalog or process tasks. Before any
 rule, a quality gate checks each file (`docs/architecture/quality.md`).
 
-**Where it goes:** **Demo 1** (0.4.0) — this report, from the simulated source, reviewed;
-**Client-ready** (0.5.0) — the client's export files and all five rules. The plan is in
+**Where it goes:** **Demo 1** (0.4.0) is done. **Client-ready** (0.5.0) is in progress:
+`0.4.4` is published; the candidate is `0.4.5`. The plan is in
 [`../specs/backlog.md`](../specs/backlog.md); finished cards are in
 [`../specs/done/`](../specs/done/README.md).
 
@@ -61,13 +61,17 @@ Commands available today:
 
 - `deno task check` passes.
 - `deno task test` passes: dataset invariants, export stability, the hexagonal and license
-  boundaries, the TMF stub, the readers, the join, R04, the findings schema and its validator.
+  boundaries, the TMF stub, the readers, the join, R01 to R05, the quality gate, assumptions
+  and the findings schema and its validator.
 - `deno task audit --source stub` (start `deno task stub` first) prints counts, links and
-  `R04@2 · 20 orders · 30 h`, and with `--out out` writes the two report files; without a source it exits with code 2.
-- `deno task audit --dataset data/demo --out out` reads the four exports from files through
-  `data/demo/mapping.json` (`--mapping <path>` for another) and gives the same
-  `R04@2 · 20 orders · 30 h`; it prints one coverage line per file. See
-  `docs/architecture/mapping.md`.
+  `R04@2 · 20 orders · 30 h`. R02 and R03 are not evaluated on the stub. With `--out out` it
+  writes the two report files; without a source it exits with code 2.
+- `deno task audit --dataset data/demo --out out` reads the four exports through
+  `data/demo/mapping.json` (`--mapping <path>` for another), runs the quality gate and R01 to
+  R05 (400, 4,167, 50 stuck, 20 and 300), and writes the report. It prints one coverage line
+  per file. See `docs/architecture/mapping.md`. `--check` reads and gates, and does not run
+  the rules. `deno task diff a/findings.json b/findings.json` compares two audits. `--redact`
+  pseudonymises ids in the report files.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts
   (TMF640) from the stub and prints counts. Start `deno task stub` first. It is a data check, not an audit.
 - `deno task stub` serves `data/demo/` as read-only, standard-TMF-shaped APIs
@@ -91,8 +95,9 @@ The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 |---|---|---|
 | — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
 | M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.2.0) |
-| Demo 1 | One real report: R04 read from the TMF stub, with its cost in hours and formula | planned |
-| Client-ready | Audit a client's file exports through a mapping file; R01–R05 | planned |
+| Demo 1 | One real report: R04 read from the TMF stub, with its evidence and its hours | **done** (0.4.0) |
+| Client-ready | Audit file exports through a mapping; R01–R05, a gate and a defensible report | **in progress** (0.4.4 published; candidate 0.4.5) |
+| Order-to-cash | Follow the order into billing | planned (0.6.0) |
 
 ## Versions
 
@@ -118,8 +123,9 @@ release and are tagged together. The engine reads its version from `deno.json` t
 | `src/` | CLI, domain, ports, adapters, dataset generator |
 | `tests/` | Dataset, serializers, the two boundaries and the walking skeleton |
 
-The published report lives in the sibling `site/` repository, which today carries a
-preview built on a mock, still marked under construction.
+The public site lives in the sibling `site/` repository. It explains the product and links
+the engine's real report under `site/engine/`. The demo page is still a handmade preview
+(backlog S-06).
 
 ## Language
 
