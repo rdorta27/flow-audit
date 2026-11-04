@@ -4,6 +4,7 @@
  *
  * | Kind   | What it is                                                                 |
  * |--------|----------------------------------------------------------------------------|
+ * | `queue`| A human task waits to be claimed (only when `claimedAt` is known)            |
  * | `work` | A system is executing: a process task or gateway, or a provisioning attempt |
  * | `wait` | A process timer is running: the process is waiting on purpose               |
  * | `gap`  | No system has any record covering this time: nobody is known to be working  |
@@ -78,11 +79,34 @@ export function classifySegments(
     if (!processIds.has(activity.processId)) continue;
     const id = `${activity.processId}#${activity.sequence}`;
     const timer = activity.kind === "timer";
+    // M2-10: a human task with a claim time has two parts, the queue and the work.
+    const claimed = activity.actor === "human" && activity.claimedAt !== undefined &&
+        Date.parse(activity.claimedAt) >= Date.parse(activity.startedAt) &&
+        Date.parse(activity.claimedAt) <= Date.parse(activity.endedAt ?? activity.claimedAt)
+      ? activity.claimedAt
+      : null;
+    if (claimed !== null) {
+      add(activity.startedAt, claimed, `${id}:queue`, {
+        system: "BPM",
+        kind: "queue",
+        state: activity.name,
+        actor: activity.actor,
+      });
+      add(claimed, activity.endedAt, id, {
+        system: "BPM",
+        kind: "work",
+        state: activity.name,
+        actor: activity.actor,
+      });
+      continue;
+    }
     add(activity.startedAt, activity.endedAt, id, {
       system: "BPM",
       kind: timer ? "wait" : "work",
       state: timer ? (activity.timerExpired ? "timer_expired" : "timer") : activity.name,
       actor: activity.actor,
+      // Queue and work cannot be told apart without a claim time.
+      ...(activity.actor === "human" && !timer ? { queueSeparable: false } : {}),
     });
   }
   for (const { item: attempt } of entry.attempts) {

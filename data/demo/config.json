@@ -47,6 +47,17 @@
           "via_task": "capacity_check"
         }
       ]
+    },
+    "r03": {
+      "timer_activities": [
+        "activation_timer"
+      ],
+      "compensation_activities": [
+        "activation_recovery"
+      ],
+      "human_management_tasks": [
+        "fallout_review"
+      ]
     }
   }
 }

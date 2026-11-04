@@ -51,7 +51,15 @@ error naming the field it was mapped from.
   `so_state`, `so_created_at`; optional `offer_version`, `replaces_order_ref`,
   `terminal_serial`, `wo_ref`, `wo_kind`, `wo_state`, `wo_created_at`.
 - `bpm`: required `process_id`, `state`, `started_at`; optional `so_ref`, `business_key`,
-  `ended_at`, `activities`.
+  `ended_at`, `activities`. BPM model v2 (all optional, may be left out of the mapping, which
+  reads as not observable): in `fields` `suspended`, `end_reason`, `parent_process_id`,
+  `root_process_id`, `process_definition_key`, `process_definition_version`, `loop_index`,
+  `incidents` (a nested list of `type`, `created_at`, `resolved_at`, `message`); in
+  `activity_fields` `timer_kind`, `interrupting`, `attached_to`, `due_date`, `fired_at`,
+  `next_activity_id`, `task_id`, `assignee`, `candidate_group`, `created_at`, `claimed_at`,
+  `due_at`. R03 reads which timers and which compensations to watch from `rules.r03` of
+  `config.json` (`timer_activities`, `compensation_activities`, `compensation_processes`,
+  `human_management_tasks`), not from the mapping.
 - `prov`: required `attempt_id`, `state`, `started_at`; optional `so_ref`, `serial`,
   `error_code`, `ended_at`.
 

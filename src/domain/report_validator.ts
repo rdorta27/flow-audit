@@ -10,7 +10,13 @@ import { EVIDENCE_SAMPLE_MAX, SCHEMA_VERSION } from "./model.ts";
 type Obj = Record<string, unknown>;
 
 const SEVERITIES = ["critical", "high", "medium"];
-const STATUSES = ["detected", "not_detected", "insufficient_evidence", "not_evaluable"];
+const STATUSES = [
+  "detected",
+  "suspected",
+  "not_detected",
+  "insufficient_evidence",
+  "not_evaluable",
+];
 const EVIDENCE_LEVELS = ["strong", "weak", "history"];
 const COST_KINDS = ["recurring", "one_off", "accumulated_to_period_end"];
 const BASES = ["measured", "rate_assumption", "not_observed"];

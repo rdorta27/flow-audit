@@ -9,6 +9,7 @@ import type { Catalog, Finding, ImpactConfig } from "../model.ts";
 import type { OrderCharge } from "../totals.ts";
 import { chargesR01, detectR01, R01_ID, R01_VERSION } from "./r01.ts";
 import { chargesR02, detectR02, R02_ID, R02_VERSION } from "./r02.ts";
+import { chargesR03, detectR03, R03_ID, R03_VERSION } from "./r03.ts";
 import { chargesR04, detectR04, R04_ID, R04_VERSION } from "./r04.ts";
 import { chargesR05, detectR05, R05_ID, R05_VERSION } from "./r05.ts";
 
@@ -40,6 +41,7 @@ export interface Rule {
 export const RULES: readonly Rule[] = [
   { id: R01_ID, version: R01_VERSION, detect: detectR01, charges: chargesR01 },
   { id: R02_ID, version: R02_VERSION, detect: detectR02, charges: chargesR02 },
+  { id: R03_ID, version: R03_VERSION, detect: detectR03, charges: chargesR03 },
   { id: R04_ID, version: R04_VERSION, detect: detectR04, charges: chargesR04 },
   { id: R05_ID, version: R05_VERSION, detect: detectR05, charges: chargesR05 },
 ];

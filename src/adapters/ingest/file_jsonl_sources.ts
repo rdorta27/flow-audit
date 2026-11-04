@@ -80,10 +80,46 @@ abstract class JsonlSource implements EvidenceSource {
   }
 }
 
+/** The optional fields a mapping declares: text ones and date ones; absent ones are left out. */
+function extras(view: RowView, texts: string[], dates: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of texts) {
+    const v = view.text(f);
+    if (v !== null) out[f] = v;
+  }
+  for (const f of dates) {
+    const v = view.date(f);
+    if (v !== null) out[f] = v;
+  }
+  return out;
+}
+
 /** Processes with their activities nested, one process per line (D-05). */
 export class FileBpmSource extends JsonlSource {
   readonly name = "BPM processes (file)";
   protected readonly system = "BPM" as const;
+
+  /** Incidents nested under the declared key: a list of {type, created_at, resolved_at, message}. */
+  private incidents(view: RowView, row: Row): { incidents?: Row[] } {
+    const key = this.block.columns.incidents;
+    if (key === null || key === undefined) return {};
+    const list = row[key] ?? [];
+    if (!Array.isArray(list)) throw new FileError(this.path, view.line, key, "must be a list");
+    return {
+      incidents: list.map((i, n) => {
+        if (i === null || typeof i !== "object") {
+          throw new FileError(this.path, view.line, `${key}[${n}]`, "must be an object");
+        }
+        const o = i as Row;
+        return {
+          type: String(o.type ?? "incident"),
+          created_at: view.with((k) => o[k], { created_at: "created_at" }).date("created_at"),
+          resolved_at: view.with((k) => o[k], { resolved_at: "resolved_at" }).date("resolved_at"),
+          message: o.message === undefined ? null : String(o.message),
+        };
+      }),
+    };
+  }
 
   protected record(view: RowView, row: Row) {
     const id = view.id("process_id", true)!;
@@ -108,6 +144,15 @@ export class FileBpmSource extends JsonlSource {
         started_at: a.date("started_at", true),
         ended_at: a.date("ended_at"),
         timer_expired: a.text("timer_expired"),
+        ...extras(a, [
+          "timer_kind",
+          "interrupting",
+          "attached_to",
+          "next_activity_id",
+          "task_id",
+          "assignee",
+          "candidate_group",
+        ], ["due_date", "fired_at", "created_at", "claimed_at", "due_at"]),
       };
     });
     const state = view.state("process", "state");
@@ -122,6 +167,16 @@ export class FileBpmSource extends JsonlSource {
         started_at: view.date("started_at", true),
         ended_at: view.date("ended_at"),
         activities,
+        ...extras(view, [
+          "suspended",
+          "end_reason",
+          "parent_process_id",
+          "root_process_id",
+          "process_definition_key",
+          "process_definition_version",
+          "loop_index",
+        ], []),
+        ...this.incidents(view, row),
       },
     };
   }

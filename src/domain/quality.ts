@@ -32,6 +32,7 @@ export const DEFAULT_THRESHOLDS: QualityThresholds = {
 export const RULE_SYSTEMS: Readonly<Record<string, readonly SystemId[]>> = {
   R01: ["OMS", "PROV"],
   R02: ["OMS", "BPM", "CAT"],
+  R03: ["OMS", "BPM"],
   R04: ["OMS"],
   R05: ["OMS", "PROV"],
 };

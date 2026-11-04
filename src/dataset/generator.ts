@@ -106,6 +106,11 @@ export const IMPACT_CONFIG: ImpactConfig = {
         { attribute: "capacity_profile", requiredBy: "PROV", viaTask: "capacity_check" },
       ],
     },
+    r03: {
+      timerActivities: ["activation_timer"],
+      compensationActivities: ["activation_recovery"],
+      humanManagementTasks: ["fallout_review"],
+    },
   },
 };
 
