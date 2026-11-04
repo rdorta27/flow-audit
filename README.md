@@ -69,7 +69,9 @@ Commands available today:
 - `deno task audit --dataset data/demo --out out` reads the four exports through
   `data/demo/mapping.json` (`--mapping <path>` for another), runs the quality gate and R01 to
   R05 (400, 4,167, 50 stuck, 20 and 300), and writes the report. It prints one coverage line
-  per file. See `docs/architecture/mapping.md`. `--check` reads and gates, and does not run
+  per file. See `docs/architecture/mapping.md`. This is the client-ready check:
+  `tests/client_ready_test.ts` runs it and compares the findings with `data/demo/expected.json`
+  and the hour estimate in `docs/product.md`. `--check` reads and gates, and does not run
   the rules. `deno task diff a/findings.json b/findings.json` compares two audits. `--redact`
   pseudonymises ids in the report files.
 - `deno task read` reads product orders (TMF622), service orders (TMF641) and activation attempts

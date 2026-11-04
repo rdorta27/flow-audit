@@ -215,9 +215,9 @@ function journeys(report: AuditReport): string {
       }</tbody></table>`;
     const story = `<ol class="story">${
       j.story.map((st) =>
-        `<li${st.observed ? "" : ' class="missing"'}>${chip(st.system)} ${
-          st.at ? `<time>${esc(st.at)}</time> ` : ""
-        }${esc(st.what)}${
+        `<li${st.observed ? "" : ' class="missing"'}>${chip(st.system)} ${esc(st.what)}${
+          st.at ? ` <time>${esc(st.at)}</time>` : ""
+        }${
           st.observed
             ? st.record
               ? ` <small class="muted">${esc(st.record.id)} · ${esc(st.record.endpoint)}</small>`

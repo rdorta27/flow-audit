@@ -98,6 +98,10 @@ is roughly **977.6 hours a month of manual work for R01 to R04**; R05 (225 h) is
 a 5,000-order operator. These are illustrative figures. The engine computes them from the
 evidence today. Orders lead; hours are an estimate (D-23). The report shows each formula next to its number.
 
+The check is one command: `deno task audit --dataset data/demo --out out`. It reads the four
+exports through `data/demo/mapping.json` and must match `data/demo/expected.json` and the
+figures in this table. `tests/client_ready_test.ts` runs that command.
+
 R04 is more than a clean-up cost: a duplicated activation can also become a duplicated
 charge or a customer complaint. Billing accuracy stays out of scope, but the finding flags
 the orders whose duplicate reached activation so the client can check them in billing.
