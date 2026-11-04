@@ -4,6 +4,22 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.4.3 — 2026-11-04
+
+Third step to 0.5.0: the fifth rule, a fuller BPM model and amendments.
+
+- R03 (BPM timer expires without compensation) runs from files: 150 expired timers, 100
+  recovered by a human task, 50 stuck, 317.0 h. With a snapshot instead of a history it is
+  reported as `suspected`. What counts as compensation is declared in the config (M3-07).
+  R01–R04 now add up to 977.6 h gross, 925.9 h net (orders with several findings count
+  once); R05 stays apart.
+- BPM model v2: typed timers, incidents, task identity, parent process, claim time; a
+  `queue` segment separates waiting for a person from work (M2-10, partial).
+- Multi-line orders and amendments: offer, spec and action per item, bundles, `replaces`
+  and `supersededBy`. An amendment is not a duplicate (R04) and not a missing link (R05); the
+  demo gained one amendment, and R04 stays at 20 orders (M2-08).
+- Site: who uses Flow Audit and when it helps (S-04).
+
 ## 0.4.2 — 2026-11-04
 
 Second step to 0.5.0: four findings, a gate and a report that explains itself.

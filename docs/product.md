@@ -4,7 +4,7 @@ Flow Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Status: under construction — version 0.4.2, on the way to 0.5.0 (Client-ready).** The model, the dataset,
+> **Status: under construction — version 0.4.3, on the way to 0.5.0 (Client-ready).** The model, the dataset,
 > the simulated TMF stub and a preview of the report exist. There is no analysis and no
 > generated report yet; the demo described below is the target of the Demo 1 and Client-ready milestones.
 

@@ -3,7 +3,7 @@
 - This repo is on the way to **0.5.0, Client-ready** (versions mark milestones, not semver). It has the synthetic
   dataset, the simulated TMF stub, readers for product orders (TMF622), service orders (TMF641)
   and activations (TMF640) in `src/adapters/ingest/`, the correlation with per-link confidence
-  and time segments (`src/domain/correlation.ts`, `segments.ts`), and rules R01, R02, R04, R05
+  and time segments (`src/domain/correlation.ts`, `segments.ts`), and rules R01 to R05
   (`src/domain/rules/`). `deno task audit --source stub` runs R04
   (`R04@2`, with causes) and writes `findings.json` and `report.html` with `--out`, including
   the story of one order (`story.ts`) and the net total (`totals.ts`); schema in
