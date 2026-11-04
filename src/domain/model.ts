@@ -330,6 +330,45 @@ export interface OrderJourney {
   correlation: CorrelationReport;
 }
 
+/** Median and 90th percentile of one kind of time at a stage. Null when that kind did not occur. */
+export interface StagePercentiles {
+  medianHours: number | null;
+  p90Hours: number | null;
+}
+
+/**
+ * Measured time at one system and stage (M4-10). Hours here are read from dated history.
+ * They are not an estimate and are never multiplied by a rate.
+ */
+export interface StageTime {
+  system: SystemId;
+  /** The segment state: an activity name, or `no_evidence` for a gap. */
+  stage: string;
+  /** Orders that have at least one segment at this stage. */
+  orders: number;
+  work: StagePercentiles;
+  wait: StagePercentiles;
+  queue: StagePercentiles;
+  gap: StagePercentiles;
+  /** Sum of wait, queue and gap hours at this stage. Work is not waiting. */
+  waitingHours: number;
+}
+
+/** Where the measured waiting accumulates (M4-10). Absent the history, it is not measurable. */
+export interface WaitingReport {
+  measurable: boolean;
+  /** `not measurable` when the evidence is a snapshot; null when it is measured. */
+  reason: string | null;
+  stages: StageTime[];
+  mostWaiting: {
+    system: SystemId;
+    stage: string;
+    waitingHours: number;
+    /** Rule ids whose orders concentrate this waiting. Derived, not declared. */
+    findings: string[];
+  } | null;
+}
+
 // Findings and impact -------------------------------------------------------
 
 export type Severity = "critical" | "high" | "medium";
@@ -650,6 +689,8 @@ export interface AuditReport {
   /** M5-08, additive. */
   period?: ReportPeriod;
   scaling?: ReportScaling;
+  /** Measured time per stage (M4-10). Not part of `totals`. */
+  waiting: WaitingReport;
 }
 
 export interface ImpactRates {

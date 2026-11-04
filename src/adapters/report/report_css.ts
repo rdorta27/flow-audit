@@ -66,4 +66,7 @@ abbr.term{text-decoration:underline dotted;cursor:help}
 .gloss dt{font-weight:700;margin-top:.5rem}.gloss dd{margin:0;color:var(--muted)}
 main{overflow-wrap:anywhere}details{margin:.4rem 0}summary{cursor:pointer}
 a{color:inherit}a.ahr{text-decoration:underline dotted}.cover h3{margin:1rem 0 .3rem;font-size:1.05rem}
+.stage-chart{width:100%;max-width:28rem;height:auto;display:block;margin:.35rem 0}
+.stage-chart text{font:11px var(--sans);fill:var(--ink)}
+.stage-chart .bar{stroke:none}.stage-chart .gap-bar{stroke:var(--crit);stroke-width:1}
 `;

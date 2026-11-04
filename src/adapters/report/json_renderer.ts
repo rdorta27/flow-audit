@@ -17,6 +17,9 @@ const HOURS_KEYS = new Set([
   "hours_at_low",
   "hours_at_high",
   "swing",
+  "median_hours",
+  "p90_hours",
+  "waiting_hours",
 ]);
 
 export const roundTo = (value: number, decimals: number): number => {

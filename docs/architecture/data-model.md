@@ -205,6 +205,11 @@ last record with an end time; records still running are returned as `open`. They
 event history: snapshot evidence is refused with a reason (`segments_unavailable`) instead
 of guessed at.
 
+Over every order that has history, the report also records the median and the 90th percentile
+of work, wait, queue and gap per system and stage (`stage` is the segment state). Waiting is
+the sum of wait, queue and gap. It is measured time: it is never multiplied by a minute rate
+and it is not part of the hour estimate. A snapshot source says the section is not measurable.
+
 ## Invariants
 
 The dataset must satisfy these, and `tests/dataset_test.ts` checks them:

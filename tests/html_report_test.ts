@@ -180,6 +180,15 @@ Deno.test("ORD-1005 is drawn before an order that carries the same findings", ()
   assertEquals(absent[0], "ORD-1000");
 });
 
+Deno.test("a snapshot source says waiting time is not measurable", () => {
+  assertEquals(report.waiting.measurable, false);
+  assertEquals(report.waiting.reason, "not measurable");
+  const start = html.indexOf('id="wait-stages"');
+  const section = html.slice(start, html.indexOf("</section>", start));
+  assert(section.includes("not measurable"), section);
+  assert(!section.includes('class="ahr"'), "waiting is not linked to a rate");
+});
+
 Deno.test("the example order drawn in the report is ORD-1005", () => {
   assertEquals(report.journeys[0].orderRef, "ORD-1005");
   const start = html.indexOf('id="tl"');

@@ -27,7 +27,16 @@
  */
 
 import { type CorrelatedOrder, type CorrelationResult, toJourneys } from "./correlation.ts";
-import type { Activity, OrderJourney, Segment, SystemId } from "./model.ts";
+import type {
+  Activity,
+  OrderJourney,
+  Segment,
+  SegmentKind,
+  StagePercentiles,
+  StageTime,
+  SystemId,
+  WaitingReport,
+} from "./model.ts";
 
 export type SegmentResult =
   | { ok: true; segments: Segment[]; open: string[] }
@@ -160,4 +169,127 @@ export function journeysWithSegments(
       ? { ...journey, segments: classified.segments }
       : { ...journey, segmentsUnavailable: classified.reason };
   });
+}
+
+const WAITING_KINDS: readonly SegmentKind[] = ["wait", "queue", "gap"];
+/**
+ * A finding explains a stage when its orders hold at least this many times the waiting their
+ * share of orders would predict. A broad finding that merely includes the waiting orders does
+ * not explain the stage.
+ */
+const EXPLAIN_LIFT = 2;
+
+const hoursOf = (segment: Segment) =>
+  (Date.parse(segment.to) - Date.parse(segment.from)) / 3_600_000;
+
+/** Nearest-rank percentile. `p` is 50 or 90. Empty input is null. */
+export function percentile(values: readonly number[], p: number): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const rank = Math.ceil((p / 100) * sorted.length);
+  return sorted[Math.min(sorted.length, Math.max(1, rank)) - 1];
+}
+
+const percentiles = (values: readonly number[]): StagePercentiles => ({
+  medianHours: percentile(values, 50),
+  p90Hours: percentile(values, 90),
+});
+
+/**
+ * Median and 90th percentile of work, wait, queue and gap per system and stage, over every
+ * order that has history (M4-10). A snapshot has no segments, and the result then says
+ * "not measurable". Waiting is the sum of wait, queue and gap; it is never a rate.
+ */
+export function stageTimes(
+  journeys: readonly { orderRef: string; segments: readonly Segment[] }[],
+  charges: readonly { ruleId: string; orderRef: string }[],
+  orderCount: number,
+): WaitingReport {
+  const measured = journeys.filter((j) => j.segments.length > 0);
+  if (measured.length === 0) {
+    return { measurable: false, reason: "not measurable", stages: [], mostWaiting: null };
+  }
+
+  type Bucket = {
+    system: SystemId;
+    stage: string;
+    orders: Set<string>;
+    byKind: Record<SegmentKind, number[]>;
+    waitingHours: number;
+    waitingByOrder: Map<string, number>;
+  };
+  const buckets = new Map<string, Bucket>();
+  for (const journey of measured) {
+    for (const segment of journey.segments) {
+      const key = `${segment.system}\t${segment.state}`;
+      const hours = hoursOf(segment);
+      if (!(hours > 0)) continue;
+      let bucket = buckets.get(key);
+      if (!bucket) {
+        bucket = {
+          system: segment.system,
+          stage: segment.state,
+          orders: new Set(),
+          byKind: { work: [], wait: [], queue: [], gap: [] },
+          waitingHours: 0,
+          waitingByOrder: new Map(),
+        };
+        buckets.set(key, bucket);
+      }
+      bucket.orders.add(journey.orderRef);
+      bucket.byKind[segment.kind].push(hours);
+      if (WAITING_KINDS.includes(segment.kind)) {
+        bucket.waitingHours += hours;
+        bucket.waitingByOrder.set(
+          journey.orderRef,
+          (bucket.waitingByOrder.get(journey.orderRef) ?? 0) + hours,
+        );
+      }
+    }
+  }
+
+  const stages: StageTime[] = [...buckets.values()].map((bucket) => ({
+    system: bucket.system,
+    stage: bucket.stage,
+    orders: bucket.orders.size,
+    work: percentiles(bucket.byKind.work),
+    wait: percentiles(bucket.byKind.wait),
+    queue: percentiles(bucket.byKind.queue),
+    gap: percentiles(bucket.byKind.gap),
+    waitingHours: bucket.waitingHours,
+  })).sort((a, b) =>
+    b.waitingHours - a.waitingHours || a.system.localeCompare(b.system) ||
+    a.stage.localeCompare(b.stage)
+  );
+
+  const top = stages[0];
+  if (!top || top.waitingHours <= 0) {
+    return { measurable: true, reason: null, stages, mostWaiting: null };
+  }
+  const bucket = buckets.get(`${top.system}\t${top.stage}`)!;
+  const byRule = new Map<string, Set<string>>();
+  for (const charge of charges) {
+    const set = byRule.get(charge.ruleId) ?? new Set();
+    set.add(charge.orderRef);
+    byRule.set(charge.ruleId, set);
+  }
+  const findings = [...byRule.entries()].flatMap(([ruleId, orders]) => {
+    let held = 0;
+    for (const ref of orders) held += bucket.waitingByOrder.get(ref) ?? 0;
+    if (held <= 0 || orderCount <= 0) return [];
+    const lift = (held / top.waitingHours) / (orders.size / orderCount);
+    return lift >= EXPLAIN_LIFT ? [{ ruleId, held }] : [];
+  }).sort((a, b) => b.held - a.held || a.ruleId.localeCompare(b.ruleId)).map((x) => x.ruleId);
+
+  return {
+    measurable: true,
+    reason: null,
+    stages,
+    mostWaiting: {
+      system: top.system,
+      stage: top.stage,
+      waitingHours: top.waitingHours,
+      findings,
+    },
+  };
 }

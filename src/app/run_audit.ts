@@ -9,7 +9,7 @@ import {
   fillInputs,
   type RatePick,
 } from "../domain/assumptions.ts";
-import { journeysWithSegments } from "../domain/segments.ts";
+import { journeysWithSegments, stageTimes } from "../domain/segments.ts";
 import { buildStory } from "../domain/story.ts";
 import { computeTotals, type OrderCharge } from "../domain/totals.ts";
 import {
@@ -753,6 +753,7 @@ export async function runAudit(
         findings,
       ),
     })),
+    waiting: stageTimes(allJourneys, charges, correlation.orders.length),
   };
 
   return {

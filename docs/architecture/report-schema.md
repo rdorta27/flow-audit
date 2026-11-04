@@ -41,7 +41,8 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `scope` | `orders`: how many orders the run read. |
 | `period` | The audited period: `start`, `end`, `declared` (false when it is the span of the orders) and `removed` (`orders`, `service_orders`, `processes`, `attempts` taken out for being outside a declared period). |
 | `scaling` | `orders_in_period`, `orders_per_month` (from `config`), `period_days`, `observed_orders_per_month`, `factor` (`orders_per_month / orders_in_period`) and `formula`. `cost.hours_month` is over the audited data and is not rescaled. |
-| `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story[]`: the order step by step (`at`, `system`, `what` (one plain sentence), `record` (`id` and `endpoint`, or `null`), `finding` (the rule id that starts at this step, or `null`), `observed`, `reason` (why a step is not observed)). A step the source cannot show stays in the list with `observed` false. |
+| `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story[]`: the order step by step (`at`, `system`, `what` (one plain sentence), `record` (`id` and `endpoint`, or `null`), `finding` (the rule id that starts at this step, or `null`), `observed`, `reason` (why a step is not observed)). A step the source cannot show stays in the list with `observed` false. The first journey is `ORD-1005` when that order is in the evidence (D-07). |
+| `waiting` | Measured time per stage (M4-10), from segments over every order. `measurable` is false and `reason` is `"not measurable"` when the evidence is a snapshot. Otherwise `stages[]` holds, per system and stage (`stage` is the segment state, an activity name or `no_evidence`): `orders`, `work`/`wait`/`queue`/`gap` each with `median_hours` and `p90_hours` (null when that kind did not occur), and `waiting_hours` (the sum of wait, queue and gap; work is not waiting). `most_waiting` names the stage with the largest `waiting_hours` and the `findings[]` whose orders concentrate that waiting. These hours are measured. They are never multiplied by a minute rate and they are not part of `totals`. |
 
 ## Findings
 
@@ -585,7 +586,13 @@ sample up to twenty. A test validates this exact block.
         }
       ]
     }
-  ]
+  ],
+  "waiting": {
+    "measurable": false,
+    "reason": "not measurable",
+    "stages": [],
+    "most_waiting": null
+  }
 }
 ```
 

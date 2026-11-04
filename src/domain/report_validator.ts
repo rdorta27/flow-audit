@@ -313,6 +313,8 @@ export function validateReport(report: unknown, config?: unknown): string[] {
   });
   const scope = obj(report, "scope", "report");
   if (scope) num(scope, "orders", "scope");
+  const waiting = obj(report, "waiting", "report");
+  if (waiting) checkWaiting(waiting, err);
   list(report, "journeys", "report").forEach((j, i) => {
     const p = `journeys[${i}]`;
     if (!isObj(j)) return err(p, "must be an object");
@@ -330,4 +332,65 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     });
   });
   return errors;
+}
+
+const KIND_KEYS = ["work", "wait", "queue", "gap"];
+
+function checkWaiting(waiting: Obj, err: (path: string, message: string) => void): void {
+  if (typeof waiting.measurable !== "boolean") {
+    err("waiting.measurable", "must be a boolean");
+  }
+  if (waiting.reason !== null && !isStr(waiting.reason)) {
+    err("waiting.reason", "must be a string or null");
+  }
+  const stages = Array.isArray(waiting.stages) ? waiting.stages : [];
+  if (!Array.isArray(waiting.stages)) err("waiting.stages", "must be an array");
+  stages.forEach((stage, i) => {
+    const p = `waiting.stages[${i}]`;
+    if (!isObj(stage)) return err(p, "must be an object");
+    oneOfStage(stage, "system", p, err);
+    if (!isNonEmpty(stage.stage)) err(`${p}.stage`, "must be a non-empty string");
+    if (!isNum(stage.orders)) err(`${p}.orders`, "must be a number");
+    if (!isNum(stage.waiting_hours)) err(`${p}.waiting_hours`, "must be a number");
+    for (const kind of KIND_KEYS) {
+      const block = stage[kind];
+      if (!isObj(block)) {
+        err(`${p}.${kind}`, "must be an object");
+        continue;
+      }
+      for (const k of ["median_hours", "p90_hours"]) {
+        if (block[k] !== null && !isNum(block[k])) {
+          err(`${p}.${kind}.${k}`, "must be a number or null");
+        }
+      }
+    }
+  });
+  if (waiting.most_waiting !== null) {
+    if (!isObj(waiting.most_waiting)) {
+      err("waiting.most_waiting", "must be an object or null");
+    } else {
+      oneOfStage(waiting.most_waiting, "system", "waiting.most_waiting", err);
+      if (!isNonEmpty(waiting.most_waiting.stage)) {
+        err("waiting.most_waiting.stage", "must be a non-empty string");
+      }
+      if (!isNum(waiting.most_waiting.waiting_hours)) {
+        err("waiting.most_waiting.waiting_hours", "must be a number");
+      }
+      if (!Array.isArray(waiting.most_waiting.findings)) {
+        err("waiting.most_waiting.findings", "must be an array");
+      }
+    }
+  }
+  if (waiting.measurable === false && waiting.reason !== "not measurable") {
+    err("waiting.reason", 'must be "not measurable" when the source cannot show it');
+  }
+}
+
+function oneOfStage(
+  o: Obj,
+  k: string,
+  path: string,
+  err: (path: string, message: string) => void,
+): void {
+  if (!SYSTEMS.includes(String(o[k]))) err(`${path}.${k}`, `must be one of ${SYSTEMS.join(", ")}`);
 }

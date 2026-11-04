@@ -10,6 +10,8 @@ import type {
   AuditReport,
   Finding,
   ReportSystem,
+  SegmentKind,
+  StageTime,
   SystemId,
 } from "../../domain/model.ts";
 import type { ReportRenderer } from "../../ports/report_renderer.ts";
@@ -598,6 +600,120 @@ function glossary(report: AuditReport): string {
   }</dl>`;
 }
 
+const STAGE_PLAIN: Record<string, string> = {
+  no_evidence: "no record",
+  timer_expired: "timer expired",
+};
+
+function stagePlain(stage: string): string {
+  return STAGE_PLAIN[stage] ?? stage.replace(/_/g, " ");
+}
+
+const KIND_LABEL: Record<SegmentKind, string> = {
+  work: "Work",
+  wait: "Wait",
+  queue: "Queue",
+  gap: "Gap",
+};
+
+/** Measured hours. Not linked to a rate: waiting is never part of the estimate. */
+const measuredHours = (n: number) => `${num(Math.round(n * 10) / 10)} h`;
+
+const cell = (n: number | null) => n === null ? "—" : measuredHours(n);
+
+function stageChart(stage: StageTime, index: number): string {
+  const kinds: SegmentKind[] = ["work", "wait", "queue", "gap"];
+  const medians = kinds.map((k) => stage[k].medianHours).filter((n): n is number => n !== null);
+  const max = medians.length === 0 ? 0 : Math.max(...medians);
+  if (max <= 0) return "";
+  const width = 280;
+  const labelW = 52;
+  const barMax = 150;
+  const row = 16;
+  const height = kinds.length * row + 2;
+  const hatch = `gap-hatch-${index}`;
+  const bars = kinds.map((kind, i) => {
+    const median = stage[kind].medianHours;
+    const y = i * row;
+    const w = median === null
+      ? 0
+      : Math.max(median > 0 ? 1 : 0, Math.round((median / max) * barMax));
+    const fill = kind === "gap"
+      ? `fill="url(#${hatch})" class="gap-bar"`
+      : `class="bar st-${SYSTEM_CLASS[stage.system]}"`;
+    return `<text x="0" y="${y + 11}">${KIND_LABEL[kind]}</text>${
+      w > 0 ? `<rect x="${labelW}" y="${y + 2}" width="${w}" height="10" ${fill}/>` : ""
+    }<text x="${width}" y="${y + 11}" text-anchor="end">${esc(cell(median))}</text>`;
+  }).join("");
+  return `<svg class="stage-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${
+    esc(stagePlain(stage.stage))
+  }"><defs><pattern id="${hatch}" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--crit)" stroke-width="2"/></pattern></defs>${bars}</svg>`;
+}
+
+function stageTable(stages: readonly StageTime[]): string {
+  const head = ["Work", "Wait", "Queue", "Gap"].map((k) =>
+    `<th class="n">${k} median</th><th class="n">90th</th>`
+  ).join("");
+  const rows = stages.map((s) =>
+    `<tr><td>${chip(s.system)}</td><td>${esc(stagePlain(s.stage))}</td><td class="n">${
+      num(s.orders)
+    }</td><td class="n">${cell(s.work.medianHours)}</td><td class="n">${
+      cell(s.work.p90Hours)
+    }</td><td class="n">${cell(s.wait.medianHours)}</td><td class="n">${
+      cell(s.wait.p90Hours)
+    }</td><td class="n">${cell(s.queue.medianHours)}</td><td class="n">${
+      cell(s.queue.p90Hours)
+    }</td><td class="n">${cell(s.gap.medianHours)}</td><td class="n">${
+      cell(s.gap.p90Hours)
+    }</td><td class="n">${measuredHours(s.waitingHours)}</td></tr>`
+  ).join("");
+  return `<table><thead><tr><th>System</th><th>Stage</th><th class="n">Orders</th>${head}<th class="n">Waiting</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/** Measured waiting per stage. Never mixed into the hour estimate. */
+function waitingStages(report: AuditReport): string {
+  const waiting = report.waiting;
+  if (!waiting.measurable) {
+    return `<section id="wait-stages" aria-labelledby="ws"><h2 id="ws">Where orders wait</h2>
+<p>Waiting time is not measurable: a snapshot has no record of when each step ran, so work, wait, queue and gap cannot be timed.</p></section>`;
+  }
+  const most = waiting.mostWaiting;
+  const named = most?.findings.map((id) => {
+    const f = report.findings.find((x) => x.id === id);
+    return f ? `<a href="#${esc(id)}">${ruleName(f)}</a>` : esc(id);
+  }) ?? [];
+  const explain = named.length === 0
+    ? "No finding concentrates its orders on this stage."
+    : `${named.join(", ")} ${named.length === 1 ? "explains" : "explain"} it.`;
+  const line = most
+    ? `<p data-stage="${esc(most.system)}:${esc(most.stage)}">` +
+      `The most waiting accumulates at ${chip(most.system)}, stage ` +
+      `<strong>${esc(stagePlain(most.stage))}</strong>: ` +
+      `<strong>${
+        measuredHours(most.waitingHours)
+      }</strong> of wait, queue and gap across the orders. ` +
+      `It is ${
+        term("measured")
+      }. It is not multiplied by a minute rate and it is not part of the estimate. ` +
+      `${explain}</p>`
+    : `<p>No stage has waiting time.</p>`;
+  const charts = waiting.stages.map((s, i) => {
+    const chart = stageChart(s, i);
+    return chart
+      ? `<figure>${chart}<figcaption>${chip(s.system)} · ${
+        esc(stagePlain(s.stage))
+      }</figcaption></figure>`
+      : "";
+  }).join("");
+  return `<section id="wait-stages" aria-labelledby="ws"><h2 id="ws">Where orders wait</h2>
+<p><span class="tag">${
+    term("measured")
+  }</span> Median and 90th percentile of work, wait, queue and gap at each stage, read from dated history. The gap is hatched red. Waiting is wait, queue and gap added up. It is not multiplied by a minute rate and it is not part of the estimate.</p>
+${line}
+${stageTable(waiting.stages)}
+<div class="bars">${charts}</div></section>`;
+}
+
 export function renderHtml(report: AuditReport): string {
   current = report;
   const l = report.labels;
@@ -631,6 +747,7 @@ ${howToRead()}
 <section aria-labelledby="find"><h2 id="find">Findings</h2>${
     report.findings.map(findingSection).join("\n") || `<p class="note">No findings.</p>`
   }</section>
+${waitingStages(report)}
 <section aria-labelledby="tl"><h2 id="tl">One order, drawn</h2>${
     unavailable
       ? `<p class="note">Time segments are unavailable when the source serves a ${
