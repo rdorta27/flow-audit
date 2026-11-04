@@ -108,7 +108,11 @@ Deno.test("error: a gate failure exits 3 with the problems; --force runs anyway"
 
 Deno.test("--help shows worked examples; --quiet silences the stage lines", async () => {
   const help = await run(["--help"]);
-  assert(help.text.includes("Examples:") && help.text.includes("--check"), help.text);
+  assert(
+    help.text.includes("Quick start") && help.text.includes("Exit codes:") &&
+      help.text.includes("--check"),
+    help.text,
+  );
   const quiet = await run(["--dataset", "data/demo", "--quiet"]);
   assert(!quiet.text.includes("err|"), quiet.text);
   assert(quiet.text.includes("out| R04@2 · 20 orders · estimate 30 h"), quiet.text);

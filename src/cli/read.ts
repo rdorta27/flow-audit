@@ -56,7 +56,18 @@ const LINK_LABELS: [keyof ReadSummary["links"], string][] = [
   ["attempt->service_order", "activation -> service order"],
 ];
 
+const READ_USAGE = `deno task read
+
+Summarises what the TMF server holds: product orders, service orders and activation attempts.
+Read-only. The connection comes from FLOW_AUDIT_TMF_BASE_URL (default http://127.0.0.1:8081),
+FLOW_AUDIT_TMF_TOKEN, FLOW_AUDIT_TMF_TIMEOUT_MS, FLOW_AUDIT_TMF_PAGE_SIZE and
+FLOW_AUDIT_TMF_MAX_REQUESTS. Start the simulated server with \`deno task stub\`.`;
+
 async function main(): Promise<number> {
+  if (Deno.args.includes("-h") || Deno.args.includes("--help")) {
+    console.log(READ_USAGE);
+    return 0;
+  }
   const get = (name: string) => Deno.env.get(name);
   try {
     const config = tmfConfigFromEnvOrStub(get);

@@ -29,65 +29,70 @@ import { assertOutNotInInput, EngagementError, exists, resolveEngagement } from 
 const DEFAULT_CONFIG = new URL("../../data/demo/config.json", import.meta.url);
 const DEFAULT_MAPPING = new URL("../../data/demo/mapping.json", import.meta.url);
 
-const USAGE = `flow-audit — audit the order-to-activate flow of a BSS
+const USAGE = `flow-audit — find where orders get stuck between the systems of a BSS.
+It only reads your export files; it never writes to a system.
+
+Quick start (the demo data ships with the repository):
+  deno task audit --dataset data/demo --out out     audit the demo, write the report to ./out
+  (then open out/report.html in a browser; it works offline)
+
+On a client's files, check them first, then audit:
+  deno task audit --dataset ./client-sept --mapping ./client.mapping.json --check
+  deno task audit --dataset ./client-sept --mapping ./client.mapping.json --out ./out
 
 Usage:
-  deno task audit --dataset <dir> [--mapping <file>] [--config <file>] [--out <dir>]
-                  [--check] [--force] [--quiet] [--engagement <dir>]
-                  [--redact --client <name> [--redaction-table <file>]]
-  deno task audit --source stub [--config <file>] [--out <dir>] [--check] [--force] [--quiet]
+  deno task audit --dataset <dir> [options]
+  deno task audit --source stub [options]        simulated TMF server (\`deno task stub\`)
 
-Options:
-  --source stub    Read the simulated TMF stub (start it with \`deno task stub\`).
-                   The connection comes from the same environment variables as
-                   \`deno task read\`: FLOW_AUDIT_TMF_BASE_URL (default
-                   http://127.0.0.1:8081), FLOW_AUDIT_TMF_TOKEN,
-                   FLOW_AUDIT_TMF_TIMEOUT_MS, FLOW_AUDIT_TMF_PAGE_SIZE,
-                   FLOW_AUDIT_TMF_MAX_REQUESTS.
-  --config <file>  Impact rates and thresholds (default: data/demo/config.json).
-  --out <dir>      Write findings.json, findings.csv, report.html and quality.json into this existing
-                   directory (with --check, only quality.json). The \`audit\` task may write
-                   only under ./out.
-  --dataset <dir>  Read the four exports in this directory (catalog.json, oms_orders.csv,
-                   bpm_history.jsonl, provisioning.jsonl; the demo is data/demo).
-                   Not together with --source.
-  --mapping <file> How the exports' columns, states, ids, dates and time zones map to the
-                   canonical fields (default: data/demo/mapping.json). See
-                   docs/architecture/mapping.md.
-  --engagement <dir>
-                   A client's directory outside the repository: raw/ (the exports),
-                   mapping/mapping.json, config/config.json and out/ (the results). They
-                   become the defaults of --dataset, --mapping, --config and --out. Also read
-                   from FLOW_AUDIT_HOME; the flag wins. Refused inside a git repository. The
-                   output directory is never allowed inside the input. To write outside ./out
-                   use \`FLOW_AUDIT_HOME=<dir> deno task engagement\`. See
-                   docs/architecture/engagement.md.
-  --redact         Confidential mode: order ids, other ids and terminal serials become stable
-                   pseudonyms in every file written, and the report carries the banner
-                   "Confidential — <client>" with the date. Needs --client. The secret comes
-                   from FLOW_AUDIT_REDACT_SECRET (same secret, same pseudonyms) or is random.
-  --client <name>  The client's name for the banner.
+What to read:
+  --dataset <dir>     Folder with the four exports: catalog.json, oms_orders.csv,
+                      bpm_history.jsonl, provisioning.jsonl. The demo is data/demo.
+  --mapping <file>    How the client's columns, states, ids, dates and time zones map to
+                      ours. Default: data/demo/mapping.json (docs/architecture/mapping.md).
+  --config <file>     Minutes per task and thresholds. Default: data/demo/config.json.
+  --source stub       Read the simulated server instead of files. Not with --dataset.
+                      Connection: FLOW_AUDIT_TMF_BASE_URL (default http://127.0.0.1:8081),
+                      FLOW_AUDIT_TMF_TOKEN, FLOW_AUDIT_TMF_TIMEOUT_MS,
+                      FLOW_AUDIT_TMF_PAGE_SIZE, FLOW_AUDIT_TMF_MAX_REQUESTS.
+
+What to write:
+  --out <dir>         Existing folder for findings.json, findings.csv, report.html and
+                      quality.json (with --check, only quality.json). The \`audit\` task
+                      writes only under ./out.
+  --quiet             No progress lines on stderr; the result on stdout is unchanged.
+
+Before trusting the result:
+  --check             Read, map and run the data-quality gate, nothing else. Use it first
+                      on every new export.
+  --force             Run the rules even if the gate failed. The report says it was forced.
+
+Working with a client's files (docs/architecture/engagement.md):
+  --engagement <dir>  A client folder outside the repository: raw/ (exports),
+                      mapping/mapping.json, config/config.json and out/. These become the
+                      defaults of --dataset, --mapping, --config and --out. Also read from
+                      FLOW_AUDIT_HOME; the flag wins. Refused inside a git repository. To
+                      write outside ./out run \`FLOW_AUDIT_HOME=<dir> deno task engagement\`.
+  --redact            Confidential mode: order ids, other ids and terminal serials become
+                      stable pseudonyms and the report carries a "Confidential" banner.
+                      Needs --client. Same FLOW_AUDIT_REDACT_SECRET gives the same pseudonyms;
+                      without it they are random.
+  --client <name>     The client's name for the banner.
   --redaction-table <file>
-                   Where the pseudonym table (pseudonym, original) goes (default:
-                   redaction_table.csv in --out). It is never part of a report: keep it apart.
-  --check          Read, map and run the data-quality gate only. No rule runs and no report
-                   is written. Use it first on a new export.
-  --force          Run the rules even when the gate fails. The answer says it was forced.
-  --quiet          No stage lines on stderr. The result on stdout is unchanged.
-  -h, --help       Show this help.
+                      Where the pseudonym table goes (default: redaction_table.csv in
+                      --out). Never part of a report: keep it apart.
 
-Examples:
-  Check a client's export before auditing it:
-    deno task audit --dataset ./client-sept --mapping ./client.mapping.json --check
-  Audit the demo and write the files:
-    deno task audit --dataset data/demo --out out
-  Audit the simulated TMF stub (in another terminal: deno task stub):
-    deno task audit --source stub
+Other:
+  -h, --help          Show this help.
+
+Related commands:
+  deno task diff <a/findings.json> <b/findings.json>   compare two audits
+  deno task explain [out.html] [--order <ref>]         follow one order through the pipeline
+  deno task stub                                       start the simulated TMF server
 
 Exit codes:
   0  the audit (or the check) ran and the gate passed, or was forced
-  1  run error (source unreachable, bad response, unreadable file); the message on
-     stderr says what happened, where (file, line, field) and what to do next
+  1  run error (unreachable source, bad response, unreadable file); stderr says what,
+     where (file, line, field) and what to do next
   2  usage error, or no source configured
   3  the data failed the quality gate (see quality.json; --force audits it anyway)`;
 

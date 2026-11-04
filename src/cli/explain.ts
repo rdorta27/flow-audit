@@ -255,8 +255,31 @@ ${
 </body></html>`;
 }
 
+const EXPLAIN_USAGE = `deno task explain [out.html] [--order <ref>]
+
+Writes one self-contained page that follows a single order through the pipeline, with the
+real records the engine read. It uses the synthetic demo data and opens no network port.
+
+  out.html        Where to write the page (default: explain.html in the current folder).
+  --order <ref>   The order to follow, for example ORD-1005 (default: a duplicated order).
+  -h, --help      Show this help.
+
+Example:
+  deno task explain explain.html --order ORD-1005`;
+
 if (import.meta.main) {
   const args = [...Deno.args];
+  if (args.includes("-h") || args.includes("--help")) {
+    console.log(EXPLAIN_USAGE);
+    Deno.exit(0);
+  }
+  const unknown = args.find((a, k) =>
+    a.startsWith("-") && a !== "--order" && args[k - 1] !== "--order"
+  );
+  if (unknown) {
+    console.error(`explain: unknown option ${unknown}. Run \`deno task explain --help\`.`);
+    Deno.exit(2);
+  }
   const at = args.indexOf("--order");
   let order: string | undefined;
   if (at >= 0) {
