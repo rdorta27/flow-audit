@@ -97,6 +97,8 @@ export interface AuditResult {
   /** The in-memory `findings/1` report (written to disk by M4-02). */
   report: AuditReport;
   findings: Finding[];
+  /** What each rule charges to each order (all of them, not the evidence sample). */
+  charges: OrderCharge[];
   /** The journeys the report draws (see `REPORT_JOURNEYS_MAX`), not every order. */
   journeys: OrderJourney[];
   /** The gate's answer; absent when no gate was asked for. */
@@ -586,6 +588,7 @@ export async function runAudit(
   return {
     report,
     findings,
+    charges,
     journeys,
     quality,
     correlation,

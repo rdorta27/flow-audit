@@ -62,6 +62,41 @@ export const MESSAGES = {
   qualityWarning: (text: string) => `Warning: ${text}`,
   qualityNotEvaluable: (rule: string, reason: string) => `Not evaluable: ${rule}: ${reason}`,
 
+  // `diff` (M5-14): orders first, then the estimate, then configuration and versions.
+  diffSame: (a: string, b: string) => `No differences between ${a} and ${b}.`,
+  diffHeader: (a: string, b: string) => `Differences between ${a} (before) and ${b} (after)`,
+  diffRule: (rule: string, from: string | null, to: string | null, before: number, after: number) =>
+    `${rule}${from !== to ? ` (${from ?? "not reported"} -> ${to ?? "not reported"})` : ""}: ` +
+    `${plural(before, "order")} before, ${plural(after, "order")} after ` +
+    `(${after - before >= 0 ? "+" : "-"}${n(Math.abs(after - before))})`,
+  diffEntered: (orders: string[], sampled: boolean) =>
+    `  enter: ${orders.join(", ")}${sampled ? " (from the sample the file lists)" : ""}`,
+  diffLeft: (orders: string[], sampled: boolean) =>
+    `  leave: ${orders.join(", ")}${sampled ? " (from the sample the file lists)" : ""}`,
+  diffHours: (rule: string, from: number, to: number) =>
+    `  estimate ${rule}: ${hours(from)} -> ${hours(to)} (${to - from >= 0 ? "+" : "-"}${
+      hours(Math.abs(to - from))
+    }, example rates)`,
+  diffNet: (from: number, to: number) =>
+    `Estimate, each order once: ${hours(from)} -> ${hours(to)} (${to - from >= 0 ? "+" : "-"}${
+      hours(Math.abs(to - from))
+    })`,
+  diffRuleVersion: (rule: string, from: string | null, to: string | null) =>
+    `Rule version ${rule}: ${from ?? "not reported"} -> ${to ?? "not reported"}`,
+  diffConfig: (key: string, from: unknown, to: unknown) =>
+    `Config ${key}: ${JSON.stringify(from)} -> ${JSON.stringify(to)}`,
+  diffEngine: (from: string, to: string) => `Engine version: ${from} -> ${to}`,
+  diffInputs: "The records read are not the same (their fingerprints differ).",
+  nextDiff: "pass two findings.json files written by `deno task audit --out <dir>`",
+
+  // Confidential mode and engagements (M5-11, M5-12).
+  redactNewSecret:
+    "redaction: no FLOW_AUDIT_REDACT_SECRET set, using a random secret; keep the table to reverse the pseudonyms",
+  wroteTable: (path: string) => `wrote ${path} (pseudonym table: keep it apart, never send it)`,
+  noPermission: (detail: string) => `the run is not allowed to do that: ${detail}`,
+  nextPermission:
+    "to write outside ./out run `FLOW_AUDIT_HOME=<engagement dir> deno task engagement ...` (it may write there)",
+
   // Errors: what happened, where, what to do next.
   error: (what: string, where: string | null, next: string): string[] => [
     `flow-audit: error: ${what}`,
