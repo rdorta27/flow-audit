@@ -3,13 +3,19 @@ import { runAudit } from "../src/app/run_audit.ts";
 import { CsvError, parseCsv } from "../src/adapters/ingest/csv.ts";
 import { FileError } from "../src/adapters/ingest/file_common.ts";
 import { createFileSources } from "../src/adapters/ingest/file_sources.ts";
+import { parseMapping } from "../src/adapters/ingest/mapping.ts";
 import { EXPECTED } from "../src/dataset/generator.ts";
 import { main, summaryLines } from "../src/cli/main.ts";
 import { assert, assertEquals } from "./assert.ts";
 import { demoConfig } from "./stub_sources.ts";
 
 const clock = { nowIso: () => "2026-09-01T00:00:00Z" };
-const options = (dir: string) => ({ dir, now: () => "2026-09-30T00:00:00.000Z", simulated: true });
+const demoMapping = parseMapping(
+  await Deno.readTextFile(new URL("../data/demo/mapping.json", import.meta.url)),
+  "data/demo/mapping.json",
+);
+const options = (dir: string) => ({ dir, now: () => "2026-09-30T00:00:00.000Z" });
+const sourcesIn = (dir: string) => createFileSources(demoMapping, options(dir));
 
 /** A directory with the given files, removed by the caller through the returned function. */
 async function fixture(files: Record<string, string>) {
@@ -73,10 +79,10 @@ Deno.test("oms: orders, service orders and work orders, repeated rows dropped", 
     ].join("\n"),
   });
   try {
-    const sources = createFileSources(options(f.dir));
+    const sources = sourcesIn(f.dir);
     const orders = await collect(sources.productOrders.read());
     const sos = await collect(sources.serviceOrders.read());
-    const wos = await collect(sources.workOrders.read());
+    const wos = await collect(sources.workOrders!.read());
     assertEquals([orders.length, sos.length, wos.length], [1, 2, 1]);
     assertEquals(orders[0].provenance.kind, "history");
     assertEquals(orders[0].provenance.endpoint, `${f.dir}/oms_orders.csv`);
@@ -92,7 +98,7 @@ Deno.test("oms: a quoted field with a comma is one field", async () => {
     "oms_orders.csv": [OMS_HEADER, OMS_ROW.replace("OFFER-A", '"OFFER, A"')].join("\n"),
   });
   try {
-    const [order] = await collect(createFileSources(options(f.dir)).productOrders.read());
+    const [order] = await collect(sourcesIn(f.dir).productOrders.read());
     assertEquals(order.value.offer_id, "OFFER, A");
   } finally {
     await f.done();
@@ -109,9 +115,7 @@ Deno.test("oms: a bad line names file, line and field", async () => {
       .join("\n"),
   });
   try {
-    const message = await failure(() =>
-      collect(createFileSources(options(f.dir)).productOrders.read())
-    );
+    const message = await failure(() => collect(sourcesIn(f.dir).productOrders.read()));
     assert(message.includes("oms_orders.csv:3"), message);
     assert(message.includes('field "submitted_at"'), message);
   } finally {
@@ -122,18 +126,14 @@ Deno.test("oms: a bad line names file, line and field", async () => {
 Deno.test("oms: a missing column and a short row are named", async () => {
   const f = await fixture({ "oms_orders.csv": OMS_HEADER.replace("spec_id,", "") + "\n" });
   try {
-    const message = await failure(() =>
-      collect(createFileSources(options(f.dir)).productOrders.read())
-    );
+    const message = await failure(() => collect(sourcesIn(f.dir).productOrders.read()));
     assert(message.includes('field "spec_id"') && message.includes("missing"), message);
   } finally {
     await f.done();
   }
   const g = await fixture({ "oms_orders.csv": [OMS_HEADER, "ORD-1,2026"].join("\n") });
   try {
-    const message = await failure(() =>
-      collect(createFileSources(options(g.dir)).productOrders.read())
-    );
+    const message = await failure(() => collect(sourcesIn(g.dir).productOrders.read()));
     assert(message.includes(":2") && message.includes("2 fields"), message);
   } finally {
     await g.done();
@@ -141,9 +141,7 @@ Deno.test("oms: a missing column and a short row are named", async () => {
 });
 
 Deno.test("a missing file is named", async () => {
-  const message = await failure(() =>
-    collect(createFileSources(options("/nonexistent")).activations.read())
-  );
+  const message = await failure(() => collect(sourcesIn("/nonexistent").activations.read()));
   assert(message.includes("/nonexistent/provisioning.jsonl"), message);
 });
 
@@ -154,10 +152,10 @@ Deno.test("jsonl: a bad line and a missing field are named", async () => {
     "bpm_history.jsonl": '{"process_id":"P1","state":"DONE"}\n',
   });
   try {
-    const sources = createFileSources(options(f.dir));
+    const sources = sourcesIn(f.dir);
     const message = await failure(() => collect(sources.activations.read()));
     assert(message.includes("provisioning.jsonl:2") && message.includes("not valid JSON"), message);
-    const bpm = await failure(() => collect(sources.processes.read()));
+    const bpm = await failure(() => collect(sources.processes!.read()));
     assert(bpm.includes("bpm_history.jsonl:1") && bpm.includes('field "started_at"'), bpm);
   } finally {
     await f.done();
@@ -167,7 +165,7 @@ Deno.test("jsonl: a bad line and a missing field are named", async () => {
 const DEMO = new URL("../data/demo/", import.meta.url).pathname;
 
 Deno.test("full-size run over data/demo: counts, links and R04 as on the stub", async () => {
-  const sources = createFileSources(options(DEMO));
+  const sources = sourcesIn(DEMO);
   const result = await runAudit({}, { clock, sources, config: demoConfig });
   const r = result.records;
   assertEquals(r.productOrders.length, EXPECTED.orders);

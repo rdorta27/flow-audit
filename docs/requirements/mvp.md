@@ -4,7 +4,7 @@ Status: written at milestone M0. Derived from [product](../product.md). No OpenS
 
 ## R1 — Ingest the four systems
 
-The tool reads one export per system (`CAT`, `OMS`, `BPM`, `PROV`) in JSON, CSV or JSONL, validates it against the canonical envelope and reports parse errors with file and line. No export format is required beyond a documented mapping file per adapter.
+The tool reads one export per system (`CAT`, `OMS`, `BPM`, `PROV`) in JSON, CSV or JSONL, validates it against the canonical envelope and reports parse errors with file and line. No export format is required beyond a documented mapping file per adapter (`mapping.json`, see `docs/architecture/mapping.md`).
 
 **Accepted when:** the demo dataset ingests with zero unclassified errors, and a malformed row fails with a message that names the file, line and field.
 

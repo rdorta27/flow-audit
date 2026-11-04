@@ -98,6 +98,18 @@ Deno.test("captures from other systems stay out of the repository", async () => 
   }
 });
 
+Deno.test("client mappings stay out of the repository, the demo mapping does not", async () => {
+  const ignore = await Deno.readTextFile(new URL(".gitignore", ROOT));
+  for (const rule of ["*.mapping.json", "mapping.*.json"]) {
+    assert(ignore.includes(rule), `.gitignore must keep ${rule} out of the repository`);
+  }
+  // The demo mapping is committed, so neither rule may match its name.
+  for (const name of ["mapping.json"]) {
+    assert(!name.endsWith(".mapping.json") && !/^mapping\..+\.json$/.test(name), name);
+  }
+  await Deno.stat(new URL("data/demo/mapping.json", ROOT));
+});
+
 Deno.test("the boundary and the trademarks are documented", async () => {
   const notices = await Deno.readTextFile(new URL("THIRD-PARTY.md", ROOT));
   assert(

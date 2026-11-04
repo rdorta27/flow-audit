@@ -4,6 +4,8 @@ import type { AuditResult } from "../app/run_audit.ts";
 import { systemClock } from "../adapters/clock/system_clock.ts";
 import { TmfError } from "../adapters/ingest/tmf_client.ts";
 import { createFileSources } from "../adapters/ingest/file_sources.ts";
+import type { FileCoverage } from "../adapters/ingest/file_common.ts";
+import { MappingError, parseMapping } from "../adapters/ingest/mapping.ts";
 import { createTmfSources, tmfConfigFromEnvOrStub } from "../adapters/ingest/tmf_sources.ts";
 import { configFromFile } from "../domain/data_files.ts";
 import type { AuditReport, ImpactConfig } from "../domain/model.ts";
@@ -11,11 +13,12 @@ import { renderFindingsJson } from "../adapters/report/json_renderer.ts";
 import { renderHtml } from "../adapters/report/html_renderer.ts";
 
 const DEFAULT_CONFIG = new URL("../../data/demo/config.json", import.meta.url);
+const DEFAULT_MAPPING = new URL("../../data/demo/mapping.json", import.meta.url);
 
 const USAGE = `flow-audit — audit the order-to-activate flow of a BSS
 
 Usage:
-  deno task audit --dataset <dir> [--config <file>] [--out <dir>] [--quiet]
+  deno task audit --dataset <dir> [--mapping <file>] [--config <file>] [--out <dir>] [--quiet]
   deno task audit --source stub [--config <file>] [--out <dir>] [--quiet]
 
 Options:
@@ -31,6 +34,8 @@ Options:
   --dataset <dir>  Read the four exports in this directory (catalog.json, oms_orders.csv,
                    bpm_history.jsonl, provisioning.jsonl; the demo is data/demo).
                    Not together with --source.
+  --mapping <file> How the exports' columns, states, ids and dates map to the canonical
+                   fields (default: data/demo/mapping.json). See docs/architecture/mapping.md.
   --quiet          No progress lines on stderr. The result on stdout is unchanged.
   -h, --help       Show this help.
 
@@ -49,6 +54,7 @@ interface ParsedArgs {
   source?: "stub";
   config?: string;
   dataset?: string;
+  mapping?: string;
   out?: string;
 }
 
@@ -83,6 +89,12 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
         parsed.out = value;
         break;
       }
+      case "--mapping": {
+        const value = argv[++index];
+        if (!value) throw new UsageError("--mapping needs a file");
+        parsed.mapping = value;
+        break;
+      }
       case "--dataset": {
         const value = argv[++index];
         if (!value) throw new UsageError("--dataset needs a directory");
@@ -95,6 +107,45 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
   }
 
   return parsed;
+}
+
+async function readMapping(path: string | undefined) {
+  const where = path ?? "data/demo/mapping.json";
+  let raw: string;
+  try {
+    raw = await Deno.readTextFile(path ?? DEFAULT_MAPPING);
+  } catch (error) {
+    throw new MappingError(
+      where,
+      null,
+      "(file)",
+      `cannot read the mapping: ${(error as Error).message}`,
+    );
+  }
+  return parseMapping(raw, where);
+}
+
+/** The coverage report: what the mapping understood in each file and what it could not see. */
+export function coverageLines(coverage: readonly FileCoverage[]): string[] {
+  return coverage.map((c) => {
+    const mappedRows = c.rows - c.rowsWithUnmappedState;
+    const percent = c.rows === 0 ? 100 : Math.round((mappedRows / c.rows) * 1000) / 10;
+    const parts = [
+      `${c.file}: ${n(c.rows)} rows · ${percent}% with every state mapped`,
+    ];
+    for (const [table, s] of Object.entries(c.states)) {
+      const total = s.mapped + s.unmapped;
+      const unknown = Object.entries(s.unknown).map(([v, k]) => `"${v}" x${k}`).join(", ");
+      parts.push(
+        `${table} states ${total === 0 ? 100 : Math.round((s.mapped / total) * 1000) / 10}% mapped${
+          unknown ? ` (not mapped: ${unknown})` : ""
+        }`,
+      );
+    }
+    if (c.repeatedRows > 0) parts.push(`${n(c.repeatedRows)} repeated rows merged`);
+    if (c.notObservable.length > 0) parts.push(`not observable: ${c.notObservable.join(", ")}`);
+    return `Coverage ${parts.join(" · ")}`;
+  });
 }
 
 async function readConfig(path: string | undefined): Promise<ImpactConfig> {
@@ -197,13 +248,17 @@ export async function main(
     if (options.source && options.dataset) {
       throw new UsageError("--source and --dataset cannot be used together");
     }
+    let fileSources: ReturnType<typeof createFileSources> | undefined;
+    if (options.mapping && !options.dataset) {
+      throw new UsageError("--mapping goes with --dataset");
+    }
     if (options.dataset) {
       progress(`reading the exports in ${options.dataset}`);
-      sources = createFileSources({
+      fileSources = createFileSources(await readMapping(options.mapping), {
         dir: options.dataset,
         now: () => new Date().toISOString(),
-        simulated: options.dataset.replace(/\/+$/, "").endsWith("data/demo"),
       });
+      sources = fileSources;
       config = await readConfig(options.config);
     } else if (options.source === "stub") {
       const tmf = tmfConfigFromEnvOrStub(env);
@@ -216,6 +271,9 @@ export async function main(
       { sources, config, clock: systemClock, onProgress: progress },
     );
     for (const line of summaryLines(result)) console.log(line);
+    if (fileSources) {
+      for (const line of coverageLines(await fileSources.coverage())) console.log(line);
+    }
     if (options.out) {
       for (const path of await writeReports(options.out, result.report)) progress(`wrote ${path}`);
     }

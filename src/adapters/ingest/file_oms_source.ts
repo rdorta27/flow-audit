@@ -1,85 +1,151 @@
 // SPDX-License-Identifier: MIT
 /**
- * The order manager export (`oms_orders.csv`): one CSV, three views of it.
+ * The order manager export: one CSV, three views of it.
  *
  * Each row is an order joined with one of its service orders and, on the row that opens it,
  * a work order. The order fields repeat on every row, so a key seen again is dropped (the
  * first row wins): orders by `order_ref`, service orders by `so_ref`, work orders by `wo_ref`.
+ * Columns, ids, dates and states are read through the mapping (`mapping.ts`).
  */
 
 import type { EvidenceSource, RawRecord } from "../../ports/evidence_source.ts";
-import { type CsvRow, parseCsv } from "./csv.ts";
+import { parseCsv } from "./csv.ts";
 import {
+  type FileCoverage,
   FileError,
   type FileSourceOptions,
   joinPath,
-  optionalText,
+  newCoverage,
   provenance,
   readFileText,
-  requiredDate,
-  requiredText,
+  RowView,
 } from "./file_common.ts";
+import type { BlockMapping } from "./mapping.ts";
 
-export const OMS_FILE = "oms_orders.csv";
-
-const REQUIRED_COLUMNS = [
-  "order_ref",
-  "submitted_at",
-  "order_state",
-  "offer_id",
-  "so_ref",
-  "spec_id",
-  "so_state",
-  "so_created_at",
-];
+type Value = Record<string, unknown>;
+interface Parsed {
+  line: number;
+  order: { id: string; value: Value };
+  serviceOrder: { id: string; value: Value };
+  workOrder: { id: string; value: Value } | null;
+}
 
 type Kind = "order" | "service_order" | "work_order";
 
 export class OmsFile {
   readonly path: string;
-  #rows: Promise<{ line: number; cells: Record<string, string> }[]> | undefined;
+  readonly coverage: FileCoverage;
+  #parsed: Promise<Parsed[]> | undefined;
 
-  constructor(private readonly options: FileSourceOptions, file = OMS_FILE) {
-    this.path = joinPath(options.dir, file);
+  constructor(private readonly options: FileSourceOptions, private readonly block: BlockMapping) {
+    this.path = joinPath(options.dir, block.file);
+    this.coverage = newCoverage(this.path, block);
   }
 
-  #load() {
-    this.#rows ??= (async () => {
-      const text = await readFileText(this.path);
-      let table: CsvRow[];
-      try {
-        table = parseCsv(text);
-      } catch (error) {
+  #load(): Promise<Parsed[]> {
+    this.#parsed ??= this.#parse();
+    return this.#parsed;
+  }
+
+  async #parse(): Promise<Parsed[]> {
+    const { block, path } = this;
+    const text = await readFileText(path, block.encoding);
+    let table;
+    try {
+      table = parseCsv(text, block.delimiter);
+    } catch (error) {
+      throw new FileError(
+        path,
+        (error as { line?: number }).line ?? null,
+        null,
+        (error as Error).message.replace(/^line \d+: /, ""),
+      );
+    }
+    if (table.length === 0) throw new FileError(path, null, null, "the file is empty");
+    const header = table[0].cells.map((h) => h.trim());
+    for (const [field, column] of Object.entries(block.columns)) {
+      if (column !== null && !header.includes(column)) {
         throw new FileError(
-          this.path,
-          (error as { line?: number }).line ?? null,
-          null,
-          (error as Error).message.replace(/^line \d+: /, ""),
+          path,
+          table[0].line,
+          column,
+          `the column is missing (mapped from ${field})`,
         );
       }
-      if (table.length === 0) throw new FileError(this.path, null, null, "the file is empty");
-      const header = table[0].cells.map((h) => h.trim());
-      for (const column of REQUIRED_COLUMNS) {
-        if (!header.includes(column)) {
-          throw new FileError(this.path, table[0].line, column, "the column is missing");
-        }
+    }
+    const hasWork = block.columns.wo_ref !== null;
+    const parsed: Parsed[] = [];
+    for (const row of table.slice(1)) {
+      if (row.cells.length !== header.length) {
+        throw new FileError(
+          path,
+          row.line,
+          null,
+          `has ${row.cells.length} fields, the header has ${header.length}`,
+        );
       }
-      return table.slice(1).map((row) => {
-        if (row.cells.length !== header.length) {
-          throw new FileError(
-            this.path,
-            row.line,
-            null,
-            `has ${row.cells.length} fields, the header has ${header.length}`,
-          );
-        }
-        return {
-          line: row.line,
-          cells: Object.fromEntries(header.map((h, i) => [h, row.cells[i]])),
-        };
+      const byName = new Map(header.map((h, i) => [h, row.cells[i]]));
+      const view = new RowView(path, row.line, block, (c) => byName.get(c), this.coverage);
+      this.coverage.rows++;
+
+      const orderRef = view.id("order_ref", true)!;
+      const orderState = view.state("order", "order_state");
+      const soState = view.state("service_order", "so_state");
+      const soRef = view.id("so_ref", true)!;
+      if (view.unmappedState) this.coverage.rowsWithUnmappedState++;
+
+      const woRef = hasWork ? view.id("wo_ref") : null;
+      parsed.push({
+        line: row.line,
+        order: {
+          id: orderRef,
+          value: {
+            order_ref: orderRef,
+            submitted_at: view.date("submitted_at", true),
+            order_state: orderState.value,
+            order_state_raw: orderState.raw,
+            offer_id: view.requiredText("offer_id"),
+            offer_version: view.text("offer_version"),
+            replaces_order_ref: view.id("replaces_order_ref"),
+            single_line: block.singleLineOrders,
+          },
+        },
+        serviceOrder: {
+          id: soRef,
+          value: {
+            so_ref: soRef,
+            order_ref: orderRef,
+            spec_id: view.requiredText("spec_id"),
+            so_state: soState.value,
+            so_state_raw: soState.raw,
+            so_created_at: view.date("so_created_at", true),
+            terminal_serial: view.id("terminal_serial"),
+            single_line: block.singleLineOrders,
+          },
+        },
+        workOrder: woRef === null ? null : this.#workOrder(view, woRef, soRef),
       });
-    })();
-    return this.#rows;
+    }
+    return parsed;
+  }
+
+  #workOrder(view: RowView, woRef: string, soRef: string) {
+    const kind = this.block.columns.wo_kind === null
+      ? null
+      : view.state("work_order_kind", "wo_kind");
+    const state = this.block.columns.wo_state === null
+      ? null
+      : view.state("work_order", "wo_state");
+    return {
+      id: woRef,
+      value: {
+        wo_ref: woRef,
+        so_ref: soRef,
+        wo_kind: kind?.value ?? null,
+        wo_state: state?.value ?? null,
+        wo_created_at: view.date("wo_created_at", true),
+      },
+    };
   }
 
   source(kind: Kind): EvidenceSource {
@@ -93,52 +159,28 @@ export class OmsFile {
 
   async *#read(kind: Kind): AsyncIterable<RawRecord> {
     const seen = new Set<string>();
-    const file = this.path;
-    for (const { line, cells: row } of await this.#load()) {
-      let id: string;
-      let value: Record<string, unknown>;
-      if (kind === "order") {
-        id = requiredText(file, line, row, "order_ref");
-        if (seen.has(id)) continue;
-        value = {
-          order_ref: id,
-          submitted_at: requiredDate(file, line, row, "submitted_at"),
-          order_state: requiredText(file, line, row, "order_state"),
-          offer_id: requiredText(file, line, row, "offer_id"),
-          offer_version: optionalText(file, line, row, "offer_version"),
-          replaces_order_ref: optionalText(file, line, row, "replaces_order_ref"),
-        };
-      } else if (kind === "service_order") {
-        id = requiredText(file, line, row, "so_ref");
-        if (seen.has(id)) continue;
-        value = {
-          so_ref: id,
-          order_ref: requiredText(file, line, row, "order_ref"),
-          spec_id: requiredText(file, line, row, "spec_id"),
-          so_state: requiredText(file, line, row, "so_state"),
-          so_created_at: requiredDate(file, line, row, "so_created_at"),
-          terminal_serial: optionalText(file, line, row, "terminal_serial"),
-        };
-      } else {
-        const ref = optionalText(file, line, row, "wo_ref");
-        if (ref === null || seen.has(ref)) continue;
-        id = ref;
-        value = {
-          wo_ref: id,
-          so_ref: requiredText(file, line, row, "so_ref"),
-          wo_kind: requiredText(file, line, row, "wo_kind"),
-          wo_state: requiredText(file, line, row, "wo_state"),
-          wo_created_at: requiredDate(file, line, row, "wo_created_at"),
-        };
-      }
-      seen.add(id);
+    for (const parsed of await this.#load()) {
+      const entry = kind === "order"
+        ? parsed.order
+        : kind === "service_order"
+        ? parsed.serviceOrder
+        : parsed.workOrder;
+      if (entry === null || seen.has(entry.id)) continue;
+      seen.add(entry.id);
       yield {
         system: "OMS",
-        source: file,
-        line,
-        value,
-        provenance: provenance(this.options, file, id),
+        source: this.path,
+        line: parsed.line,
+        value: entry.value,
+        provenance: provenance(this.options, this.path, entry.id, this.block.evidenceKind),
       };
     }
+  }
+
+  /** Call after reading: the rows that repeated an order are the rows minus its distinct orders. */
+  async finishCoverage(): Promise<FileCoverage> {
+    const parsed = await this.#load();
+    this.coverage.repeatedRows = parsed.length - new Set(parsed.map((p) => p.order.id)).size;
+    return this.coverage;
   }
 }

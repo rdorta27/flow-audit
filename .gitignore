@@ -19,6 +19,10 @@ docs/data/raw/
 data/raw/
 *.capture.json
 
+# Mapeos de clientes (M5-05): privados, nunca se versionan. El del demo es data/demo/mapping.json.
+*.mapping.json
+mapping.*.json
+
 # Sistema y editores
 .DS_Store
 *.swp

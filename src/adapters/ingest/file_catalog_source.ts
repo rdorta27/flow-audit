@@ -12,14 +12,16 @@ import {
   provenance,
   readFileText,
 } from "./file_common.ts";
-
-export const CATALOG_FILE = "catalog.json";
+import type { CatalogMapping } from "./mapping.ts";
 
 export class FileCatalogSource implements EvidenceSource {
   readonly name = "CAT catalog (file)";
   readonly path: string;
-  constructor(private readonly options: FileSourceOptions, file = CATALOG_FILE) {
-    this.path = joinPath(options.dir, file);
+  constructor(
+    private readonly options: FileSourceOptions,
+    private readonly mapping: CatalogMapping,
+  ) {
+    this.path = joinPath(options.dir, mapping.file);
   }
 
   /** The catalog for the audit. `line` of a record is its 1-based place among offers, then specs. */
@@ -53,7 +55,7 @@ export class FileCatalogSource implements EvidenceSource {
       source: this.path,
       line,
       value: { kind, id, ...body },
-      provenance: provenance(this.options, this.path, id),
+      provenance: provenance(this.options, this.path, id, this.mapping.evidenceKind),
     };
   }
 }
