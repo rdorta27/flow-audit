@@ -474,3 +474,13 @@ sample up to twenty. A test validates this exact block.
   ]
 }
 ```
+
+## Comparing two audits (`deno task diff`)
+
+`deno task diff <before>/findings.json <after>/findings.json` (`src/domain/diff.ts`) prints,
+per rule, the orders that enter or leave the finding first, then the change in the estimate
+(hours, with the example rates), then the changes in `config` and in rule versions. Two runs of
+the same data print `No differences`. The file lists a sample of at most 20 orders per finding
+(`evidence`), so the orders that enter or leave are those of the sample, and the line says so;
+the counts (`affected_orders`) and hours are complete. Exit code 0 when compared, 1 when a file
+cannot be read or is not a `findings.json`, 2 on a usage error.
