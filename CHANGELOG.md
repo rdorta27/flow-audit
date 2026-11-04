@@ -4,6 +4,27 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.4.2 — 2026-11-04
+
+Second step to 0.5.0: four findings, a gate and a report that explains itself.
+
+- R01 (activation fails and nobody retries, 400 orders, 283.3 h), R02 (missing catalog
+  attribute forces a manual task, 4,167 orders, 347.3 h) and R05 (no end-to-end id, 300 weak
+  links, 225 h, shown apart from the total) run from files; on the stub R01, R04 and R05
+  run and R02 does not, because the stub serves no catalog or process tasks. Error
+  classes, maintenance windows and old pending attempts keep R01 from counting failures
+  nobody should retry (M3-03, M3-04, M3-05, M3-09).
+- A data-quality gate runs before the rules: time range, repeats, orphans and unknown states
+  per system; below the thresholds `audit` exits 3, `--force` runs anyway, and a rule whose
+  system is thin is reported as not evaluated, never as zero findings. `--check` runs only
+  read, mapping and gate (M5-10).
+- Named time zones in the mapping, an optional period and a warning when ranges do not
+  overlap (M5-08, partial).
+- The terminal says what it does: one line per stage, errors with what, where and what to
+  do next, messages in one table (M5-18).
+- The report opens with a plain first screen, a how-to-read box, every finding in one fixed
+  order, a drawing of an example order and a glossary (M4-07).
+
 ## 0.4.1 — 2026-11-03
 
 First step to 0.5.0: the engine reads files.

@@ -447,8 +447,12 @@ export async function runAudit(
   });
 
   const allJourneys = journeysWithSegments(correlation, []);
-  const sampled = [...new Set(findings.flatMap((f) => f.evidence.map((e) => e.orderRef)))]
-    .slice(0, REPORT_JOURNEYS_MAX);
+  // Orders that carry the most findings tell the most, so they are drawn first.
+  const refs = [...new Set(findings.flatMap((f) => f.evidence.map((e) => e.orderRef)))];
+  const carried = (ref: string) =>
+    findings.filter((f) => f.evidence.some((e) => e.orderRef === ref)).length;
+  const sampled = refs.map((ref, i) => ({ ref, i, n: carried(ref) }))
+    .sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.ref).slice(0, REPORT_JOURNEYS_MAX);
   const journeys = sampled.flatMap((ref) => {
     const journey = allJourneys.find((j) => j.orderRef === ref);
     if (!journey) return [];

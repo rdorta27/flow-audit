@@ -1,6 +1,6 @@
 {
   "license": "MIT",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "tasks": {
     "check": "deno check src/cli/main.ts src/cli/read.ts src/cli/explain.ts src/cli/generate_dataset.ts src/adapters/clock/system_clock.ts src/stub/main.ts src/adapters/ingest/ src/domain/ src/adapters/report/ tests/",
     "test": "deno test --allow-read --allow-write --allow-env=UPDATE_GOLDEN",

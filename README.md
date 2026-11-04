@@ -20,18 +20,20 @@ open-source (MIT) technical demo under construction; there is no commercial offe
 
 | Part | Status | What that means |
 |---|---|---|
-| Engine: read, join, R04, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --source stub --out out` |
+| Engine: read, join, R01, R02, R04, R05, quality gate, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --source stub --out out` |
 | Evidence source | **Simulated** | A TMF-shaped server over synthetic data (`deno task stub`); every response is marked simulated |
 | Data | **Simulated** | 5,000 made-up orders of a fictional operator, defects planted on purpose (`data/demo/`) |
 | Rates (minutes per action) | **Example** | From `data/demo/config.json`, not measured at any operator |
-| R01, R02, R03, R05 | **Missing** | Specified in `docs/architecture/rules.md`; arrive in 0.5.0 (Client-ready) |
+| R03 | **Missing** | Specified in `docs/architecture/rules.md`; arrives in 0.4.3 |
 | Reading an operator's export files (CSV, JSON, JSONL) through a mapping | **Real** | `deno task audit --dataset data/demo`; the demo files are our own design (D-03), not yet a real operator's |
 | Catalog and process steps of the story | **Missing** | The simulated source does not carry them; shown as "not observed" |
 
-What the engine finds today: R04, 20 duplicated orders (21 extra service orders),
-30 h a month (20 orders × 90 min of clean-up). With R04
-alone the net total equals the sum. The site's five-problem figures (977.6 h for R01 to
-R04, R05 apart) are the target design computed from the rules, not engine output.
+What the engine finds today, from the demo files (hours a month): R01 283.3 h (400 orders),
+R02 347.3 h (4,167 orders), R04 30 h (20 orders), and R05 225 h (300 weak links) shown apart
+(D-11). One order can carry several findings, so the net total counts each order once
+(`totals.ts`). R03 (317 h) arrives in 0.4.3; the site's 977.6 h is R01 to R04. On the
+simulated server R02 does not run, because it serves no catalog or process tasks. Before any
+rule, a quality gate checks each file (`docs/architecture/quality.md`).
 
 **Where it goes:** **Demo 1** (0.4.0) — this report, from the simulated source, reviewed;
 **Client-ready** (0.5.0) — the client's export files and all five rules. The plan is in
