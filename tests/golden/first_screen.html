@@ -1,0 +1,6 @@
+<section class="first" id="first" aria-labelledby="h">
+<h1 id="h">Orders cost about 30 h of manual rework a month</h1>
+<p class="lead">Flow Audit read 5,000 orders from Order manager, Activation system (3 sources) and looked for 1 pattern that make people redo work by hand. <abbr class="term" data-term="measured" title="Counted in the records. Orders, cases and records are measured.">Measured</abbr>: 5,000 orders, 20 with a finding. <abbr class="term" data-term="projected" title="Calculated: a measured count times minutes from the rates. Hours are always projected.">Projected</abbr>: 30 h a month, from minutes you can change; not money, not a booked loss.</p>
+<h2 class="sub">Where the hours go</h2><ol class="top"><li><a href="#R04">Duplicate service order (R04)</a> <span class="tag">30 h</span> in 20 orders</li></ol>
+<p class="blind"><strong>What it could not see.</strong> Product catalog and Process orchestrator were not read. Order manager: when each state change happened: the source is a snapshot, not a history. Activation system: when each attempt changed state: the source is a snapshot, not a history.</p>
+</section>
