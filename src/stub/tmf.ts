@@ -20,12 +20,21 @@ export interface TmfProductOfferingRef extends TmfRef {
   name: string;
 }
 
+/** The four TMF actions an order line or a service order item can carry. */
+export type TmfAction = "add" | "modify" | "delete" | "noChange";
+
 export interface TmfProductOrderItem {
   id: string;
-  action: "add";
+  action: TmfAction;
   state: string;
   /** The offer this line sells; the catalog supplies id, href and name. */
   productOffering: TmfProductOfferingRef;
+  /** The spec the line sells, when the dataset says (M2-08). */
+  product?: { productSpecification: { id: string } };
+  /** The bundle line this one belongs to (an extension field). */
+  parentItem?: { id: string };
+  /** `replaces` / `replacedBy` between items, as TMF622 relationships. */
+  productOrderItemRelationship?: { id: string; relationshipType: string }[];
 }
 
 export interface TmfProductOrder {
@@ -35,6 +44,9 @@ export interface TmfProductOrder {
   state: string;
   /** ISO 8601, UTC. */
   orderDate: string;
+  /** Amendments (extension fields): the order this one replaces and the one that replaced it. */
+  replaces?: { id: string };
+  supersededBy?: { id: string };
   productOrderItem: TmfProductOrderItem[];
 }
 
@@ -54,7 +66,7 @@ export interface TmfProductOrderItemRef {
 
 export interface TmfServiceOrderItem {
   id: string;
-  action: "add";
+  action: TmfAction;
   state: string;
   productOrderItem: TmfProductOrderItemRef;
 }

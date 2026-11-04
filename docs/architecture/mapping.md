@@ -37,6 +37,12 @@ Each of `oms`, `bpm` and `prov` takes:
 | `states` | per table, the client's value to the canonical one | canonical names only |
 | `on_unknown_state` | `fail` or `unmapped` | `fail` |
 
+`oms` also takes these optional fields, which a mapping may leave out entirely (M2-08): `so_action`
+(`add`, `modify`, `delete`, `noChange`; read by R04), and the order-line columns `item_ref` (the
+item the service order decomposes), `item_offer_id`, `item_spec_id`, `item_action`,
+`parent_item_ref` (bundle) and `replaces_item_ref`. With `item_ref` mapped, an order's lines are
+the distinct items of its rows; `replaces_order_ref` already declares an amended order.
+
 `oms` also takes `single_line_orders` (every order sells one line, so the item is
 `<order>-1`; without it R04 cannot tell a duplicate from a second line), and `bpm` takes
 `activity_fields` for the activities nested in each process.

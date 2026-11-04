@@ -308,9 +308,10 @@ Deno.test("read from the TMF stub, all service orders are explicit and 300 attem
   // The API carries no terminal serial, so nothing can be inferred: the gap stays visible.
   assertEquals(summary["attempt->service_order"].missing, 300);
 
-  // The 20 duplicated orders show up as 20 journeys with two service orders (one has three).
+  // The 20 duplicated orders and the one amended order show up as 21 journeys with several
+  // service orders (one duplicate has three, so does the amendment); R04 counts only the 20.
   const twoOrders = result.orders.filter((o) => o.serviceOrders.length >= 2).length;
-  assertEquals(twoOrders, 20);
+  assertEquals(twoOrders, 20 + EXPECTED.cases.amendment_orders);
   assertEquals(result.unmapped, []);
 
   // Everything read from an API is a snapshot, so there are no segments, and it says why.

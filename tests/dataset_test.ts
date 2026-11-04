@@ -360,8 +360,13 @@ Deno.test("R04: duplicates are two service orders for the same offer", () => {
   for (const serviceOrder of dataset.serviceOrders) {
     byOrder.set(serviceOrder.orderRef, (byOrder.get(serviceOrder.orderRef) ?? 0) + 1);
   }
-  const duplicated = [...byOrder.entries()].filter(([, count]) => count > 1);
+  // The amended order has several service orders too, told apart by `action` (M2-08).
+  const amended = dataset.defects.legit.amendments;
+  const duplicated = [...byOrder.entries()].filter(([ref, count]) =>
+    count > 1 && !amended.includes(ref)
+  );
   assertEquals(duplicated.length, DUPLICATE_ORDERS);
+  assertEquals(amended.length, EXPECTED.cases.amendment_orders);
 
   for (const [orderRef] of duplicated) {
     const specs = dataset.serviceOrders
@@ -392,7 +397,15 @@ Deno.test("no record is lost between entities before ingestion", () => {
   const soRefs = new Set(dataset.serviceOrders.map((serviceOrder) => serviceOrder.soRef));
   const processIds = new Set(dataset.processes.map((process) => process.processId));
 
+  // The amendment's service orders (action modify / add) run no process of their own.
+  const amendedSos = new Set(
+    dataset.serviceOrders
+      .filter((so) => dataset.defects.legit.amendments.includes(so.orderRef) && so.action !== "add")
+      .map((so) => so.soRef),
+  );
+  amendedSos.add(`SO-${37000 + 3500}`);
   for (const soRef of soRefs) {
+    if (amendedSos.has(soRef)) continue;
     const linked = dataset.processes.filter((process) => process.soRef === soRef);
     assertEquals(linked.length, 1, `${soRef} should have exactly one process`);
   }

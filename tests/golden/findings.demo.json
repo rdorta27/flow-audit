@@ -4,7 +4,7 @@
   "run": {
     "id": "<run>",
     "generated_at": "<time>",
-    "inputs_hash": "df127d5f0c0aaec56c408b6d7064d9d16f89296f6b62921c0354ee83f0dd0c66",
+    "inputs_hash": "49ba83853d734335c457cbb10e76de777d950c4183bb9380d8c5123902db557c",
     "config_hash": "02bd2575fc60f264a995621955d514a807169459953ce687102759db958a80fe",
     "rules_hash": "9866075d7341a490052d036dcbcefc452ea00cdb4160fbe399ffb4ff4d6b0ea3"
   },
@@ -19,7 +19,7 @@
       "records": 5000,
       "rows_read": 5000,
       "rows_discarded": 0,
-      "sha256": "17e7c79902b9fadfc24ff8470a277cf710e67e8d56d49bb782ecde3e78ca73dc"
+      "sha256": "dc035e242fd51dab78386582f1b3a6512ae1bfd4c1aafb99c21d78855a686251"
     },
     {
       "system": "OMS",
@@ -28,10 +28,10 @@
       "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder",
       "simulated": true,
       "evidence_kind": "snapshot",
-      "records": 5021,
-      "rows_read": 5021,
+      "records": 5023,
+      "rows_read": 5023,
       "rows_discarded": 0,
-      "sha256": "ce74b8da82762f14bd897e07c77c1b9cb2bcf15228b43e059a51eb1c63d98f79"
+      "sha256": "b5fefc4fd87a464622f26646c13d4db13dddcf538274e6dbbd2c2100cf240a42"
     },
     {
       "system": "PROV",
@@ -106,7 +106,7 @@
   "correlation": {
     "links": {
       "service_order->order": {
-        "explicit": 5021,
+        "explicit": 5023,
         "inferred": 0,
         "ambiguous": 0,
         "missing": 0,
@@ -159,7 +159,7 @@
       "position": 2,
       "read": true,
       "source_kind": "tmf-api",
-      "records": 10021,
+      "records": 10023,
       "coverage": 1,
       "cannot_observe": [
         "when each state change happened: the source is a snapshot, not a history"
@@ -1444,6 +1444,7 @@
         "retry_new_order": 20,
         "parallel_duplicate": 0,
         "needs_review": 0,
+        "amendments": 1,
         "reached_activation": 20,
         "activation_attempts": 21
       },

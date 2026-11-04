@@ -31,6 +31,9 @@ export const MAINTENANCE_FAILURE_ORDERS = 30;
 export const REPLACED_ORDERS = 10;
 export const THREE_SO_DUPLICATES = 1;
 export const REUSED_SERIAL_ORDERS = 5;
+/** One order amended after it went live: a change plus an added component on one item (M2-08). */
+export const AMENDMENT_ORDERS = 1;
+export const AMENDMENT_SERVICE_ORDERS = 2;
 /** Plan 200 orders from this index on are sold under offer version v2. */
 const V2_FIRST_INDEX = 2500;
 export const OFFER_V2_ORDERS =
@@ -74,6 +77,7 @@ const REUSED_SERIAL = { from: 3000, to: 3000 + REUSED_SERIAL_ORDERS };
 const MAINTENANCE = { from: 2000, to: 2000 + MAINTENANCE_FAILURE_ORDERS };
 const LONG_RUNNING = { from: 4700, to: 4700 + LONG_RUNNING_ORDERS };
 /** One of the planted duplicates gets a third service order. */
+const AMENDMENT_INDEX = 3500; // a healthy order: no fallout, no duplicate, no weak link
 const THREE_SO_INDEX = 17; // not ORD-1005, the order the site and the report tell as the story
 const STEP_MS = Math.floor((WINDOW_END - WINDOW_START) / ORDERS);
 const OFFER_V2_FROM = new Date(WINDOW_START + V2_FIRST_INDEX * STEP_MS - 2 * MINUTE)
@@ -116,7 +120,7 @@ const ALL_ATTEMPTS = ORDERS + FALLOUT_ORDERS - REPLACED_ORDERS - LONG_RUNNING_OR
 
 export const EXPECTED = {
   orders: ORDERS,
-  service_orders: ORDERS + DUPLICATE_ORDERS + THREE_SO_DUPLICATES,
+  service_orders: ORDERS + DUPLICATE_ORDERS + THREE_SO_DUPLICATES + AMENDMENT_SERVICE_ORDERS,
   work_orders: ORDERS,
   processes: ORDERS + DUPLICATE_ORDERS + THREE_SO_DUPLICATES,
   attempts: ALL_ATTEMPTS,
@@ -137,7 +141,8 @@ export const EXPECTED = {
       stuck_orders: STUCK_ORDERS,
       share_of_orders: 0.03,
     },
-    R04: { affected_orders: DUPLICATE_ORDERS, share_of_orders: 0.004 },
+    // The amendment is not a duplicate: it adds to `amendment_groups`, never to the 20.
+    R04: { affected_orders: DUPLICATE_ORDERS, share_of_orders: 0.004, amendment_groups: 1 },
     R05: { affected_orders: WEAK_LINK_ORDERS, share_of_orders: 0.06 },
   },
   /** Legitimate cases no rule may flag; each one is a count of orders. */
@@ -152,6 +157,8 @@ export const EXPECTED = {
     replaced_orders: REPLACED_ORDERS,
     three_service_order_duplicates: THREE_SO_DUPLICATES,
     reused_serial_orders: REUSED_SERIAL_ORDERS,
+    amendment_orders: AMENDMENT_ORDERS,
+    amendment_service_orders: AMENDMENT_SERVICE_ORDERS,
     offer_v2_valid_from: OFFER_V2_FROM,
     maintenance_window: MAINTENANCE_WINDOW,
     permanent_error_codes: PERMANENT_ERROR_CODES,
@@ -184,7 +191,8 @@ export type LegitCase =
   | "replaced"
   | "replacing"
   | "threeServiceOrderDuplicates"
-  | "reusedSerials";
+  | "reusedSerials"
+  | "amendments";
 
 export interface DemoDataset {
   catalog: Catalog;
@@ -296,6 +304,7 @@ export function generateDemoDataset(): DemoDataset {
       replacing: [],
       threeServiceOrderDuplicates: [],
       reusedSerials: [],
+      amendments: [],
     },
   };
 
@@ -369,10 +378,12 @@ export function generateDemoDataset(): DemoDataset {
         : {}),
     });
 
+    const isAmendment = index === AMENDMENT_INDEX;
     serviceOrders.push({
       soRef,
       orderRef,
       specId,
+      ...(isAmendment ? { action: "add" as const } : {}),
       state: isOpen
         ? "PROVISIONING"
         : isDuplicate || isPermanent
@@ -383,6 +394,30 @@ export function generateDemoDataset(): DemoDataset {
       createdAt: iso(decomposedAt),
       terminalSerial: serial,
     });
+
+    if (isAmendment) {
+      // Two days after going live the customer changed the plan and added a component. Both
+      // service orders hang on the same product order item, so R04 must read their actions.
+      const amendedAt = naturalActivation + 48 * HOUR;
+      serviceOrders.push({
+        soRef: `SO-${36000 + index}`,
+        orderRef,
+        specId,
+        action: "modify",
+        state: "ACTIVE",
+        createdAt: iso(amendedAt),
+        terminalSerial: serial,
+      }, {
+        soRef: `SO-${37000 + index}`,
+        orderRef,
+        specId,
+        action: "add",
+        state: "ACTIVE",
+        createdAt: iso(amendedAt + HOUR),
+        terminalSerial: serial,
+      });
+      defects.legit.amendments.push(orderRef);
+    }
 
     workOrders.push({
       woRef,

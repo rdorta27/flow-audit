@@ -132,6 +132,23 @@ export interface Catalog {
 
 // Orders --------------------------------------------------------------------
 
+/** What an order line or a service order does to the product (TMF `action`). */
+export type ItemAction = "add" | "modify" | "delete" | "noChange";
+
+/** One line of a product order (M2-08). `Order.offerId` stays the offer of the first line. */
+export interface OrderItem {
+  itemRef: string;
+  offerId: string;
+  /** The spec the line sells, when the source says; absent is unknown. */
+  specId?: string;
+  action?: ItemAction;
+  /** The bundle line this one belongs to. */
+  parentItem?: string;
+  /** The item (of an earlier order) this line replaces, and the one that replaced it. */
+  replacesItem?: string;
+  supersededByItem?: string;
+}
+
 export interface Order {
   orderRef: string;
   submittedAt: string;
@@ -142,6 +159,10 @@ export interface Order {
   rawState?: string;
   /** The order this one replaces (an amendment); the replaced order ends `CANCELLED`. */
   replacesOrderRef?: string;
+  /** The order that replaced this one; the reverse of `replacesOrderRef`, when the source says. */
+  supersededByOrderRef?: string;
+  /** The lines with offer, spec, action and bundle parent (M2-08), when the source has them. */
+  items?: OrderItem[];
   /** Ids of the order lines, when the source exposes them. Service orders point at one. */
   itemRefs?: string[];
   provenance?: Provenance;
@@ -155,6 +176,8 @@ export interface ServiceOrder {
   /** The state exactly as the source wrote it (M2-05). */
   rawState?: string;
   createdAt: string;
+  /** What this service order does to its item; absent is unknown (M2-08). */
+  action?: ItemAction;
   /** Terminal assigned to the service. PROV attempts link back through it. */
   terminalSerial?: string;
   /**

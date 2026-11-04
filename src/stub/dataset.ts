@@ -73,13 +73,16 @@ interface OmsRow {
   specId: string;
   soState: OrderState;
   soCreatedAt: string;
+  /** Optional columns: absent in older exports. */
+  soAction: ServiceOrder["action"];
+  replacesOrderRef: string;
 }
 
 function parseOms(text: string): OmsRow[] {
   const rows = parseCsv(text);
   const header = rows[0];
   const column = new Map<string, number>(header.map((name, index) => [name, index]));
-  const pick = (row: string[], name: string): string => row[column.get(name) as number];
+  const pick = (row: string[], name: string): string => row[column.get(name) as number] ?? "";
   return rows.slice(1).map((row) => ({
     orderRef: pick(row, "order_ref"),
     submittedAt: pick(row, "submitted_at"),
@@ -89,6 +92,8 @@ function parseOms(text: string): OmsRow[] {
     specId: pick(row, "spec_id"),
     soState: pick(row, "so_state") as OrderState,
     soCreatedAt: pick(row, "so_created_at"),
+    soAction: (pick(row, "so_action") || undefined) as ServiceOrder["action"],
+    replacesOrderRef: pick(row, "replaces_order_ref"),
   }));
 }
 
@@ -124,6 +129,7 @@ export async function loadStubDataset(root: URL): Promise<StubDataset> {
         state: row.orderState,
         offerId: row.offerId,
         offerVersion: "v1",
+        ...(row.replacesOrderRef ? { replacesOrderRef: row.replacesOrderRef } : {}),
       });
     }
     if (!serviceOrders.has(row.soRef)) {
@@ -133,6 +139,7 @@ export async function loadStubDataset(root: URL): Promise<StubDataset> {
         specId: row.specId,
         state: row.soState,
         createdAt: row.soCreatedAt,
+        ...(row.soAction ? { action: row.soAction } : {}),
       });
     }
   }

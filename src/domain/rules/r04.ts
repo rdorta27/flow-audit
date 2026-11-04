@@ -6,6 +6,7 @@
  * pure function: it reads what correlation already joined and invents no rate.
  */
 
+import { isAmendingAction } from "../amendments.ts";
 import type { CorrelatedOrder } from "../correlation.ts";
 import {
   type Cost,
@@ -43,8 +44,11 @@ export interface R04Group {
   item: string;
   /** Oldest first: the first is the original, the rest are the extras. */
   serviceOrders: Linked<ServiceOrder>[];
-  /** `needs_review`: the service orders differ in spec, so it may be an amendment. */
-  verdict: "duplicate" | "needs_review";
+  /**
+   * `amendment`: a later service order modifies or deletes the item (its `action`), so it is
+   * not a repeat. `needs_review`: the service orders differ in spec, so it may be one.
+   */
+  verdict: "duplicate" | "needs_review" | "amendment";
   /** Why the extras exist; only for a duplicate. */
   cause?: R04Cause;
   extras: string[];
@@ -55,8 +59,9 @@ export interface R04Group {
  * Groups an order's live service orders by item and classifies each group. A cancelled
  * order replaced by a new one is deliberate, and a state we could not read is neither live
  * nor dead, so neither counts. A spec of "unknown" (a source that sends none) cannot show a
- * difference, so only two different known specs make a group `needs_review`. The action of
- * a service order is not modelled yet, so it is not compared.
+ * difference, so only two different known specs make a group `needs_review`. A later service
+ * order whose action is `modify` or `delete` (M2-08) makes the group an `amendment`: neither
+ * counted nor priced. An absent action is unknown and never read as an amendment.
  */
 export function groupsR04(entry: CorrelatedOrder): R04Group[] {
   const live = entry.serviceOrders.filter((l) =>
@@ -77,12 +82,13 @@ export function groupsR04(entry: CorrelatedOrder): R04Group[] {
     const specs = new Set(sos.map((l) => l.item.specId).filter((id) => id !== "unknown"));
     const extras = sos.slice(1).map((l) => l.item.soRef);
     const attempts = entry.attempts.filter((a) => extras.includes(a.link.toId ?? ""));
-    const duplicate = specs.size <= 1;
+    const amendment = sos.slice(1).some((l) => isAmendingAction(l.item.action));
+    const duplicate = !amendment && specs.size <= 1;
     groups.push({
       orderRef: entry.order.orderRef,
       item,
       serviceOrders: sos,
-      verdict: duplicate ? "duplicate" : "needs_review",
+      verdict: amendment ? "amendment" : duplicate ? "duplicate" : "needs_review",
       cause: duplicate
         ? (sos[0].item.state === "FAILED" ? "retry_new_order" : "parallel_duplicate")
         : undefined,
@@ -106,10 +112,15 @@ export function detectR04(
   let retryNewOrder = 0;
   let parallelDuplicate = 0;
   let needsReview = 0;
+  let amendments = 0;
   const links: Link[] = [];
 
   for (const entry of orders) {
     for (const g of groupsR04(entry)) {
+      if (g.verdict === "amendment") {
+        amendments++;
+        continue;
+      }
       if (g.verdict === "needs_review") {
         needsReview++;
         continue;
@@ -176,6 +187,7 @@ export function detectR04(
       retryNewOrder,
       parallelDuplicate,
       needsReview,
+      amendments,
       reachedActivation,
       activationAttempts,
     },

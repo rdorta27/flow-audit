@@ -97,6 +97,13 @@ export const FIELDS: Record<BlockName, Record<string, boolean>> = {
     so_state: true,
     so_created_at: true,
     terminal_serial: false,
+    so_action: false,
+    item_ref: false,
+    item_offer_id: false,
+    item_spec_id: false,
+    item_action: false,
+    parent_item_ref: false,
+    replaces_item_ref: false,
     wo_ref: false,
     wo_kind: false,
     wo_state: false,
@@ -122,6 +129,24 @@ export const FIELDS: Record<BlockName, Record<string, boolean>> = {
   },
 };
 
+/**
+ * Fields added after the first mappings were written (M2-08). A mapping may leave them out:
+ * an absent one is simply not read, and is not reported as "not observable".
+ */
+export const OMITTABLE: Record<BlockName, string[]> = {
+  oms: [
+    "so_action",
+    "item_ref",
+    "item_offer_id",
+    "item_spec_id",
+    "item_action",
+    "parent_item_ref",
+    "replaces_item_ref",
+  ],
+  bpm: [],
+  prov: [],
+};
+
 export const ACTIVITY_FIELDS: Record<string, boolean> = {
   sequence: false,
   kind: false,
@@ -134,7 +159,16 @@ export const ACTIVITY_FIELDS: Record<string, boolean> = {
 
 /** Fields that hold an id, and so may carry id rules. */
 export const ID_FIELDS: Record<BlockName, string[]> = {
-  oms: ["order_ref", "so_ref", "wo_ref", "terminal_serial", "replaces_order_ref"],
+  oms: [
+    "order_ref",
+    "so_ref",
+    "wo_ref",
+    "terminal_serial",
+    "replaces_order_ref",
+    "item_ref",
+    "parent_item_ref",
+    "replaces_item_ref",
+  ],
   bpm: ["process_id", "so_ref", "business_key"],
   prov: ["attempt_id", "so_ref", "serial"],
 };
@@ -217,11 +251,13 @@ export function parseMapping(text: string, where: string): Mapping {
     value: unknown,
     path: string[],
     fields: Record<string, boolean>,
+    omittable: readonly string[] = [],
   ): Record<string, string | null> => {
     const map = object(value, path, Object.keys(fields));
     const out: Record<string, string | null> = {};
     for (const [field, required] of Object.entries(fields)) {
       const v = map[field];
+      if (v === undefined && omittable.includes(field)) continue;
       if (v === undefined) {
         fail(
           path,
@@ -288,7 +324,7 @@ export function parseMapping(text: string, where: string): Mapping {
     if (b[wrong] !== undefined) {
       fail([name, wrong], `unknown field: this block uses "${columnsKey}"`);
     }
-    const columns = fieldMap(b[columnsKey], [name, columnsKey], FIELDS[name]);
+    const columns = fieldMap(b[columnsKey], [name, columnsKey], FIELDS[name], OMITTABLE[name]);
 
     const ids: Record<string, IdRule> = {};
     if (b.ids !== undefined) {

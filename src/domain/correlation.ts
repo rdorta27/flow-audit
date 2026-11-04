@@ -17,6 +17,7 @@
  * resort, but it would hide wrong joins, so it is left out until a source needs it.
  */
 
+import { itemReplacementOwners, replacedOrderRefs, replacementIndex } from "./amendments.ts";
 import type {
   Order,
   OrderJourney,
@@ -157,6 +158,20 @@ export function correlate(input: CorrelationInput): CorrelationResult {
     (entry) => entry.item,
   );
 
+  // Amendments (M2-08): a reference to a replaced order that is gone follows the replacement.
+  const replacement = replacementIndex(input.orders);
+  const replaced = replacedOrderRefs(input.orders);
+  const replacingItem = itemReplacementOwners(input.orders);
+  const replacementOf = (ref: string): string | undefined => {
+    let current = ref;
+    for (let hops = 0; hops < 10 && !ordersById.has(current); hops++) {
+      const next = replacement.get(current);
+      if (next === undefined) return undefined;
+      current = next;
+    }
+    return current === ref ? undefined : current;
+  };
+
   const duplicateIds: DuplicateId[] = [];
   for (const [id, list] of ordersById) {
     if (list.length > 1) duplicateIds.push({ entity: "order", id, count: list.length });
@@ -208,8 +223,10 @@ export function correlate(input: CorrelationInput): CorrelationResult {
   for (const so of input.serviceOrders) {
     const declared = present(so.orderRef);
     const item = present(so.productOrderItemRef);
-    const owners = item ? (orderByItem.get(item) ?? []).map((e) => e.order.orderRef) : [];
+    const direct = item ? (orderByItem.get(item) ?? []).map((e) => e.order.orderRef) : [];
+    const owners = direct.length > 0 ? direct : item ? (replacingItem.get(item) ?? []) : [];
     const owner = owners.length === 1 ? owners[0] : undefined;
+    const successor = declared && !ordersById.has(declared) ? replacementOf(declared) : undefined;
 
     let link: Link;
     if (declared && owner && declared !== owner) {
@@ -220,6 +237,11 @@ export function correlate(input: CorrelationInput): CorrelationResult {
         confidence: "conflicting",
         basis: `orderRef says ${declared} but item ${item} belongs to ${owner}`,
         candidates: [declared, owner],
+      });
+    } else if (declared && successor) {
+      link = toOrder("service_order->order", so.soRef, successor, "orderRef", {
+        confidence: "explicit",
+        basis: `orderRef ${declared} was replaced by ${successor}`,
       });
     } else if (declared) {
       link = toOrder("service_order->order", so.soRef, declared, "orderRef");
@@ -336,7 +358,12 @@ export function correlate(input: CorrelationInput): CorrelationResult {
         basis: "no service order reference and no terminal serial",
       });
     } else {
-      const candidates = (sosBySerial.get(serial) ?? []).map((s) => s.soRef).sort();
+      let fitting = sosBySerial.get(serial) ?? [];
+      // A replaced order's cancelled service order shares the terminal with its replacement.
+      const live = fitting.filter((s) => !(s.state === "CANCELLED" && replaced.has(s.orderRef)));
+      const setAside = fitting.length > 1 && live.length === 1;
+      if (setAside) fitting = live;
+      const candidates = fitting.map((s) => s.soRef).sort();
       if (candidates.length === 0) {
         link = keep({
           kind: "attempt->service_order",
@@ -351,7 +378,8 @@ export function correlate(input: CorrelationInput): CorrelationResult {
           fromId: attempt.attemptId,
           toId: candidates[0],
           confidence: "inferred",
-          basis: `terminal serial ${serial}`,
+          basis: `terminal serial ${serial}` +
+            (setAside ? " (the cancelled service order of a replaced order is set aside)" : ""),
         });
       } else {
         link = keep({

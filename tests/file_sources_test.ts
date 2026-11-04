@@ -43,9 +43,9 @@ async function failure(run: () => Promise<unknown>): Promise<string> {
 }
 
 const OMS_HEADER =
-  "order_ref,submitted_at,order_state,offer_id,offer_version,so_ref,spec_id,so_state,so_created_at,terminal_serial,wo_ref,wo_kind,wo_state,wo_created_at,replaces_order_ref";
+  "order_ref,submitted_at,order_state,offer_id,offer_version,so_ref,spec_id,so_state,so_created_at,terminal_serial,wo_ref,wo_kind,wo_state,wo_created_at,replaces_order_ref,so_action";
 const OMS_ROW =
-  "ORD-1,2026-09-01T00:00:00.000Z,ACTIVE,OFFER-A,v1,SO-1,SPEC-A,ACTIVE,2026-09-01T01:00:00.000Z,SN-1,WO-1,installation,DONE,2026-09-01T02:00:00.000Z,";
+  "ORD-1,2026-09-01T00:00:00.000Z,ACTIVE,OFFER-A,v1,SO-1,SPEC-A,ACTIVE,2026-09-01T01:00:00.000Z,SN-1,WO-1,installation,DONE,2026-09-01T02:00:00.000Z,,";
 
 Deno.test("csv: quoted fields keep commas, quotes and line breaks", () => {
   const rows = parseCsv('a,b,c\r\n"x, y","say ""hi""","two\nlines"\n\n1,,3');
@@ -75,7 +75,7 @@ Deno.test("oms: orders, service orders and work orders, repeated rows dropped", 
     "oms_orders.csv": [
       OMS_HEADER,
       OMS_ROW,
-      "ORD-1,2026-09-01T00:00:00.000Z,ACTIVE,OFFER-A,v1,SO-2,SPEC-A,ACTIVE,2026-09-02T01:00:00.000Z,SN-1,,,,,",
+      "ORD-1,2026-09-01T00:00:00.000Z,ACTIVE,OFFER-A,v1,SO-2,SPEC-A,ACTIVE,2026-09-02T01:00:00.000Z,SN-1,,,,,,modify",
     ].join("\n"),
   });
   try {
@@ -88,6 +88,8 @@ Deno.test("oms: orders, service orders and work orders, repeated rows dropped", 
     assertEquals(orders[0].provenance.endpoint, `${f.dir}/oms_orders.csv`);
     assertEquals(sos[1].line, 3);
     assertEquals(sources.mappers.serviceOrder(sos[1]).terminalSerial, "SN-1");
+    assertEquals(sources.mappers.serviceOrder(sos[1]).action, "modify");
+    assertEquals(sources.mappers.serviceOrder(sos[0]).action, undefined);
   } finally {
     await f.done();
   }
@@ -196,4 +198,43 @@ Deno.test("the CLI reads --dataset and refuses --source with it", async () => {
     console.error = error;
   }
   assert(logs.includes("R04@2 · 20 orders · 30 h"), logs.join("\n"));
+});
+
+Deno.test("oms: a client's item columns give a two-line order and a service order per line", async () => {
+  const json = JSON.parse(
+    await Deno.readTextFile(new URL("../data/demo/mapping.json", import.meta.url)),
+  );
+  Object.assign(json.oms.columns, {
+    item_ref: "line",
+    item_offer_id: "line_offer",
+    item_action: "line_action",
+    parent_item_ref: "line_parent",
+  });
+  const mapping = parseMapping(JSON.stringify(json), "mapping.json");
+  const header = `${OMS_HEADER},line,line_offer,line_action,line_parent`;
+  const rows = [
+    `${OMS_ROW},L1,BUNDLE,add,`,
+    OMS_ROW.replace("SO-1", "SO-2").replace("SN-1", "SN-2") + ",L2,ROUTER,modify,L1",
+  ];
+  const f = await fixture({ "oms_orders.csv": [header, ...rows].join("\n") });
+  try {
+    const sources = createFileSources(mapping, options(f.dir));
+    const orders = await collect(sources.productOrders.read());
+    assertEquals(orders.length, 1);
+    const order = sources.mappers.order(orders[0]);
+    assertEquals(order.itemRefs, ["L1", "L2"]);
+    assertEquals(order.items?.[1], {
+      itemRef: "L2",
+      offerId: "ROUTER",
+      action: "modify",
+      parentItem: "L1",
+    });
+    const sos = await collect(sources.serviceOrders.read());
+    assertEquals(
+      sos.map((s) => sources.mappers.serviceOrder(s).productOrderItemRef),
+      ["L1", "L2"],
+    );
+  } finally {
+    await f.done();
+  }
 });

@@ -64,8 +64,13 @@ The demo also holds cases that look odd and are healthy. A rule that flags one i
 | Replaced | 10 | an order `CANCELLED` and replaced by the next ten orders |
 | Three-service-order duplicate | 1 | one of the 20 planted duplicates has a third service order; still one R04 order |
 | Reused serial | 5 | a terminal serial held by two orders |
+| Amendment | 1 | ORD-4500: one item with an `add` service order, then a `modify` and a second `add` (`so_action`); R04 does not count it (`R04.amendment_groups` 1, `cases.amendment_service_orders` 2) |
 
-Not built yet: a change plus an add on one order item (needs an `action` on the service order and an R04 that reads it).
+The two extra service orders of the amendment add 2 to `service_orders` (5,023) and run no process or attempt, so processes, attempts, R01, R02 and R05 do not move.
+
+### Lines and amendments (M2-08)
+
+An order holds `items` (offer, spec, `action`, `parentItem` for a bundle, `replacesItem` / `supersededByItem`); `Order.offerId` stays the first line's offer. An order replaced by another carries `replacesOrderRef` on the new one (`supersededByOrderRef` when the source says it the other way). A service order has an optional `action`. Correlation follows a reference to a replaced order that is gone to its replacement (explicit, the basis says so), and sets aside the cancelled service order of a replaced order when a terminal serial would otherwise be ambiguous.
 
 ## BPM evidence contract
 

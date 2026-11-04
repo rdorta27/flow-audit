@@ -48,7 +48,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `evidence_level` | `strong`, `weak` or `history` (see the rule). |
 | `evidence[]`, `evidence_total` | A sample of **at most 20 orders** (`EVIDENCE_SAMPLE_MAX`), each with `order_ref`, `event_ids`, `records[]` (`system`, `external_id`, `endpoint`) and an optional `note`; `evidence_total` is how many orders the rule found. |
 | `confidence` | `level` (`confirmed` when every link the evidence rests on is explicit, else `possible`) and `inferred_link_share`. |
-| `breakdown` | Optional, rule-specific counts. R04: `groups`, `extra_service_orders`, `retry_new_order`, `parallel_duplicate`, `needs_review`, `reached_activation`, `activation_attempts`. |
+| `breakdown` | Optional, rule-specific counts. R04: `groups`, `extra_service_orders`, `retry_new_order`, `parallel_duplicate`, `needs_review`, `amendments`, `reached_activation`, `activation_attempts`. |
 | `in_total` | Whether the finding counts in `totals`. R05 is `false` (D-11). |
 | `cost` | See below. |
 | `recommendation` | What to do about it. |
