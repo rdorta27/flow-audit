@@ -117,6 +117,7 @@ Deno.test("the demo passes the gate from files and from the stub", async () => {
   assertEquals(files.findings.map((f) => [f.ruleVersion, f.affectedOrders, f.cost.hoursMonth]), [
     ["R01@1", 400, 283.3333333333333],
     ["R02@1", 4167, 347.25],
+    ["R03@1", 50, 316.96865162037045],
     ["R04@2", 20, 30],
     ["R05@1", 300, 225],
   ]);
@@ -174,6 +175,7 @@ Deno.test("a doubled file is de-duplicated by key and the count is reported", as
     assertEquals(result.findings.map((f) => [f.ruleVersion, f.affectedOrders]), [
       ["R01@1", 400],
       ["R02@1", 4167],
+      ["R03@1", 50],
       ["R04@2", 20],
       ["R05@1", 300],
     ]);

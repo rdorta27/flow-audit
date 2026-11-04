@@ -1,6 +1,6 @@
 # Rule catalogue
 
-Status: R01, R02, R04 and R05 are implemented (`src/domain/rules/r01.ts`, `r02.ts`, `r04.ts`, `r05.ts`) and registered in `src/domain/rules/index.ts`; R03 is designed. Severity is shared (`src/domain/rules/severity.ts`). A rule reads the correlated orders, the config and, when it needs them, a `RuleContext` (the whole correlation and the catalog). R04 is the first rule (milestone Demo 1) and its
+Status: R01 to R05 are implemented (`src/domain/rules/r01.ts` to `r05.ts`) and registered in `src/domain/rules/index.ts`. Severity is shared (`src/domain/rules/severity.ts`). A rule reads the correlated orders, the config and, when it needs them, a `RuleContext` (the whole correlation and the catalog). R04 is the first rule (milestone Demo 1) and its
 Demo 1 specification is written below. The rules below are the five
 findings the demo reports. Each one must be defensible: a signal, the
 evidence that proves it and a formula that turns it into hours.
@@ -119,12 +119,31 @@ in the declared tie counts; a missing attribute with no such task is counted apa
 
 ## R03 — BPM timer expires without compensation
 
-**Signal.** A timer boundary event expires in the activation subprocess, the next
-activity is neither a compensation nor an error handler, and the process shows no
-state change for longer than `stuck_after_hours` (default 72).
+**Rule version.** `R03@1`.
 
-**Evidence.** Timer activity, expiry timestamp, absent compensation, last state change,
-and the order's age.
+**Signal.** A timer activity (`timerExpired`; `rules.r03.timer_activities` narrows which ones, empty
+means any) expires in the activation subprocess, **no activity follows it**, the process is still
+open (not ended, not suspended) and more than `thresholds.stuck_after_hours` (default 72) have
+passed between the expiry and the end of the audited period. The end of the period is the newest
+order intake, the same window the quality gate uses; no wall clock.
+
+What happens after the expiry decides the bucket, in this order:
+
+| Bucket | When | Counted as stuck |
+|---|---|---|
+| recovered | a later activity is named in `rules.r03.compensation_activities`, or a child process whose definition key is in `compensation_processes` | no |
+| in human management | the process is open and waits on an open human task (any open task with a human actor, or one named in `human_management_tasks`) | no |
+| continued | some other activity followed, or the process ended on its own | no |
+| suspended | `suspended` is true or the state is `SUSPENDED` | no |
+| within threshold | stuck for less than `stuck_after_hours` | no, not yet |
+| **stuck** | none of the above | yes |
+
+What counts as a compensation (a task, a child process, a manual step) is **declared in the config
+(`rules.r03`)**, never hard-coded in the rule. An open incident on a stuck process is noted in its
+evidence.
+
+**Evidence.** Process id, the timer activity, expiry time, "nothing followed", days without
+service, open incidents, and the order's record.
 
 **Impact.**
 
@@ -133,10 +152,29 @@ hours = stuck × (manual_minutes + days_stuck × daily_followup_minutes) / 60
                                    // days_stuck: from the timer expiry to the end of the audited period
 ```
 
-**Demo.** 3% (150 orders) hit the timer; one third (50) never close on their own. They have been stuck about 25 days at the end of September: 50 × (5 + 25 × 15) min = 317 h.
+The cost kind is `accumulated_to_period_end`. Days are fractional (expiry to period end in
+exact milliseconds), and **the figure is rounded only for display, to one decimal**. On the demo
+the exact value is 316.97 h, which the report shows as 317.0 h; the engine never rounds inside
+the formula. The orders recovered by a person are not charged: R03 counts only the stuck ones.
 
-**Known limits.** A long-running but healthy process must not be flagged. Require both
-the expired timer and the absence of any subsequent event.
+**Demo.** 150 processes have an expired `activation_timer`; 100 are recovered by the human task
+`activation_recovery`; 50 are still `RUNNING` at the end of the period, about 25 days without
+service: 50 × (5 + 25 × 15) min = 317.0 h. Net of the orders R02 also charges (the 50 stuck
+orders are on the first offer version), the net total is lower than the gross 977.6 h; that is
+the overlap rule below.
+
+**Snapshot evidence.** A snapshot has no record of when each step ran. When the process evidence
+is a snapshot the finding is `suspected` (not `detected`), with `confidence.level` `possible`,
+`evidence_level` `weak` and an `unmeasured` note saying that days and hours are suspected, not
+certain. A stuck order whose expiry time cannot be read is still counted, but its days are not
+(only the manual minutes are).
+
+**Needs.** OMS and BPM (`RULE_SYSTEMS`). When BPM was not read (the TMF stub serves no BPM) the
+rule is `not_evaluable` in the quality report, never "0 findings".
+
+**Known limits.** A long-running but healthy process must not be flagged: it needs an expired
+timer and no later event. Multi-instance and event-subprocess logic are stored by the model
+(`loopIndex`, `parentProcessId`) but not interpreted yet (0.6.0).
 
 ## R04 — Duplicate service order
 

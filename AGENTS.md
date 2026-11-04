@@ -8,7 +8,7 @@
   (`R04@2`, with causes) and writes `findings.json` and `report.html` with `--out`, including
   the story of one order (`story.ts`) and the net total (`totals.ts`); schema in
   `docs/architecture/report-schema.md`. Data files use snake_case keys (TS stays camelCase).
-  `--dataset <dir>` reads the four file exports through a mapping (`src/adapters/ingest/file_*.ts`, `mapping.ts`). R01, R02, R04 and R05 exist; do not add R03 ahead of its card (M3-07). A quality gate (`src/domain/quality.ts`) runs before the rules. The plan is
+  `--dataset <dir>` reads the four file exports through a mapping (`src/adapters/ingest/file_*.ts`, `mapping.ts`). R01 to R05 exist. A quality gate (`src/domain/quality.ts`) runs before the rules. The plan is
   `../specs/backlog.md`.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).

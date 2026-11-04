@@ -7,6 +7,7 @@ err| flow-audit: joined 5,000 orders: 15,132 links sure, 300 inferred, 0 not joi
 err| flow-audit: gate passed
 err| flow-audit: R01@1 found 400 orders, 283.3 h
 err| flow-audit: R02@1 found 4,167 orders, 347.3 h
+err| flow-audit: R03@1 found 50 orders, 317 h
 err| flow-audit: R04@2 found 20 orders, 30 h
 err| flow-audit: R05@1 found 300 orders, 225 h
 out| Orders read: 5,000 · service orders: 5,021 · activations: 5,390
@@ -17,6 +18,7 @@ out| Links process->order: none
 out| Links attempt->service_order: explicit 5,090 · inferred 300
 out| R01@1 · 400 orders · 283.3 h
 out| R02@1 · 4,167 orders · 347.3 h
+out| R03@1 · 50 orders · 317 h
 out| R04@2 · 20 orders · 30 h
 out| R05@1 · 300 orders · 225 h
 out| Quality gate: passed

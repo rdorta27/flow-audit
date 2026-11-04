@@ -183,6 +183,28 @@ export interface ProcessInstance {
   endedAt: string | null;
   /** The tasks the process ran, when the source nests them (files do; the TMF stub does not). */
   tasks?: ProcessTask[];
+  /** M2-10, all optional: filled when the source has them, required by nothing. */
+  activities?: Activity[];
+  incidents?: ProcessIncident[];
+  suspended?: boolean;
+  endReason?: string;
+  parentProcessId?: string;
+  rootProcessId?: string;
+  processDefinitionKey?: string;
+  processDefinitionVersion?: string;
+  loopIndex?: number;
+  variables?: Record<string, string | number | boolean>;
+  /** What kind of record this is: a snapshot has no history of the steps. */
+  evidenceKind?: "snapshot" | "history";
+  provenance?: Provenance;
+}
+
+/** A failure the orchestrator raised on a process (M2-10). */
+export interface ProcessIncident {
+  type: string;
+  createdAt: string;
+  resolvedAt?: string;
+  message?: string;
 }
 
 /** One task of a process: enough to tell a manual step from an automatic one (R02). */
@@ -202,6 +224,20 @@ export interface Activity {
   endedAt: string | null;
   /** True when a timer fired. An expired timer with no handler is R03. */
   timerExpired?: boolean;
+  /** M2-10, all optional. */
+  timerKind?: "boundary" | "intermediate" | "escalation";
+  interrupting?: boolean;
+  attachedTo?: string;
+  dueDate?: string;
+  firedAt?: string;
+  nextActivityId?: string;
+  /** Human task identity: queue time (created to claimed) is told from work (claimed to ended). */
+  taskId?: string;
+  assignee?: string;
+  candidateGroup?: string;
+  createdAt?: string;
+  claimedAt?: string;
+  dueAt?: string;
 }
 
 export interface ProvisioningAttempt {
@@ -231,7 +267,7 @@ export type AttemptOutcome = "succeeded" | "failed" | "timeout" | "pending";
 
 // Reconstruction ------------------------------------------------------------
 
-export type SegmentKind = "work" | "wait" | "gap";
+export type SegmentKind = "work" | "wait" | "gap" | "queue";
 
 export interface Segment {
   system: SystemId;
@@ -240,6 +276,8 @@ export interface Segment {
   kind: SegmentKind;
   state: string;
   actor?: Actor;
+  /** False on a human task whose queue time cannot be told from its work (no claim time). */
+  queueSeparable?: false;
 }
 
 export interface CorrelationReport {
@@ -331,7 +369,12 @@ export interface Cost {
   unmeasured: UnmeasuredTerm[];
 }
 
-export type FindingStatus = "detected" | "not_detected" | "insufficient_evidence" | "not_evaluable";
+export type FindingStatus =
+  | "detected"
+  | "suspected"
+  | "not_detected"
+  | "insufficient_evidence"
+  | "not_evaluable";
 
 export type EvidenceLevel = "strong" | "weak" | "history";
 
@@ -523,10 +566,23 @@ export interface R02Config {
   activationRequirements: ActivationRequirement[];
 }
 
+/** R03 (M3-07): what counts as a compensation is declared, not hard-coded. */
+export interface R03Config {
+  /** Names of the activities that recover an expired timer (a task, a manual step). */
+  compensationActivities: string[];
+  /** Names of the timer activities R03 watches. */
+  timerActivities: string[];
+  /** Names of child process definitions that count as a compensation. */
+  compensationProcesses?: string[];
+  /** Names of human fallout tasks: a process waiting on one is "in human management". */
+  humanManagementTasks?: string[];
+}
+
 /** Per-rule settings; every part is optional and a missing part means "none declared". */
 export interface RuleSettings {
   r01?: R01Config;
   r02?: R02Config;
+  r03?: R03Config;
 }
 
 export interface ImpactConfig {

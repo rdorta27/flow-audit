@@ -132,6 +132,35 @@ export const ACTIVITY_FIELDS: Record<string, boolean> = {
   timer_expired: false,
 };
 
+/**
+ * M2-10: optional fields a mapping may declare; one it leaves out is read as not observable,
+ * so mappings written before the BPM model v2 stay valid.
+ */
+export const BPM_EXTRA_FIELDS: readonly string[] = [
+  "suspended",
+  "end_reason",
+  "parent_process_id",
+  "root_process_id",
+  "process_definition_key",
+  "process_definition_version",
+  "loop_index",
+  "incidents",
+];
+export const ACTIVITY_EXTRA_FIELDS: readonly string[] = [
+  "timer_kind",
+  "interrupting",
+  "attached_to",
+  "due_date",
+  "fired_at",
+  "next_activity_id",
+  "task_id",
+  "assignee",
+  "candidate_group",
+  "created_at",
+  "claimed_at",
+  "due_at",
+];
+
 /** Fields that hold an id, and so may carry id rules. */
 export const ID_FIELDS: Record<BlockName, string[]> = {
   oms: ["order_ref", "so_ref", "wo_ref", "terminal_serial", "replaces_order_ref"],
@@ -217,9 +246,14 @@ export function parseMapping(text: string, where: string): Mapping {
     value: unknown,
     path: string[],
     fields: Record<string, boolean>,
+    extras: readonly string[] = [],
   ): Record<string, string | null> => {
-    const map = object(value, path, Object.keys(fields));
+    const map = object(value, path, [...Object.keys(fields), ...extras]);
     const out: Record<string, string | null> = {};
+    for (const field of extras) {
+      const v = map[field];
+      if (v !== undefined && v !== null) out[field] = str(v, [...path, field]);
+    }
     for (const [field, required] of Object.entries(fields)) {
       const v = map[field];
       if (v === undefined) {
@@ -288,7 +322,12 @@ export function parseMapping(text: string, where: string): Mapping {
     if (b[wrong] !== undefined) {
       fail([name, wrong], `unknown field: this block uses "${columnsKey}"`);
     }
-    const columns = fieldMap(b[columnsKey], [name, columnsKey], FIELDS[name]);
+    const columns = fieldMap(
+      b[columnsKey],
+      [name, columnsKey],
+      FIELDS[name],
+      name === "bpm" ? BPM_EXTRA_FIELDS : [],
+    );
 
     const ids: Record<string, IdRule> = {};
     if (b.ids !== undefined) {
@@ -343,7 +382,12 @@ export function parseMapping(text: string, where: string): Mapping {
     if (name === "bpm") {
       activityFields = b.activity_fields === undefined
         ? Object.fromEntries(Object.keys(ACTIVITY_FIELDS).map((f) => [f, f]))
-        : fieldMap(b.activity_fields, [name, "activity_fields"], ACTIVITY_FIELDS);
+        : fieldMap(
+          b.activity_fields,
+          [name, "activity_fields"],
+          ACTIVITY_FIELDS,
+          ACTIVITY_EXTRA_FIELDS,
+        );
     }
 
     return {

@@ -5,8 +5,8 @@
     "id": "<run>",
     "generated_at": "<time>",
     "inputs_hash": "df127d5f0c0aaec56c408b6d7064d9d16f89296f6b62921c0354ee83f0dd0c66",
-    "config_hash": "02bd2575fc60f264a995621955d514a807169459953ce687102759db958a80fe",
-    "rules_hash": "9866075d7341a490052d036dcbcefc452ea00cdb4160fbe399ffb4ff4d6b0ea3"
+    "config_hash": "9ee6bb8e49f06d376ae382dbfaecedd591a853b4fe857360b68b69a72c93c582",
+    "rules_hash": "da820c47e526c16888c046cba6ab6966120f770da40bfa765193feb727e46a85"
   },
   "sources": [
     {
@@ -99,6 +99,17 @@
             "required_by": "PROV",
             "via_task": "capacity_check"
           }
+        ]
+      },
+      "r03": {
+        "timer_activities": [
+          "activation_timer"
+        ],
+        "compensation_activities": [
+          "activation_recovery"
+        ],
+        "human_management_tasks": [
+          "fallout_review"
         ]
       }
     }

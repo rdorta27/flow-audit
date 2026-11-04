@@ -2,6 +2,7 @@
 /** Turns the records the file readers yield into the canonical model. */
 
 import type {
+  Activity,
   Actor,
   Order,
   OrderState,
@@ -80,7 +81,77 @@ export function mapFileProcess(r: RawRecord): ProcessInstance {
     startedAt: str(v.started_at),
     endedAt: optional(v.ended_at),
     tasks: tasksOf(v.activities),
+    ...bpmV2(r),
   };
+}
+
+type Bag = Record<string, unknown>;
+const text = (v: unknown): string | undefined => typeof v === "string" && v !== "" ? v : undefined;
+const flag = (v: unknown): boolean | undefined =>
+  v === true || v === "true" ? true : v === false || v === "false" ? false : undefined;
+
+/** The M2-10 fields, only the ones the source had; nothing is invented. */
+function bpmV2(r: RawRecord): Partial<ProcessInstance> {
+  const v = r.value as Bag;
+  const out: Partial<ProcessInstance> = {};
+  if (r.provenance) {
+    out.evidenceKind = r.provenance.kind;
+    out.provenance = r.provenance;
+  }
+  if (Array.isArray(v.activities)) {
+    out.activities = (v.activities as Bag[]).map((a, i): Activity => {
+      const act: Activity = {
+        processId: str(v.process_id),
+        sequence: Number(a.sequence ?? i + 1),
+        kind: a.kind === "timer" || a.kind === "gateway" ? a.kind : "task",
+        name: str(a.name ?? ""),
+        actor: ACTORS.find((x) => x === a.actor) ?? "system",
+        startedAt: str(a.started_at),
+        endedAt: text(a.ended_at) ?? null,
+      };
+      const expired = flag(a.timer_expired);
+      if (expired !== undefined) act.timerExpired = expired;
+      const kind = text(a.timer_kind);
+      if (kind === "boundary" || kind === "intermediate" || kind === "escalation") {
+        act.timerKind = kind;
+      }
+      const interrupting = flag(a.interrupting);
+      if (interrupting !== undefined) act.interrupting = interrupting;
+      const set = (key: keyof Activity, value: string | undefined) => {
+        if (value !== undefined) (act as unknown as Bag)[key] = value;
+      };
+      set("attachedTo", text(a.attached_to));
+      set("dueDate", text(a.due_date));
+      set("firedAt", text(a.fired_at));
+      set("nextActivityId", text(a.next_activity_id));
+      set("taskId", text(a.task_id));
+      set("assignee", text(a.assignee));
+      set("candidateGroup", text(a.candidate_group));
+      set("createdAt", text(a.created_at));
+      set("claimedAt", text(a.claimed_at));
+      set("dueAt", text(a.due_at));
+      return act;
+    });
+  }
+  const suspended = flag(v.suspended);
+  if (suspended !== undefined) out.suspended = suspended;
+  if (text(v.end_reason)) out.endReason = text(v.end_reason);
+  if (text(v.parent_process_id)) out.parentProcessId = text(v.parent_process_id);
+  if (text(v.root_process_id)) out.rootProcessId = text(v.root_process_id);
+  if (text(v.process_definition_key)) out.processDefinitionKey = text(v.process_definition_key);
+  if (text(v.process_definition_version)) {
+    out.processDefinitionVersion = text(v.process_definition_version);
+  }
+  if (text(v.loop_index) !== undefined) out.loopIndex = Number(v.loop_index);
+  if (Array.isArray(v.incidents)) {
+    out.incidents = (v.incidents as Bag[]).map((i) => ({
+      type: str(i.type),
+      createdAt: str(i.created_at ?? ""),
+      ...(text(i.resolved_at) ? { resolvedAt: text(i.resolved_at)! } : {}),
+      ...(text(i.message) ? { message: text(i.message)! } : {}),
+    }));
+  }
+  return out;
 }
 
 const ACTORS: readonly Actor[] = ["system", "human", "partner"];

@@ -43,7 +43,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `title`, `plain_summary` | The name, and one sentence a non-specialist understands. |
 | `where` | The system or seam where it happens, for example `OMS` or `OMS→PROV`. |
 | `severity` | `critical`, `high` or `medium`, derived from impact (`rules.md`). |
-| `status` | `detected`; `not_detected` (the rule ran and found nothing); `insufficient_evidence` (the source cannot show what the rule needs, for example snapshots for timing rules); `not_evaluable` (a system the rule needs is absent or covers too little). Today `runAudit` lists only `detected` findings; the other three states arrive with the rules that need them. |
+| `status` | `detected`; `suspected` (R03 over snapshot evidence: the hours are not certain, the confidence is stated); `not_detected` (the rule ran and found nothing); `insufficient_evidence` (the source cannot show what the rule needs, for example snapshots for timing rules); `not_evaluable` (a system the rule needs is absent or covers too little). Today `runAudit` lists only `detected` findings; the other three states arrive with the rules that need them. |
 | `affected_orders`, `share_of_orders` | Count and fraction of orders. |
 | `evidence_level` | `strong`, `weak` or `history` (see the rule). |
 | `evidence[]`, `evidence_total` | A sample of **at most 20 orders** (`EVIDENCE_SAMPLE_MAX`), each with `order_ref`, `event_ids`, `records[]` (`system`, `external_id`, `endpoint`) and an optional `note`; `evidence_total` is how many orders the rule found. |
