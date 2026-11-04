@@ -2,11 +2,16 @@
 /** The HTML report (M4-03). */
 
 import { renderHtml } from "../src/adapters/report/html_renderer.ts";
+import { glossaryFor, lookup } from "../src/adapters/report/glossary.ts";
+import { storySvg } from "../src/adapters/report/story_svg.ts";
+import { buildStory } from "../src/domain/story.ts";
 import { assert, assertEquals } from "./assert.ts";
 import { auditStub } from "./stub_sources.ts";
 
+const FIRST_GOLDEN = new URL("./golden/first_screen.html", import.meta.url);
 const GOLDEN = new URL("./golden/r04_section.html", import.meta.url);
-const { report } = await auditStub();
+const audit = await auditStub();
+const { report } = audit;
 const html = renderHtml(report);
 
 Deno.test("the HTML has no external resource reference and no script", () => {
@@ -42,4 +47,93 @@ Deno.test("the R04 section matches its snapshot", async () => {
   if (Deno.env.get("UPDATE_GOLDEN")) await Deno.writeTextFile(GOLDEN, section);
   assertEquals(section, await Deno.readTextFile(GOLDEN));
   assert(section.includes("30 h") && !section.includes("USD"));
+});
+
+const visible = html.replace(/<style>[\s\S]*?<\/style>/, "").replace(
+  /<title>[\s\S]*?<\/title>/g,
+  "",
+);
+const text = visible.replace(/<[^>]+>/g, " ");
+
+Deno.test("every term and code the report prints has a glossary entry and a plain name", () => {
+  const terms = new Set([...html.matchAll(/data-term="([^"]+)"/g)].map((m) => m[1]));
+  // The codes in the text, wherever they appear.
+  for (const m of text.matchAll(/\b(R\d{2}|CAT|OMS|BPM|PROV|TMF\d{3})\b/g)) terms.add(m[1]);
+  // Every value of the report that is printed as a word.
+  for (const f of report.findings) {
+    for (const k of [f.id, f.severity, f.evidenceLevel, f.confidence.level, f.cost.kind]) {
+      terms.add(k);
+    }
+    for (const t of f.cost.terms) terms.add(t.basis);
+  }
+  for (const s of report.sources) terms.add(s.evidenceKind === "snapshot" ? "snapshot" : "history");
+  assert(terms.size > 10, "terms were found");
+  const rows = new Map(glossaryFor(report).map((e) => [e.term, e]));
+  for (const t of terms) {
+    const e = lookup(report, t);
+    assert(e !== null && e.plain.length > 0 && e.means.length > 0, `no glossary entry: ${t}`);
+    assert(rows.has(t), `not listed in the glossary section: ${t}`);
+    assert(html.includes(`id="g-${t}"`), `glossary section lacks ${t}`);
+  }
+  // A code is never alone: its plain name is within the same sentence.
+  for (const m of text.matchAll(/\b(R\d{2}|CAT|OMS|BPM|PROV)\b/g)) {
+    const near = text.slice(Math.max(0, m.index! - 80), m.index! + 80);
+    const name = lookup(report, m[1])!.plain;
+    assert(near.includes(name), `${m[1]} appears without "${name}"`);
+  }
+});
+
+Deno.test("a rule the glossary does not know still gets its name from its finding", () => {
+  const other = structuredClone(report);
+  other.findings[0].id = "R99";
+  other.findings[0].title = "Stuck order";
+  other.findings[0].plainSummary = "An order waits.";
+  assertEquals(lookup(other, "R99")?.plain, "Stuck order");
+  assert(renderHtml(other).includes("Stuck order (R99)"));
+});
+
+Deno.test("each finding reads in the fixed order and money never appears", () => {
+  const labels = [
+    "What happens",
+    "In how many orders",
+    "How many hours",
+    "How it is counted",
+    "Proof",
+    "What to do",
+  ];
+  const start = html.indexOf('id="R04"');
+  const sec = html.slice(start, html.indexOf("</article>", start));
+  let at = -1;
+  for (const l of labels) {
+    const i = sec.indexOf(`<dt>${l}</dt>`);
+    assert(i > at, `${l} out of order`);
+    at = i;
+  }
+  assert(/20 <abbr[^>]*>cases<\/abbr> × 90 min = 1,800 min = 30 h/.test(sec), "example minutes");
+  assert(!/USD|\$|€/.test(text), "money");
+});
+
+Deno.test("the first screen matches its snapshot", async () => {
+  const start = html.indexOf('<section class="first"');
+  const section = html.slice(start, html.indexOf("</section>", start) + 10) + "\n";
+  if (Deno.env.get("UPDATE_GOLDEN")) await Deno.writeTextFile(FIRST_GOLDEN, section);
+  assertEquals(section, await Deno.readTextFile(FIRST_GOLDEN));
+  assert(section.includes("measured") || section.includes("Measured"));
+  assert(section.includes("could not see"));
+});
+
+Deno.test("the story of ORD-1005 is drawn: four stations, six stops, the gap in red", () => {
+  const entry = audit.correlation.orders.find((o) => o.order.orderRef === "ORD-1005")!;
+  const steps = buildStory(entry, audit.findings);
+  const svg = storySvg(steps, "ORD-1005");
+  assert(svg.startsWith("<svg") && svg.endsWith("</svg>"));
+  for (const c of ["st-cat", "st-oms", "st-bpm", "st-prov"]) assert(svg.includes(`station ${c}`));
+  assertEquals((svg.match(/class="stop /g) ?? []).length, steps.length);
+  assertEquals(
+    (svg.match(/class="stop gap/g) ?? []).length,
+    steps.filter((s) => !s.observed).length,
+  );
+  assertEquals((svg.match(/class="ring"/g) ?? []).length, 1);
+  assert(svg.includes("problem starts here") && svg.includes("not seen"));
+  assert(!/https?:/.test(svg.replace('xmlns="http://www.w3.org/2000/svg"', "")));
 });
