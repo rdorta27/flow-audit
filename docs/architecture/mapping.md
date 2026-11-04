@@ -36,6 +36,7 @@ Each of `oms`, `bpm` and `prov` takes:
 | `ids` | per id field: `case`, `strip_prefix`, `strip_leading_zeros`, `add_prefix` | none |
 | `states` | per table, the client's value to the canonical one | canonical names only |
 | `on_unknown_state` | `fail` or `unmapped` | `fail` |
+| `pii` | `{ "<field>": true }`: the field is dropped on reading and never reaches a report (engagement.md) | none |
 
 `oms` also takes these optional fields, which a mapping may leave out entirely (M2-08): `so_action`
 (`add`, `modify`, `delete`, `noChange`; read by R04), and the order-line columns `item_ref` (the

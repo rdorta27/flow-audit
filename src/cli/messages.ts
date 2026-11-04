@@ -89,6 +89,14 @@ export const MESSAGES = {
   diffInputs: "The records read are not the same (their fingerprints differ).",
   nextDiff: "pass two findings.json files written by `deno task audit --out <dir>`",
 
+  // Confidential mode and engagements (M5-11, M5-12).
+  redactNewSecret:
+    "redaction: no FLOW_AUDIT_REDACT_SECRET set, using a random secret; keep the table to reverse the pseudonyms",
+  wroteTable: (path: string) => `wrote ${path} (pseudonym table: keep it apart, never send it)`,
+  noPermission: (detail: string) => `the run is not allowed to do that: ${detail}`,
+  nextPermission:
+    "to write outside ./out run `FLOW_AUDIT_HOME=<engagement dir> deno task engagement ...` (it may write there)",
+
   // Errors: what happened, where, what to do next.
   error: (what: string, where: string | null, next: string): string[] => [
     `flow-audit: error: ${what}`,

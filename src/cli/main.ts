@@ -18,6 +18,13 @@ import { renderFindingsJson } from "../adapters/report/json_renderer.ts";
 import { renderFindingsCsv } from "../adapters/export/findings_csv.ts";
 import type { OrderCharge } from "../domain/totals.ts";
 import { renderHtml } from "../adapters/report/html_renderer.ts";
+import {
+  addConfidentialBanner,
+  collectIds,
+  randomSecret,
+  Redactor,
+} from "../adapters/export/redaction.ts";
+import { assertOutNotInInput, EngagementError, exists, resolveEngagement } from "./engagement.ts";
 
 const DEFAULT_CONFIG = new URL("../../data/demo/config.json", import.meta.url);
 const DEFAULT_MAPPING = new URL("../../data/demo/mapping.json", import.meta.url);
@@ -26,7 +33,8 @@ const USAGE = `flow-audit — audit the order-to-activate flow of a BSS
 
 Usage:
   deno task audit --dataset <dir> [--mapping <file>] [--config <file>] [--out <dir>]
-                  [--check] [--force] [--quiet]
+                  [--check] [--force] [--quiet] [--engagement <dir>]
+                  [--redact --client <name> [--redaction-table <file>]]
   deno task audit --source stub [--config <file>] [--out <dir>] [--check] [--force] [--quiet]
 
 Options:
@@ -46,6 +54,22 @@ Options:
   --mapping <file> How the exports' columns, states, ids, dates and time zones map to the
                    canonical fields (default: data/demo/mapping.json). See
                    docs/architecture/mapping.md.
+  --engagement <dir>
+                   A client's directory outside the repository: raw/ (the exports),
+                   mapping/mapping.json, config/config.json and out/ (the results). They
+                   become the defaults of --dataset, --mapping, --config and --out. Also read
+                   from FLOW_AUDIT_HOME; the flag wins. Refused inside a git repository. The
+                   output directory is never allowed inside the input. To write outside ./out
+                   use \`FLOW_AUDIT_HOME=<dir> deno task engagement\`. See
+                   docs/architecture/engagement.md.
+  --redact         Confidential mode: order ids, other ids and terminal serials become stable
+                   pseudonyms in every file written, and the report carries the banner
+                   "Confidential — <client>" with the date. Needs --client. The secret comes
+                   from FLOW_AUDIT_REDACT_SECRET (same secret, same pseudonyms) or is random.
+  --client <name>  The client's name for the banner.
+  --redaction-table <file>
+                   Where the pseudonym table (pseudonym, original) goes (default:
+                   redaction_table.csv in --out). It is never part of a report: keep it apart.
   --check          Read, map and run the data-quality gate only. No rule runs and no report
                    is written. Use it first on a new export.
   --force          Run the rules even when the gate fails. The answer says it was forced.
@@ -79,6 +103,10 @@ interface ParsedArgs {
   dataset?: string;
   mapping?: string;
   out?: string;
+  engagement?: string;
+  redact?: boolean;
+  client?: string;
+  redactionTable?: string;
 }
 
 function parseArgs(argv: readonly string[]): ParsedArgs {
@@ -122,6 +150,27 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
         const value = argv[++index];
         if (!value) throw new UsageError("--mapping needs a file");
         parsed.mapping = value;
+        break;
+      }
+      case "--engagement": {
+        const value = argv[++index];
+        if (!value) throw new UsageError("--engagement needs a directory");
+        parsed.engagement = value;
+        break;
+      }
+      case "--redact":
+        parsed.redact = true;
+        break;
+      case "--client": {
+        const value = argv[++index];
+        if (!value) throw new UsageError("--client needs a name");
+        parsed.client = value;
+        break;
+      }
+      case "--redaction-table": {
+        const value = argv[++index];
+        if (!value) throw new UsageError("--redaction-table needs a file");
+        parsed.redactionTable = value;
         break;
       }
       case "--dataset": {
@@ -197,6 +246,7 @@ export async function writeReports(
   dir: string,
   report: AuditReport,
   charges?: readonly OrderCharge[],
+  confidential?: { redactor: Redactor; client: string },
 ): Promise<string[]> {
   try {
     if (!(await Deno.stat(dir)).isDirectory) throw new Error("not a directory");
@@ -210,7 +260,18 @@ export async function writeReports(
     [`${dir}/report.html`, renderHtml(report)],
   ];
   if (charges) files.push([`${dir}/findings.csv`, renderFindingsCsv(report.findings, charges)]);
-  for (const [path, text] of files) {
+  for (const [path, raw] of files) {
+    let text = raw;
+    if (confidential) {
+      if (path.endsWith(".html")) {
+        text = addConfidentialBanner(
+          text,
+          confidential.client,
+          report.run.generatedAt.slice(0, 10),
+        );
+      }
+      text = confidential.redactor.text(text);
+    }
     try {
       await Deno.writeTextFile(path, text);
     } catch (error) {
@@ -347,6 +408,14 @@ export function explainError(error: unknown): { lines: string[]; code: number } 
   if (error instanceof TmfError) {
     return { lines: M.error(error.message, null, M.nextTmf), code: 1 };
   }
+  if (error instanceof EngagementError) {
+    return { lines: M.error(error.message, error.where, error.next), code: 2 };
+  }
+  if (
+    error instanceof Error && (error.name === "NotCapable" || error.name === "PermissionDenied")
+  ) {
+    return { lines: M.error(M.noPermission(error.message), null, M.nextPermission), code: 1 };
+  }
   if (error instanceof OutputError) {
     return { lines: M.error(error.message, error.path, M.nextOut), code: 1 };
   }
@@ -357,6 +426,18 @@ export function explainError(error: unknown): { lines: string[]; code: number } 
     ? M.nextOut
     : M.nextUnknown;
   return { lines: M.error(message, null, next), code: 1 };
+}
+
+/** The engagement's `out/` when there is an engagement and no explicit `--out`; else undefined. */
+function resolveEngagementOut(
+  options: ParsedArgs,
+  env: (name: string) => string | undefined,
+): string | undefined {
+  try {
+    return resolveEngagement(options.engagement, env)?.out;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function main(
@@ -387,22 +468,40 @@ export async function main(
       throw new UsageError("--source and --dataset cannot be used together");
     }
     let fileSources: ReturnType<typeof createFileSources> | undefined;
-    if (options.mapping && !options.dataset) {
+    if (options.mapping && !options.dataset && !(options.engagement || env("FLOW_AUDIT_HOME"))) {
       throw new UsageError("--mapping goes with --dataset");
     }
-    if (options.dataset) {
-      progress(M.readingFiles(options.dataset));
-      fileSources = createFileSources(await readMapping(options.mapping), {
-        dir: options.dataset,
+    if (options.redact && !options.client) {
+      throw new UsageError("--redact needs --client <name> for the banner");
+    }
+    // M5-11: an engagement gives the defaults; explicit flags win; the safety checks do not move.
+    const engagement = resolveEngagement(options.engagement, env);
+    const dataset = options.dataset ?? (engagement && !options.source ? engagement.raw : undefined);
+    const mappingPath = options.mapping ??
+      (engagement && dataset === engagement.raw && exists(engagement.mapping)
+        ? engagement.mapping
+        : undefined);
+    const configPath = options.config ??
+      (engagement && exists(engagement.config) ? engagement.config : undefined);
+    const outDir = options.out ?? engagement?.out;
+    if (outDir) {
+      if (dataset) assertOutNotInInput(outDir, dataset);
+      if (engagement) assertOutNotInInput(outDir, engagement.raw);
+      if (engagement && outDir === engagement.out) await Deno.mkdir(outDir, { recursive: true });
+    }
+    if (dataset) {
+      progress(M.readingFiles(dataset));
+      fileSources = createFileSources(await readMapping(mappingPath), {
+        dir: dataset,
         now: () => new Date().toISOString(),
       });
       sources = fileSources;
-      config = await readConfig(options.config);
+      config = await readConfig(configPath);
     } else if (options.source === "stub") {
       const tmf = tmfConfigFromEnvOrStub(env);
       progress(M.readingSource(tmf.baseUrl));
       sources = createTmfSources(tmf);
-      config = await readConfig(options.config);
+      config = await readConfig(configPath);
     }
     const deps = { sources, config, clock: systemClock, gate: { force: options.force } };
 
@@ -447,12 +546,12 @@ export async function main(
       );
       gateStage(quality);
       for (const line of qualityLines(quality)) console.log(line);
-      if (options.out) progress(M.wrote(await writeQuality(options.out, quality)));
+      if (outDir) progress(M.wrote(await writeQuality(outDir, quality)));
       progress(M.checked);
       return quality.passed || quality.forced ? 0 : 3;
     }
 
-    const result = await runAudit({ dataset: options.dataset }, deps);
+    const result = await runAudit({ dataset }, deps);
     const quality = result.quality;
     await stageLines(
       result.records,
@@ -471,20 +570,40 @@ export async function main(
     if (fileSources) {
       for (const line of coverageLines(await fileSources.coverage())) console.log(line);
     }
-    if (options.out) {
-      for (const path of await writeReports(options.out, result.report, result.charges)) {
-        progress(M.wrote(path));
+    if (outDir) {
+      let confidential: { redactor: Redactor; client: string } | undefined;
+      if (options.redact) {
+        const fromEnv = env("FLOW_AUDIT_REDACT_SECRET");
+        if (!fromEnv) progress(M.redactNewSecret);
+        const ids = collectIds(result.correlation.orders);
+        collectIds(result.report, ids);
+        confidential = {
+          redactor: await Redactor.create(ids, fromEnv || randomSecret()),
+          client: options.client!,
+        };
+        const table = options.redactionTable ?? `${outDir}/redaction_table.csv`;
+        if (dataset) assertOutNotInInput(table, dataset);
+        try {
+          await Deno.writeTextFile(table, confidential.redactor.tableCsv(), { mode: 0o600 });
+        } catch (error) {
+          throw new OutputError(table, error);
+        }
+        progress(M.wroteTable(table));
       }
-      if (quality) progress(M.wrote(await writeQuality(options.out, quality)));
+      for (
+        const path of await writeReports(outDir, result.report, result.charges, confidential)
+      ) progress(M.wrote(path));
+      if (quality) progress(M.wrote(await writeQuality(outDir, quality)));
     }
     return 0;
   } catch (error) {
     if (error instanceof QualityGateError) {
       // The reader needs the gate's answer before the error that names it.
       for (const line of qualityLines(error.quality)) console.log(line);
-      if (options.out) {
+      const failOut = options.out ?? resolveEngagementOut(options, env);
+      if (failOut) {
         try {
-          progress(M.wrote(await writeQuality(options.out, error.quality)));
+          progress(M.wrote(await writeQuality(failOut, error.quality)));
         } catch (writeError) {
           for (const line of explainError(writeError).lines) console.error(line);
         }

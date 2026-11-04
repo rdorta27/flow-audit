@@ -50,6 +50,11 @@ export interface BlockMapping {
   singleLineOrders: boolean;
   /** BPM only: the nested activity fields, canonical to the client's key. */
   activityFields: Record<string, string | null>;
+  /**
+   * Fields marked `pii: true` (M5-12). They are dropped at the reading boundary: `columns`
+   * holds `null` for them, so they never reach a rule, a finding or the report.
+   */
+  pii?: string[];
 }
 
 export interface CatalogMapping {
@@ -324,6 +329,7 @@ export function parseMapping(text: string, where: string): Mapping {
       "ids",
       "states",
       "on_unknown_state",
+      "pii",
       ...(name === "oms" ? ["single_line_orders"] : []),
       ...(name === "bpm" ? ["activity_fields"] : []),
     ];
@@ -365,6 +371,21 @@ export function parseMapping(text: string, where: string): Mapping {
       name === "bpm" ? BPM_EXTRA_FIELDS : [],
       OMITTABLE[name],
     );
+
+    // M5-12: `"pii": { "<field>": true }` drops the field before anything reads it.
+    const pii: string[] = [];
+    if (b.pii !== undefined) {
+      const marks = object(b.pii, [name, "pii"], Object.keys(columns));
+      for (const [field, mark] of Object.entries(marks)) {
+        if (typeof mark !== "boolean") fail([name, "pii", field], "must be true or false");
+        if (mark !== true) continue;
+        if (FIELDS[name][field] === true) {
+          fail([name, "pii", field], "a required field cannot be dropped: the engine needs it");
+        }
+        pii.push(field);
+        columns[field] = null;
+      }
+    }
 
     const ids: Record<string, IdRule> = {};
     if (b.ids !== undefined) {
@@ -444,6 +465,7 @@ export function parseMapping(text: string, where: string): Mapping {
         : oneOf(b.on_unknown_state, [name, "on_unknown_state"], ["fail", "unmapped"]),
       singleLineOrders: name === "oms" && b.single_line_orders === true,
       activityFields,
+      pii,
     };
   };
 

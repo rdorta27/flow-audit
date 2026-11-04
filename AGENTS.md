@@ -39,6 +39,7 @@
 | Architecture, stack, limits | `docs/architecture/overview.md` |
 | Entities, events, invariants | `docs/architecture/data-model.md` |
 | Findings, evidence, impact | `docs/architecture/rules.md` |
+| Client directory, redaction | `docs/architecture/engagement.md` |
 | Why local-first CLI | `docs/decisions/0001-local-first-cli-static-report.md` |
 | Why the source is our TMF stub (simulated) | `docs/decisions/0003-tmf-stub-as-primary-source-and-typescript-adapters.md` |
 | MVP requirements | `docs/requirements/mvp.md` |
