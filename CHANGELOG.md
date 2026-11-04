@@ -11,6 +11,7 @@ Candidate for Client-ready. The file audit is checked as one command, the report
 - The example order in the report is ORD-1005 (M4-11).
 - Measured waiting per stage: median and 90th percentile of work, wait, queue and gap. On the demo files the stage with the most waiting is the process orchestrator's expired timer (M4-10).
 - `deno task audit --dataset data/demo --out out` matches the planted order counts (M5-06).
+- `deno task test` now allows reading `FLOW_AUDIT_HOME` and `FLOW_AUDIT_REDACT_SECRET`, which the in-process CLI tests read; before, 12 of 296 tests failed under the task.
 - The site's example page, journey and landing excerpt come from the engine's files (S-06, S-13, S-26). A five-minute presentation lives in the site (S-27).
 
 ## 0.4.4 — 2026-11-04
