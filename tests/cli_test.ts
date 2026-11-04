@@ -111,5 +111,5 @@ Deno.test("--help shows worked examples; --quiet silences the stage lines", asyn
   assert(help.text.includes("Examples:") && help.text.includes("--check"), help.text);
   const quiet = await run(["--dataset", "data/demo", "--quiet"]);
   assert(!quiet.text.includes("err|"), quiet.text);
-  assert(quiet.text.includes("out| R04@2 · 20 orders · 30 h"), quiet.text);
+  assert(quiet.text.includes("out| R04@2 · 20 orders · estimate 30 h"), quiet.text);
 });

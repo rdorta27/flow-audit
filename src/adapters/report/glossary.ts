@@ -76,6 +76,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     plain: "Projected",
     means: "Calculated: a measured count times minutes from the rates. Hours are always projected.",
   },
+  assumption: {
+    plain: "Assumption",
+    means: "A number chosen or declared, such as minutes per case. It was not measured.",
+  },
+  estimate: {
+    plain: "Estimate",
+    means: "A figure calculated from measured counts and assumptions. Hours are estimates.",
+  },
   rate_assumption: {
     plain: "Rate assumption",
     means: "The minutes per case come from a rate you can change, not from a clock.",

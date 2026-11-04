@@ -233,7 +233,20 @@ export function summaryLines(result: AuditResult): string[] {
   for (const f of result.findings) {
     lines.push(
       `${f.ruleVersion} · ${n(f.affectedOrders)} orders · ` +
-        `${n(Math.round(f.cost.hoursMonth * 10) / 10)} h`,
+        `estimate ${n(Math.round(f.cost.hoursMonth * 10) / 10)} h`,
+    );
+  }
+  if (result.findings.length > 0) {
+    const ids = new Set(result.findings.map((f) => f.id));
+    const sum = result.findings.reduce((a, f) => a + f.affectedOrders, 0);
+    const repeats = Object.values(report.overlap.byOrder).reduce(
+      (a, rules) => a + Math.max(0, rules.filter((r) => ids.has(r)).length - 1),
+      0,
+    );
+    lines.push(
+      `${n(sum - repeats)} of ${n(result.records.productOrders.length)} orders have a problem ` +
+        `(estimate ${n(Math.round(report.totals.net.hours * 10) / 10)} h with the example rates, ` +
+        `each order once)`,
     );
   }
   const { workOrders, processes } = result.records;

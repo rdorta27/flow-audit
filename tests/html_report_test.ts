@@ -97,10 +97,9 @@ Deno.test("each finding reads in the fixed order and money never appears", () =>
   const labels = [
     "What happens",
     "In how many orders",
-    "How many hours",
-    "How it is counted",
     "Proof",
     "What to do",
+    "Estimate",
   ];
   const start = html.indexOf('id="R04"');
   const sec = html.slice(start, html.indexOf("</article>", start));

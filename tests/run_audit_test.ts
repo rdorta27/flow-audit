@@ -44,7 +44,7 @@ Deno.test("the pipeline over the stub gives R01, R04 and R05 (no catalog, so no 
   assertEquals(Math.round(result.report.totals.gross.hours * 10) / 10, 313.3);
   assertEquals(result.report.run.generatedAt, "2026-09-01T00:00:00Z");
   assert(progress.some((m) => m.includes("R04@2")), "progress should name the rule");
-  assert(summaryLines(result).includes("R04@2 \u00b7 20 orders \u00b7 30 h"));
+  assert(summaryLines(result).includes("R04@2 \u00b7 20 orders \u00b7 estimate 30 h"));
 });
 
 Deno.test("the report counts links as the demo expects (300 activations without a reference)", async () => {
