@@ -252,6 +252,7 @@ export async function writeReports(
   report: AuditReport,
   charges?: readonly OrderCharge[],
   confidential?: { redactor: Redactor; client: string },
+  quality?: QualityReport,
 ): Promise<string[]> {
   try {
     if (!(await Deno.stat(dir)).isDirectory) throw new Error("not a directory");
@@ -262,7 +263,7 @@ export async function writeReports(
   }
   const files: [string, string][] = [
     [`${dir}/findings.json`, renderFindingsJson(report)],
-    [`${dir}/report.html`, renderHtml(report)],
+    [`${dir}/report.html`, renderHtml(report, quality)],
   ];
   if (charges) files.push([`${dir}/findings.csv`, renderFindingsCsv(report.findings, charges)]);
   for (const [path, raw] of files) {
@@ -621,7 +622,13 @@ export async function main(
         progress(M.wroteTable(table));
       }
       for (
-        const path of await writeReports(outDir, result.report, result.charges, confidential)
+        const path of await writeReports(
+          outDir,
+          result.report,
+          result.charges,
+          confidential,
+          result.quality,
+        )
       ) progress(M.wrote(path));
       if (quality) progress(M.wrote(await writeQuality(outDir, quality)));
     }

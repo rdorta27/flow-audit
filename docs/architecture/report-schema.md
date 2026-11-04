@@ -56,6 +56,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `affected_orders`, `share_of_orders` | Count and fraction of orders. |
 | `evidence_level` | `strong`, `weak` or `history` (see the rule). |
 | `evidence[]`, `evidence_total` | A sample of **at most 20 orders** (`EVIDENCE_SAMPLE_MAX`), each with `order_ref`, `event_ids`, `records[]` (`system`, `external_id`, `endpoint`) and an optional `note`; `evidence_total` is how many orders the rule found. |
+| `affected_order_refs[]` | **Every** order the finding names, sorted and without repeats (M5-20). `deno task diff` and `findings.csv` use it, so a comparison sees every order that entered or left; the `evidence[]` sample stays for the report. A file written before this field only has the sample. |
 | `confidence` | `level` (`confirmed` when every link the evidence rests on is explicit, else `possible`) and `inferred_link_share`. |
 | `breakdown` | Optional, rule-specific counts. R04: `groups`, `extra_service_orders`, `retry_new_order`, `parallel_duplicate`, `needs_review`, `amendments`, `reached_activation`, `activation_attempts`. |
 | `in_total` | Whether the finding counts in `totals`. R05 is `false` (D-11). |
@@ -113,7 +114,7 @@ sample up to twenty. A test validates this exact block.
 ```json
 {
   "schema_version": "findings/2",
-  "engine_version": "0.5.0",
+  "engine_version": "0.5.1",
   "run": {
     "id": "b11b48203b389607",
     "generated_at": "2026-09-01T00:00:00Z",
@@ -394,6 +395,7 @@ sample up to twenty. A test validates this exact block.
         }
       ],
       "evidence_total": 20,
+      "affected_order_refs": ["ORD-1000", "ORD-1001"],
       "confidence": {
         "level": "confirmed",
         "inferred_link_share": 0

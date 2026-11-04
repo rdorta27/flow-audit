@@ -56,12 +56,12 @@ export function renderFindingsCsv(
     for (const c of charges) {
       if (c.ruleId === f.id) mine.set(c.orderRef, (mine.get(c.orderRef) ?? 0) + c.hours);
     }
-    // A finding kept out of the total (R05) charges no order: its rows are the orders of the
-    // evidence sample, each with an even share of the finding's hours over `evidence_total`.
-    const sampleOnly = mine.size === 0 && f.evidence.length > 0;
+    // A finding kept out of the total (R05) charges no order: its rows are all the orders it
+    // names, each with an even share of the finding's hours.
+    const sampleOnly = mine.size === 0 && f.affectedOrderRefs.length > 0;
     if (sampleOnly) {
-      const share = f.cost.hoursMonth / Math.max(f.evidenceTotal, 1);
-      for (const e of f.evidence) mine.set(e.orderRef, (mine.get(e.orderRef) ?? 0) + share);
+      const share = f.cost.hoursMonth / f.affectedOrderRefs.length;
+      for (const order of f.affectedOrderRefs) mine.set(order, (mine.get(order) ?? 0) + share);
     }
     const orders = [...mine].sort(([a, x], [b, y]) => y - x || a.localeCompare(b));
     const listed = orders.slice(0, CSV_ORDER_LIMIT);
@@ -74,7 +74,7 @@ export function renderFindingsCsv(
         ratesOf(f),
         basisOf(f),
         listed.length,
-        sampleOnly ? f.evidenceTotal : orders.length,
+        orders.length,
       ].map(field).join(","),
     );
     for (const [order, hours] of listed) {

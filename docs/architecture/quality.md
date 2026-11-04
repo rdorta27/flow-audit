@@ -59,5 +59,5 @@ R04 needs OMS. Adding a rule is one line there.
 
 - The report (`report.html`, `findings.json`) does not carry a quality section or a "forced"
   mark yet; only `quality.json` and the CLI say so.
-- Rules run on every record, not only on the common window of the systems they need.
+- Rules run on every record, not only on the common window of the systems they need. The report's Data quality section shows each system's coverage and the common window so a reader can see a late start or an early stop; whether to cut rules to that window is an open decision (OD-12 in the backlog).
 - Records outside a declared `period` are measured, not removed.

@@ -11,7 +11,8 @@ Usage:
 Shows, per rule, the orders that enter or leave the finding first, then the change in the
 estimate (hours, with the example rates), then what changed in the configuration or in the
 rule versions. Two runs of the same data print "no differences".
-findings.json lists a sample of the affected orders; the counts are complete.
+A findings.json written before the complete order list only has a sample of orders per
+finding; the report says so and the counts stay complete.
 
 Exit codes:
   0  compared (differences or not)

@@ -13,7 +13,7 @@ import {
   readFileText,
   RowView,
 } from "./file_common.ts";
-import type { BlockMapping } from "./mapping.ts";
+import type { BlockMapping, JoinMapping } from "./mapping.ts";
 
 type Row = Record<string, unknown>;
 
@@ -39,6 +39,54 @@ async function* jsonLines(
   }
 }
 
+/** The rows of one joined file, grouped by the join key; a row without the key fails by line. */
+async function loadJoin(
+  dir: string,
+  join: JoinMapping,
+  encoding: string,
+): Promise<Map<string, Row[]>> {
+  const path = joinPath(dir, join.file);
+  const byKey = new Map<string, Row[]>();
+  for await (const { line, row } of jsonLines(path, encoding)) {
+    const value = row[join.key];
+    if (value === undefined || value === null || String(value).trim() === "") {
+      throw new FileError(path, line, join.key, "is missing: the join needs it on every row");
+    }
+    const key = String(value);
+    byKey.set(key, [...(byKey.get(key) ?? []), row]);
+  }
+  return byKey;
+}
+
+/** The main row with the rows of every joined file attached (M5-24). */
+function joined(
+  row: Row,
+  line: number,
+  path: string,
+  joins: readonly JoinMapping[],
+  loaded: readonly Map<string, Row[]>[],
+): Row {
+  if (joins.length === 0) return row;
+  const out: Row = { ...row };
+  joins.forEach((join, n) => {
+    const value = row[join.key];
+    const matches = value === undefined || value === null ? [] : loaded[n].get(String(value)) ?? [];
+    if (join.as !== undefined) {
+      out[join.as] = matches;
+    } else if (matches.length > 1) {
+      throw new FileError(
+        path,
+        line,
+        join.key,
+        `has ${matches.length} rows in ${join.file}; set "as" on the join to keep them as a list`,
+      );
+    } else if (matches.length === 1) {
+      for (const [k, v] of Object.entries(matches[0])) if (!(k in out)) out[k] = v;
+    }
+  });
+  return out;
+}
+
 abstract class JsonlSource implements EvidenceSource {
   abstract readonly name: string;
   readonly path: string;
@@ -57,7 +105,12 @@ abstract class JsonlSource implements EvidenceSource {
 
   async *read(): AsyncIterable<RawRecord> {
     const seen = new Map<string, string>();
-    for await (const { line, row } of jsonLines(this.path, this.block.encoding)) {
+    const joins = this.block.joins ?? [];
+    const loaded = await Promise.all(
+      joins.map((join) => loadJoin(this.options.dir, join, this.block.encoding)),
+    );
+    for await (const { line, row: main } of jsonLines(this.path, this.block.encoding)) {
+      const row = joined(main, line, this.path, joins, loaded);
       const view = new RowView(this.path, line, this.block, (key) => row[key], this.coverage);
       this.coverage.rows++;
       const { id, value } = this.record(view, row);

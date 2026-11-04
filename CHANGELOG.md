@@ -4,6 +4,14 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.5.1 — 2026-11-04
+
+A report nobody can dismantle.
+
+- Every finding in `findings.json` names every affected order in `affected_order_refs`. `deno task diff` and `findings.csv` use it, so a comparison sees every order that entered or left, and the R05 rows add up to the finding's hours (M5-20).
+- `report.html` has a Data quality section: verdict, every system's records, dates, window covered, orphans and unknown states, failures and warnings, and a note when the gate was forced (M5-21).
+- A `bpm` or `prov` block can name more files of the same system and a key to join them by (M5-24).
+
 ## 0.5.0 — 2026-11-04
 
 Client-ready. The release holds only the corrections from the author's review of the 0.4.5 candidate and a first read of the report (comprehension round 1). The round with outside readers was dropped by decision.

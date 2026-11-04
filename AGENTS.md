@@ -1,6 +1,6 @@
 # AGENTS
 
-- This repo is at **0.5.0, Client-ready**, on the way to **0.6.0** Order-to-cash (versions mark
+- This repo is at **0.5.1**, after Client-ready (0.5.0), on the way to **0.6.0** Order-to-cash (versions mark
   milestones, not semver). It has the synthetic dataset, the simulated TMF stub, TMF readers
   and file readers (`src/adapters/ingest/`), correlation, segments, a quality gate
   (`src/domain/quality.ts`) and rules R01 to R05. `deno task audit --dataset data/demo --out out`

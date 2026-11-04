@@ -50,6 +50,7 @@ Deno.test("orders that leave come first, then the estimate, then config and vers
   const b = structuredClone(a);
   const r04 = b.findings.find((f: { id: string }) => f.id === "R04");
   const gone = r04.evidence.shift().order_ref;
+  r04.affected_order_refs = r04.affected_order_refs.filter((o: string) => o !== gone);
   r04.affected_orders -= 1;
   r04.cost.hours_month -= 1.5;
   r04.rule_version = "R04@3";
@@ -100,6 +101,43 @@ Deno.test("errors are plain lines, never a stack trace", async () => {
       const text = r.err.join("\n");
       assert(text.includes("flow-audit:") && !/\n\s+at |\.ts:\d+/.test(text), text);
     }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("an order outside the old sample of 20 still shows as entered or left (M5-20)", async () => {
+  const dir = await Deno.makeTempDir();
+  try {
+    const before = await audit(dir);
+    const after = JSON.parse(JSON.stringify(before));
+    const r02 = (
+      file: { findings: { id: string; affected_orders: number; affected_order_refs: string[] }[] },
+    ) => file.findings.find((f) => f.id === "R02")!;
+    const refs = r02(after).affected_order_refs;
+    const gone = refs[refs.length - 1]; // sorted, so far outside the first 20
+    assert(refs.indexOf(gone) > 20, "the test order is outside the old sample");
+    r02(after).affected_order_refs = refs.slice(0, -1);
+    r02(after).affected_orders -= 1;
+    const d = diffFindings(before, after).rules.find((x) => x.rule.startsWith("R02"))!;
+    assertEquals(d.left, [gone]);
+    assertEquals(d.sampled, false);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("R05 in findings.csv lists every order and adds up to the finding's hours (M5-20)", async () => {
+  const dir = await Deno.makeTempDir();
+  try {
+    const file = await audit(dir);
+    const r05 = file.findings.find((f: { id: string }) => f.id === "R05");
+    const rows = (await Deno.readTextFile(`${dir}/findings.csv`)).trim().split("\n")
+      .filter((l) => l.split(",")[1] === "R05");
+    const orders = rows.filter((l) => l.startsWith("order,"));
+    assertEquals(orders.length, r05.affected_orders);
+    const sum = orders.reduce((a, l) => a + Number(l.split(",")[3]), 0);
+    assert(Math.abs(sum - r05.cost.hours_month) < 0.01, `${sum} vs ${r05.cost.hours_month}`);
   } finally {
     await Deno.remove(dir, { recursive: true });
   }

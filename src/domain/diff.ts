@@ -4,9 +4,10 @@
  * fix or a migration. Orders first, then the estimate per rule, then what changed in the
  * configuration or the rule versions. Pure: it reads two parsed files and does no I/O.
  *
- * `findings.json` lists a sample of at most `EVIDENCE_SAMPLE_MAX` orders per finding and says
- * how many exist, so the orders that enter or leave are those of the sample; the counts
- * (`affected_orders`) are always complete.
+ * `findings.json` names every affected order in `affected_order_refs` (M5-20), so the orders that
+ * enter or leave are complete. A file written before that lists only a sample of at most
+ * `EVIDENCE_SAMPLE_MAX` orders per finding: then the lists are samples, `sampled` is true and
+ * the counts (`affected_orders`) are still complete.
  */
 
 type Json = Record<string, unknown>;
@@ -104,8 +105,11 @@ function findingsOf(file: Json): Map<string, FindingView> {
   for (const f of file.findings as unknown[]) {
     if (!isObject(f) || typeof f.id !== "string") continue;
     const evidence = Array.isArray(f.evidence) ? f.evidence : [];
+    // The complete list when the file has it (findings written since M5-20), else the sample.
     const sample = new Set(
-      evidence.filter(isObject).map((e) => String(e.order_ref)),
+      Array.isArray(f.affected_order_refs)
+        ? f.affected_order_refs.map(String)
+        : evidence.filter(isObject).map((e) => String(e.order_ref)),
     );
     const cost = isObject(f.cost) ? f.cost : {};
     map.set(f.id, {

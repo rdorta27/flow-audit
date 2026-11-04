@@ -145,6 +145,12 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     if (evidence.length > EVIDENCE_SAMPLE_MAX) {
       err(`${p}.evidence`, `has more than ${EVIDENCE_SAMPLE_MAX} entries`);
     }
+    if (
+      !Array.isArray(f.affected_order_refs) ||
+      f.affected_order_refs.some((x) => typeof x !== "string")
+    ) {
+      err(`${p}.affected_order_refs`, "must be a list of order references");
+    }
     if (!isNum(f.evidence_total) || f.evidence_total < evidence.length) {
       err(`${p}.evidence_total`, "must be a number not smaller than the sample");
     }

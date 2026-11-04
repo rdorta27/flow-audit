@@ -120,8 +120,28 @@ the text is not part of the source fingerprint. `quality` may override the gate'
 (`min_rows`, `min_window_coverage`, `max_orphan_share`, `max_unknown_state_share`); see
 `quality.md`.
 
+## One system in several files
+
+A `bpm` or `prov` block (JSON lines) can name more files of the same system and a key to join
+them by. The key is the field both files carry, by its name in the files:
+
+```json
+"bpm": {
+  "file": "processes.jsonl",
+  "join": [
+    { "file": "activities.jsonl", "key": "process_id", "as": "activities" },
+    { "file": "incidents.jsonl", "key": "process_id", "as": "incidents" }
+  ]
+}
+```
+
+With `as`, every matching row of the other file becomes an object in a list under that field,
+which `columns` and `activity_fields` then read as if it were nested in the main file. Without
+`as`, each main row takes the fields of its one matching row (a field the main row already has
+wins); two matching rows fail and say to set `as`. A row of a joined file with no key fails
+naming the file and line. The engine never guesses a key. The demo has no `join` block.
+
 ## Not done yet
 
-Catalog blocks (`offer_key`, nested characteristics, validity gaps), BPM as several tables
-joined by process id, and joins across files. The report text for the period and the per-month
-scaling (the data is in `findings.json`) is not written yet.
+Catalog blocks (`offer_key`, nested characteristics, validity gaps), joins for the CSV block
+(`oms`) and joins across systems.

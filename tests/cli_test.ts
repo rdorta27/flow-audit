@@ -139,3 +139,43 @@ Deno.test("--redact: no order id of the input reaches stdout or stderr (M5-23)",
     await Deno.remove(out, { recursive: true });
   }
 });
+
+Deno.test("report.html has a quality section that matches quality.json (M5-21)", async () => {
+  const out = await Deno.makeTempDir();
+  try {
+    assertEquals((await run(["--dataset", "data/demo", "--out", out, "--quiet"], out)).code, 0);
+    const quality = JSON.parse(await Deno.readTextFile(`${out}/quality.json`));
+    const html = await Deno.readTextFile(`${out}/report.html`);
+    const section = html.slice(
+      html.indexOf('id="quality"'),
+      html.indexOf("</section>", html.indexOf('id="quality"')),
+    );
+    assert(section.includes("The data passed the quality gate."), "verdict");
+    for (const s of quality.systems) {
+      const n = s.rows.toLocaleString("en-US");
+      assert(section.includes(`<td class="n">${n}</td>`), `${s.system} records ${n}`);
+    }
+  } finally {
+    await Deno.remove(out, { recursive: true });
+  }
+});
+
+Deno.test("a forced run says in the report that the gate failed (M5-21)", async () => {
+  const dir = await demoCopy({
+    "provisioning.jsonl": (t) =>
+      t.split("\n").filter((l) => l === "" || JSON.parse(l).started_at < "2026-09-21").join("\n"),
+  });
+  const out = await Deno.makeTempDir();
+  try {
+    assertEquals(
+      (await run(["--dataset", dir, "--out", out, "--quiet", "--force"], dir)).code,
+      0,
+    );
+    const html = await Deno.readTextFile(`${out}/report.html`);
+    assert(html.includes("failed the quality gate and the audit was forced to run"), "forced");
+    assert(html.includes("<h3>Failed</h3>"), "the failures are listed");
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+    await Deno.remove(out, { recursive: true });
+  }
+});

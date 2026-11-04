@@ -20,6 +20,7 @@ import {
   type EvidenceRef,
   type Finding,
   type ImpactConfig,
+  orderRefsOf,
   type ProvisioningAttempt,
   type R01Config,
   type RecordRef,
@@ -303,6 +304,7 @@ export function detectR01(
     evidenceLevel: "strong",
     evidence: evidence.slice(0, EVIDENCE_SAMPLE_MAX),
     evidenceTotal: evidence.length,
+    affectedOrderRefs: orderRefsOf(evidence),
     confidence: {
       level: inferred === 0 ? "confirmed" : "possible",
       inferredLinkShare: placed.length === 0 ? 0 : inferred / placed.length,

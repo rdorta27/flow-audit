@@ -15,6 +15,7 @@ import {
   type EvidenceRef,
   type Finding,
   type ImpactConfig,
+  orderRefsOf,
   type Provenance,
   type RecordRef,
   type SystemId,
@@ -117,6 +118,7 @@ export function detectR05(
     evidenceLevel: "weak",
     evidence: evidence.slice(0, EVIDENCE_SAMPLE_MAX),
     evidenceTotal: evidence.length,
+    affectedOrderRefs: orderRefsOf(evidence),
     confidence: { level: "possible", inferredLinkShare: 1 },
     inTotal: false,
     breakdown: {

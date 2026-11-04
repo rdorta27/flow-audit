@@ -14,6 +14,7 @@ import type {
   StageTime,
   SystemId,
 } from "../../domain/model.ts";
+import type { QualityReport } from "../../domain/quality.ts";
 import type { ReportRenderer } from "../../ports/report_renderer.ts";
 import { API_PLAIN, glossaryFor, inputPlain, lookup, SYSTEM_PLAIN } from "./glossary.ts";
 import { REPORT_CSS } from "./report_css.ts";
@@ -487,6 +488,45 @@ function periodText(report: AuditReport): string {
   return `<p>${first}${second}</p>`;
 }
 
+/** The data-quality gate as the reader sees it: verdict, every system's measures, what failed (M5-21). */
+function qualitySection(q: QualityReport | undefined): string {
+  if (!q) return "";
+  const verdict = q.passed
+    ? "The data passed the quality gate."
+    : q.forced
+    ? "<strong>The data failed the quality gate and the audit was forced to run.</strong> Read every finding with that in mind."
+    : "<strong>The data failed the quality gate.</strong>";
+  const rows = q.systems.map((s) =>
+    `<tr><td>${chip(s.system)}</td><td class="n">${num(s.rows)}</td><td>${
+      s.range ? `${esc(day(s.range.start))} to ${esc(day(s.range.end))}` : "no dates"
+    }</td><td class="n">${s.coverage === null ? "n/a" : pct(s.coverage)}</td><td class="n">${
+      pct(s.orphanShare)
+    }</td><td class="n">${pct(s.unknownShare)}</td></tr>`
+  ).join("");
+  const list = (title: string, items: string[]) =>
+    items.length
+      ? `<h3>${title}</h3><ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`
+      : "";
+  const window = q.window
+    ? `Audited window: ${esc(day(q.window.start))} to ${esc(day(q.window.end))} (${
+      q.window.declared ? "declared in the mapping" : "the span of the order records"
+    }).`
+    : "";
+  const common = q.commonWindow
+    ? ` Every system has records between ${esc(day(q.commonWindow.start))} and ${
+      esc(day(q.commonWindow.end))
+    }. The rules still run on every record, not only inside that overlap, so a system that starts late or ends early shows as less than 100% in the table.`
+    : "";
+  return `<section class="quality" id="quality" aria-labelledby="qh"><h2 id="qh">Data quality</h2>
+<p>${verdict} ${window}${common}</p>
+<table><thead><tr><th>System</th><th class="n">Records</th><th>Dates</th><th class="n">Window covered</th><th class="n">Orphan records</th><th class="n">Unknown states</th></tr></thead><tbody>${rows}</tbody></table>
+${list("Failed", q.failures)}${list("Warnings", q.warnings)}${
+    q.notEvaluable.length
+      ? list("Not evaluated", q.notEvaluable.map((n) => `${n.system}: ${n.reason}`))
+      : ""
+  }</section>`;
+}
+
 /** Everything on the cover is read from the report, so the same claims can be rebuilt from the file. */
 function cover(report: AuditReport): string {
   const notRead = report.systems.filter((s) => !s.read);
@@ -782,7 +822,7 @@ ${stageTable(waiting.stages)}
 <div class="bars">${charts}</div></section>`;
 }
 
-export function renderHtml(report: AuditReport): string {
+export function renderHtml(report: AuditReport, quality?: QualityReport): string {
   current = report;
   const l = report.labels;
   const labels = [
@@ -811,6 +851,7 @@ export function renderHtml(report: AuditReport): string {
 </header>
 ${firstScreen(report)}
 ${cover(report)}
+${qualitySection(quality)}
 ${howToRead()}
 <section aria-labelledby="find"><h2 id="find">Findings</h2>${
     report.findings.map(findingSection).join("\n") || `<p class="note">No findings.</p>`

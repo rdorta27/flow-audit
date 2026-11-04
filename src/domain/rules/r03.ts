@@ -23,6 +23,7 @@ import {
   type EvidenceRef,
   type Finding,
   type ImpactConfig,
+  orderRefsOf,
   type ProcessInstance,
   type R03Config,
   type RecordRef,
@@ -279,6 +280,7 @@ export function detectR03(
     evidenceLevel: scan.snapshot ? "weak" : "history",
     evidence: evidence.slice(0, EVIDENCE_SAMPLE_MAX),
     evidenceTotal: evidence.length,
+    affectedOrderRefs: orderRefsOf(evidence),
     confidence: {
       level: scan.snapshot ? "possible" : "confirmed",
       inferredLinkShare: scan.hits.length === 0

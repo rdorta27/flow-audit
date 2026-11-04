@@ -394,6 +394,11 @@ export interface EvidenceRef {
   note?: string;
 }
 
+/** The distinct orders of a list of evidence, sorted. */
+export function orderRefsOf(evidence: readonly EvidenceRef[]): string[] {
+  return [...new Set(evidence.map((e) => e.orderRef))].sort();
+}
+
 export type CostKind = "recurring" | "one_off" | "accumulated_to_period_end";
 
 /**
@@ -498,6 +503,8 @@ export interface Finding {
   /** A sample of at most `EVIDENCE_SAMPLE_MAX` orders. */
   evidence: EvidenceRef[];
   evidenceTotal: number;
+  /** Every order the finding names, sorted and without repeats: the complete list behind the sample (M5-20). */
+  affectedOrderRefs: string[];
   confidence: Confidence;
   /** False when the finding stays out of the net total (R05, D-11). */
   inTotal: boolean;

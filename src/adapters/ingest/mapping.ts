@@ -28,8 +28,22 @@ export type StateTable = Record<string, string>;
 
 export type BlockName = "oms" | "bpm" | "prov";
 
+/**
+ * Another file of the same system, joined to the main file by a declared key (M5-24).
+ * Without `as` each row of the main file takes the fields of its one matching row; with `as`
+ * every matching row becomes an object in a list under that field (activities, incidents).
+ */
+export interface JoinMapping {
+  file: string;
+  /** The field both files carry, by its name in the files. */
+  key: string;
+  as?: string;
+}
+
 export interface BlockMapping {
   file: string;
+  /** JSON lines blocks only: more files of the same system. */
+  joins?: JoinMapping[];
   format: "csv" | "jsonl";
   delimiter: string;
   encoding: string;
@@ -331,7 +345,7 @@ export function parseMapping(text: string, where: string): Mapping {
       "states",
       "on_unknown_state",
       "pii",
-      ...(name === "oms" ? ["single_line_orders"] : []),
+      ...(name === "oms" ? ["single_line_orders"] : ["join"]),
       ...(name === "bpm" ? ["activity_fields"] : []),
     ];
     const b = object(value, [name], allowed);
@@ -449,8 +463,24 @@ export function parseMapping(text: string, where: string): Mapping {
         );
     }
 
+    const joins: JoinMapping[] = [];
+    if (b.join !== undefined) {
+      if (!Array.isArray(b.join)) fail([name, "join"], "must be a list of files to join");
+      (b.join as unknown[]).forEach((raw, n) => {
+        const path = [name, "join", String(n)];
+        const j = object(raw, path, ["file", "key", "as"]);
+        const entry: JoinMapping = {
+          file: str(j.file, [...path, "file"]),
+          key: str(j.key, [...path, "key"]),
+        };
+        if (j.as !== undefined) entry.as = str(j.as, [...path, "as"]);
+        joins.push(entry);
+      });
+    }
+
     return {
       file: str(b.file, [name, "file"]),
+      ...(joins.length > 0 ? { joins } : {}),
       format,
       delimiter,
       encoding,

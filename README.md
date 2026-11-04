@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — 0.5.0 is Client-ready.** Demo 1 (0.4.0) is done.
+> **Under construction — 0.5.1, after Client-ready (0.5.0).** Demo 1 (0.4.0) is done.
 > `deno task audit --dataset data/demo --out out` reads the four file exports, joins them, runs the quality
 > gate and rules R01 to R05, and writes `out/findings.json` (`findings/2`) and a self-contained `out/report.html`.
 > `deno task audit --source stub` reads the simulated server; R02 and R03 are not evaluated there, because it

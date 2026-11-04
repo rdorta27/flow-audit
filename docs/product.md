@@ -4,7 +4,7 @@ Flow Audit is a workbench for auditing the end-to-end order flow of a BSS stack.
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Status: under construction — version 0.5.0, Client-ready.**
+> **Status: under construction — version 0.5.1, after Client-ready (0.5.0).**
 > `deno task audit --dataset data/demo` reads the four file exports, joins them, runs a quality
 > gate and rules R01 to R05, and writes `findings.json` and `report.html`. The data is simulated.
 > There is no commercial offer (D-17). Demo 1 (0.4.0) is closed.

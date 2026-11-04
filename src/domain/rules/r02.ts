@@ -22,6 +22,7 @@ import {
   type Finding,
   type ImpactConfig,
   type Order,
+  orderRefsOf,
   type Spec,
 } from "../model.ts";
 import type { OrderCharge } from "../totals.ts";
@@ -163,6 +164,7 @@ export function detectR02(
     evidenceLevel: "strong",
     evidence: evidence.slice(0, EVIDENCE_SAMPLE_MAX),
     evidenceTotal: evidence.length,
+    affectedOrderRefs: orderRefsOf(evidence),
     confidence: {
       level: inferred === 0 ? "confirmed" : "possible",
       inferredLinkShare: inferred / affected,
