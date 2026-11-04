@@ -68,7 +68,10 @@ Deno.test("renaming columns in a copy of the export and in the mapping gives the
       renderFindingsJson(other.result.report).replaceAll(dir, "DIR"),
       renderFindingsJson(same.result.report).replaceAll(DEMO.replace(/\/$/, ""), "DIR"),
     );
-    assertEquals(other.result.findings[0].affectedOrders, 20);
+    assertEquals(
+      other.result.findings.find((f) => f.id === "R04")?.affectedOrders,
+      20,
+    );
   } finally {
     await Deno.remove(dir, { recursive: true });
   }

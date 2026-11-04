@@ -92,6 +92,21 @@ export const IMPACT_CONFIG: ImpactConfig = {
     stuckAfterHours: 72,
     duplicateWindowMinutes: 10,
   },
+  rules: {
+    r01: {
+      errorClasses: [
+        { code: "HUB_TIMEOUT", class: "transient" },
+        ...PERMANENT_ERROR_CODES.map((code) => ({ code, class: "permanent" as const })),
+      ],
+      maintenanceWindows: [{ ...MAINTENANCE_WINDOW }],
+      oldPendingHours: 72,
+    },
+    r02: {
+      activationRequirements: [
+        { attribute: "capacity_profile", requiredBy: "PROV", viaTask: "capacity_check" },
+      ],
+    },
+  },
 };
 
 const FAILED_ATTEMPTS = FALLOUT_ORDERS + PERMANENT_ERROR_ORDERS + FALLOUT_QUEUE_ORDERS +

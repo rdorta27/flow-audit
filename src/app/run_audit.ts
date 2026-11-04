@@ -6,6 +6,7 @@ import { buildStory } from "../domain/story.ts";
 import { computeTotals, type OrderCharge } from "../domain/totals.ts";
 import {
   type AuditReport,
+  type Catalog,
   type Finding,
   type ImpactConfig,
   type OrderJourney,
@@ -14,7 +15,7 @@ import {
   SCHEMA_VERSION,
   type SystemId,
 } from "../domain/model.ts";
-import { RULES } from "../domain/rules/index.ts";
+import { type RuleContext, RULES } from "../domain/rules/index.ts";
 import type { Order, ProcessInstance, ProvisioningAttempt, ServiceOrder } from "../domain/model.ts";
 import type { Clock } from "../ports/clock.ts";
 import type { EvidenceSource, RawRecord } from "../ports/evidence_source.ts";
@@ -95,6 +96,17 @@ async function collect(source: EvidenceSource): Promise<RawRecord[]> {
   const rows: RawRecord[] = [];
   for await (const row of source.read()) rows.push(row);
   return rows;
+}
+
+/** The catalog the file source served as records (`kind` offer or spec); undefined with none. */
+function catalogOf(records: readonly RawRecord[]): Catalog | undefined {
+  if (records.length === 0) return undefined;
+  const parts = (kind: string) =>
+    records.filter((r) => r.value.kind === kind).map((r) => {
+      const { kind: _kind, id: _id, ...body } = r.value;
+      return body;
+    });
+  return { offers: parts("offer"), specs: parts("spec") } as unknown as Catalog;
 }
 
 /** JSON with sorted keys, so the same data always gives the same text. */
@@ -203,14 +215,15 @@ export async function runAudit(
     attempts: rawAttempts.map(map.attempt),
   });
 
+  const context: RuleContext = { correlation, catalog: catalogOf(rawCatalog) };
   const findings: Finding[] = [];
   const charges: OrderCharge[] = [];
   for (const rule of RULES) {
     say(`running ${rule.version}`);
-    const finding = rule.detect(correlation.orders, config);
+    const finding = rule.detect(correlation.orders, config, context);
     if (finding) {
       findings.push(finding);
-      charges.push(...rule.charges(correlation.orders, config));
+      charges.push(...rule.charges(correlation.orders, config, context));
     }
   }
 

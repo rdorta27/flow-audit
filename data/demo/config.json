@@ -10,5 +10,43 @@
     "retry_window_hours": 24,
     "stuck_after_hours": 72,
     "duplicate_window_minutes": 10
+  },
+  "rules": {
+    "r01": {
+      "error_classes": [
+        {
+          "code": "HUB_TIMEOUT",
+          "class": "transient"
+        },
+        {
+          "code": "TERMINAL_NOT_REGISTERED",
+          "class": "permanent"
+        },
+        {
+          "code": "ACCOUNT_BLOCKED",
+          "class": "permanent"
+        },
+        {
+          "code": "ADDRESS_NOT_SERVICEABLE",
+          "class": "permanent"
+        }
+      ],
+      "maintenance_windows": [
+        {
+          "from": "2026-09-14T02:00:00.000Z",
+          "to": "2026-09-14T06:00:00.000Z"
+        }
+      ],
+      "old_pending_hours": 72
+    },
+    "r02": {
+      "activation_requirements": [
+        {
+          "attribute": "capacity_profile",
+          "required_by": "PROV",
+          "via_task": "capacity_check"
+        }
+      ]
+    }
   }
 }

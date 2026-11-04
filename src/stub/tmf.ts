@@ -80,6 +80,8 @@ export interface TmfServiceActivation {
   activationDate: string;
   /** Absent while the attempt has not ended (pending). */
   completionDate?: string;
+  /** Why a failed attempt failed (extension field); absent when it did not fail. */
+  errorCode?: string;
   /** Explicit link back to the service order — and item — it activates. */
   serviceOrder?: TmfRef;
   serviceOrderItem?: TmfRef;

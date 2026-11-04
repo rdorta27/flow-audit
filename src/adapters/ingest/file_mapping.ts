@@ -2,9 +2,11 @@
 /** Turns the records the file readers yield into the canonical model. */
 
 import type {
+  Actor,
   Order,
   OrderState,
   ProcessInstance,
+  ProcessTask,
   ProvisioningAttempt,
   ServiceOrder,
   WorkOrder,
@@ -77,7 +79,20 @@ export function mapFileProcess(r: RawRecord): ProcessInstance {
     state: optional(v.state) ?? "unmapped",
     startedAt: str(v.started_at),
     endedAt: optional(v.ended_at),
+    tasks: tasksOf(v.activities),
   };
+}
+
+const ACTORS: readonly Actor[] = ["system", "human", "partner"];
+
+/** The tasks of a process (not its timers or gateways); an actor we cannot read is `system`. */
+function tasksOf(activities: unknown): ProcessTask[] {
+  if (!Array.isArray(activities)) return [];
+  return activities.flatMap((a: Record<string, unknown>) =>
+    a.kind === "task" && typeof a.name === "string"
+      ? [{ name: a.name, actor: ACTORS.find((x) => x === a.actor) ?? "system" }]
+      : []
+  );
 }
 
 export function mapFileAttempt(r: RawRecord): ProvisioningAttempt {

@@ -181,6 +181,14 @@ export interface ProcessInstance {
   state: string;
   startedAt: string;
   endedAt: string | null;
+  /** The tasks the process ran, when the source nests them (files do; the TMF stub does not). */
+  tasks?: ProcessTask[];
+}
+
+/** One task of a process: enough to tell a manual step from an automatic one (R02). */
+export interface ProcessTask {
+  name: string;
+  actor: Actor;
 }
 
 export interface Activity {
@@ -480,8 +488,50 @@ export interface ImpactThresholds {
   duplicateWindowMinutes: number;
 }
 
+/** How a provisioning error code is treated by R01 (M3-09). */
+export type ErrorClass = "transient" | "permanent" | "maintenance" | "unknown";
+
+export interface ErrorClassEntry {
+  code: string;
+  class: ErrorClass;
+}
+
+/** A planned window in which provisioning failures are expected; ISO 8601 UTC. */
+export interface MaintenanceWindow {
+  from: string;
+  to: string;
+}
+
+/**
+ * A declared fact of the client's process (M3-04): this attribute must exist in the spec for
+ * `requiredBy` to work, and `viaTask` is the manual task that fills it when it is missing.
+ */
+export interface ActivationRequirement {
+  attribute: string;
+  requiredBy: SystemId;
+  viaTask: string;
+}
+
+export interface R01Config {
+  errorClasses: ErrorClassEntry[];
+  maintenanceWindows: MaintenanceWindow[];
+  /** A `pending` attempt older than this is reported as "old pending", not as a failure. */
+  oldPendingHours: number;
+}
+
+export interface R02Config {
+  activationRequirements: ActivationRequirement[];
+}
+
+/** Per-rule settings; every part is optional and a missing part means "none declared". */
+export interface RuleSettings {
+  r01?: R01Config;
+  r02?: R02Config;
+}
+
 export interface ImpactConfig {
   ordersPerMonth: number;
   rates: ImpactRates;
   thresholds: ImpactThresholds;
+  rules?: RuleSettings;
 }

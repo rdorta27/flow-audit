@@ -159,7 +159,7 @@ export function mapActivation(record: RawRecord): ProvisioningAttempt {
     serial: "",
     state: state(record, ATTEMPT_STATES, "unmapped"),
     rawState: String(record.value.state),
-    errorCode: null,
+    errorCode: typeof v.errorCode === "string" && v.errorCode !== "" ? v.errorCode : null,
     startedAt: String(record.value.activationDate),
     endedAt: typeof completion === "string" ? completion : null,
     provenance: record.provenance,

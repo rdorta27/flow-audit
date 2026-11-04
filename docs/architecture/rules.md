@@ -1,6 +1,6 @@
 # Rule catalogue
 
-Status: R04 is implemented (`src/domain/rules/r04.ts`, M3-02) and registered in `src/domain/rules/index.ts`; the others are designed. R04 is the first rule (milestone Demo 1) and its
+Status: R01, R02, R04 and R05 are implemented (`src/domain/rules/r01.ts`, `r02.ts`, `r04.ts`, `r05.ts`) and registered in `src/domain/rules/index.ts`; R03 is designed. Severity is shared (`src/domain/rules/severity.ts`). A rule reads the correlated orders, the config and, when it needs them, a `RuleContext` (the whole correlation and the catalog). R04 is the first rule (milestone Demo 1) and its
 Demo 1 specification is written below. The rules below are the five
 findings the demo reports. Each one must be defensible: a signal, the
 evidence that proves it and a formula that turns it into hours.
@@ -36,12 +36,18 @@ Severity is derived from impact, not declared by hand.
 
 ## R01 — Provisioning fallout without retry
 
-**Signal.** A `ProvisioningAttempt` ends in `failed` and no later attempt exists for
-the same `so_ref` within `retry_window_hours` (default 24), while the service order
-is not `CANCELLED`.
+**Rule version.** `R01@1`.
 
-**Evidence.** The failed attempt (error code, queue), the gap to the next event,
-and the point where the order leaves the automated path.
+**Signal.** An activation attempt ends `failed` and no later attempt exists for the same
+**product order item** within `thresholds.retry_window_hours` (default 24), while the service
+order is not `CANCELLED`. The key is the item, not the service order: R04's retry is a new
+service order over the same item, so it is still a retry and the 20 duplicated orders are not
+counted twice. The window is inclusive: a retry exactly 24 h later is a retry; 24 h and one
+second later is fallout. Only activations are read (an attempt with another `operation` is
+ignored).
+
+**Evidence.** The failed attempt (id, error code, error class), the next attempt if one
+exists, the gap in days and the confidence of the link that placed the attempt under its order.
 
 **Impact.**
 
@@ -49,19 +55,55 @@ and the point where the order leaves the automated path.
 hours = affected × (manual_minutes + wait_days × daily_followup_minutes) / 60
 ```
 
-**Demo.** 8% of 5,000 orders = 400 orders, 25 manual minutes and 2.5 days of wait.
+`affected` is orders (an order with two unretried failures counts once, at its first).
+`wait_days` is measured per order, from the failure to the next attempt on the item; with no
+next attempt, to the latest moment the data shows (never the wall clock). The cost has two terms:
+manual handling and daily follow-up. On the demo: 400 orders (8% of 5,000), the next attempt
+comes 60 h (2.5 days) later, so 400 × (5 + 2.5 × 15) / 60 = **283.3 h**. The 20 R04 orders are
+in R01 as well; the overlap rule (below) counts each once in the net total.
 
-**Known limits.** A planned maintenance window looks the same as a failure. Exclude
-error codes listed in `expected_failures` and require the gap to cross a retry window.
+**Error classes (M3-09).** `rules.r01` in `config.json` holds:
+
+| Key | Meaning |
+|---|---|
+| `error_classes` | List of `{code, class}`; `class` is `transient`, `permanent`, `maintenance` or `unknown`. A code not listed is `unknown`. |
+| `maintenance_windows` | List of `{from, to}` (ISO 8601 UTC, ends included). A failure that starts inside one is `maintenance`, unless its code is `permanent`. |
+| `old_pending_hours` | A `pending` attempt older than this (measured to the end of the data) is reported as "old pending", not as a failure. Default 72. |
+
+R01 leaves out `permanent` and `maintenance` failures and reports them in the finding's
+`breakdown` (`excluded_permanent`, `excluded_maintenance`). Also counted there: `unknown_code`
+(fallout orders whose code is not in the map, counted as fallout), `uncertain_timeout` (an
+attempt whose outcome is `timeout` is uncertain, not failed), `old_pending`, `resolved_by_callback`
+(a failed attempt whose callback closed it as succeeded), `inferred_links` (evidence placed
+by an inferred link) and `unlinked_failed_attempts` / `ambiguous_failed_attempts` (failed
+attempts that cannot be placed under one order, for example a reused terminal serial: not
+counted, listed in `unmeasured`). A failed attempt whose start time cannot be read is refused
+with a reason in `unmeasured`, never guessed. The demo's `HUB_TIMEOUT` is `transient`; its 41
+permanent failures are left out. If every failure is left out there is no finding (the rule
+returns nothing).
+
+**Known limits.** A planned maintenance window looks the same as a failure: it must be in the
+config. The rule cannot tell a retry that was deliberately cancelled from one nobody made.
+The error class is a declaration of the client, not something the engine learns.
 
 ## R02 — Missing catalog attribute forces a manual check
 
-**Signal.** For an offer version sold during the period, its spec lacks an attribute
-with `used_by = PROV` that the BPM activities reference, and the process contains a
-manual task that fills the missing value (capacity check, beam assignment).
+**Rule version.** `R02@1`. Needs the catalog (CAT) and the process tasks (BPM): both come from
+the file exports; the TMF stub serves neither, so over `--source stub` the rule does not run.
 
-**Evidence.** Offer version → spec, the absent attribute, and the manual activity
-instances with actor `human`.
+**Signal.** The contract is a declared list, `rules.r02.activation_requirements` in
+`config.json`: `[{attribute, required_by, via_task}]`, meaning "`required_by` needs this
+attribute in the spec, and `via_task` is the manual task a person does when it is missing".
+That tie is declared, never inferred. An order counts when the spec of its offer version lacks
+the attribute and one of its processes ran a **human** task named `via_task`. (`used_by` in
+the catalog stays informational: an absent attribute has no `used_by`.)
+
+Which spec applies: the offer version on the order when the catalog has it (`explicit`); else
+the version valid when the order was submitted (`inferred`, the finding is then `possible`);
+else unknown: listed in `unmeasured` and not counted.
+
+**Evidence.** Order, offer version, spec, the missing attribute and the process that ran the
+manual task.
 
 **Impact.**
 
@@ -69,10 +111,11 @@ instances with actor `human`.
 hours = affected × manual_minutes / 60
 ```
 
-**Demo.** `capacity_profile` missing on the first offer version; 4,167 of 5,000 orders (83%), 5 minutes each = 347 h. Orders on the second version (833) get an automatic check.
+**Demo.** `capacity_profile` missing on the first offer version; 4,167 of 5,000 orders (83%), 5 minutes each = **347.3 h**. Orders on the second version (833) get an automatic check. `evidence_total` is 4,167; the sample is capped. The hours are freeable capacity, not savings.
 
-**Known limits.** A manual task can be deliberate (engineering approval). Only count
-it when it exists *because* an attribute is missing, not when it has another purpose.
+**Known limits.** A manual task can be deliberate (engineering approval). Only the task named
+in the declared tie counts; a missing attribute with no such task is counted apart
+(`missing_without_task`) and not priced. No `to_validate` status yet (M5-07).
 
 ## R03 — BPM timer expires without compensation
 
@@ -180,20 +223,32 @@ to check in billing.
 
 ## R05 — No end-to-end correlation id
 
-**Signal.** An order's records cannot be linked by a declared key and are resolved by a
-time window, or an entity has no shared key with its parent (for example, a provisioning
-attempt that only carries a terminal serial).
+**Rule version.** `R05@1`.
 
-**Evidence.** Each weak link, the two records involved and the matching rule that was
-needed to join them.
+**Signal.** Every link of the correlation report that is not `explicit` (`inferred`,
+`ambiguous`, `conflicting` or `missing`) is one incident. The rule reads the correlation and
+does no matching of its own.
+
+**Incident per weak link, not per order.** An order with two weak links is two incidents,
+because each one is a separate investigation (two records to join by hand). So
+`affected_orders` of the finding counts incidents, and the share is incidents over orders.
+An explicit link is never counted.
+
+**Evidence.** Each weak link: the record, what it should have pointed at, its confidence and
+the basis. When the record could not be placed under an order (missing or ambiguous), the
+evidence entry is named by the record id.
 
 **Impact.**
 
 ```
-hours = incidents_per_month × investigation_minutes / 60
+hours = incidents × investigation_minutes / 60
 ```
 
-**Demo.** 300 incidents/month at 45 minutes = 225 h/month.
+**Demo.** 300 weak links at 45 minutes = **225 h** (the 300 attempts that only carry a terminal
+serial). The count is the same from both sources; the split by confidence is not: from files the
+serial finds its service order (`inferred`), from the stub the serial is not served (`missing`).
+R05 is `in_total` false: it is shown apart and is not in the net total (D-11), and it charges no
+order.
 
 **Known limits.** Time windows are a fallback, not proof. A weak link is reported as a
 correlation gap even when the match happens to be correct.

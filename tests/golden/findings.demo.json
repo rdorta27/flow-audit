@@ -4,9 +4,9 @@
   "run": {
     "id": "<run>",
     "generated_at": "<time>",
-    "inputs_hash": "0e18a362633b18939e17e37ea020931e12b6190d2ada80a94e26088b4cc0628d",
-    "config_hash": "858fb229a437daae1edc9b2612d4a96cf29c6ab6ac7b9d9b02cb87eb04295bc8",
-    "rules_hash": "34fd9a2e5aa6ac89cf0773a0c0aab37ad09cfcbf6dad55b5b9484ca6364d1c74"
+    "inputs_hash": "df127d5f0c0aaec56c408b6d7064d9d16f89296f6b62921c0354ee83f0dd0c66",
+    "config_hash": "02bd2575fc60f264a995621955d514a807169459953ce687102759db958a80fe",
+    "rules_hash": "9866075d7341a490052d036dcbcefc452ea00cdb4160fbe399ffb4ff4d6b0ea3"
   },
   "sources": [
     {
@@ -43,7 +43,7 @@
       "records": 5390,
       "rows_read": 5390,
       "rows_discarded": 0,
-      "sha256": "5123dd743f254f0142f42f882fe312a5a9e4fdb65599b2c34a8b996cd9c21d93"
+      "sha256": "be7f57ff70d13f04b8eb30c933837bf210af71c1dc5102bb842e369daccb2357"
     }
   ],
   "labels": {
@@ -63,6 +63,44 @@
       "retry_window_hours": 24,
       "stuck_after_hours": 72,
       "duplicate_window_minutes": 10
+    },
+    "rules": {
+      "r01": {
+        "error_classes": [
+          {
+            "code": "HUB_TIMEOUT",
+            "class": "transient"
+          },
+          {
+            "code": "TERMINAL_NOT_REGISTERED",
+            "class": "permanent"
+          },
+          {
+            "code": "ACCOUNT_BLOCKED",
+            "class": "permanent"
+          },
+          {
+            "code": "ADDRESS_NOT_SERVICEABLE",
+            "class": "permanent"
+          }
+        ],
+        "maintenance_windows": [
+          {
+            "from": "2026-09-14T02:00:00.000Z",
+            "to": "2026-09-14T06:00:00.000Z"
+          }
+        ],
+        "old_pending_hours": 72
+      },
+      "r02": {
+        "activation_requirements": [
+          {
+            "attribute": "capacity_profile",
+            "required_by": "PROV",
+            "via_task": "capacity_check"
+          }
+        ]
+      }
     }
   },
   "correlation": {
@@ -127,6 +165,7 @@
         "when each state change happened: the source is a snapshot, not a history"
       ],
       "findings": [
+        "R01",
         "R04"
       ]
     },
@@ -157,11 +196,597 @@
         "when each attempt changed state: the source is a snapshot, not a history"
       ],
       "findings": [
-        "R04"
+        "R01",
+        "R04",
+        "R05"
       ]
     }
   ],
   "findings": [
+    {
+      "id": "R01",
+      "rule_version": "R01@1",
+      "title": "Activation fails and nobody retries",
+      "plain_summary": "An activation failed and nothing tried it again within the retry window, so a person has to find the order and push it through by hand.",
+      "where": "PROV",
+      "severity": "critical",
+      "status": "detected",
+      "affected_orders": 400,
+      "share_of_orders": 0.08,
+      "evidence_level": "strong",
+      "evidence": [
+        {
+          "order_ref": "ORD-1000",
+          "event_ids": [
+            "ACT-70000",
+            "ACT-80000"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1000",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70000",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80000",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1001",
+          "event_ids": [
+            "ACT-70001",
+            "ACT-80001"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1001",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70001",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80001",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1002",
+          "event_ids": [
+            "ACT-70002",
+            "ACT-80002"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1002",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70002",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80002",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1003",
+          "event_ids": [
+            "ACT-70003",
+            "ACT-80003"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1003",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70003",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80003",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1004",
+          "event_ids": [
+            "ACT-70004",
+            "ACT-80004"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1004",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70004",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80004",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1005",
+          "event_ids": [
+            "ACT-70005",
+            "ACT-80005"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80005",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1006",
+          "event_ids": [
+            "ACT-70006",
+            "ACT-80006"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1006",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70006",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80006",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1007",
+          "event_ids": [
+            "ACT-70007",
+            "ACT-80007"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1007",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70007",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80007",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1008",
+          "event_ids": [
+            "ACT-70008",
+            "ACT-80008"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1008",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70008",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80008",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1009",
+          "event_ids": [
+            "ACT-70009",
+            "ACT-80009"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1009",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70009",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80009",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1010",
+          "event_ids": [
+            "ACT-70010",
+            "ACT-80010"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1010",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70010",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80010",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1011",
+          "event_ids": [
+            "ACT-70011",
+            "ACT-80011"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1011",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70011",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80011",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1012",
+          "event_ids": [
+            "ACT-70012",
+            "ACT-80012"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1012",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70012",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80012",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1013",
+          "event_ids": [
+            "ACT-70013",
+            "ACT-80013"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1013",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70013",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80013",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1014",
+          "event_ids": [
+            "ACT-70014",
+            "ACT-80014"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1014",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70014",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80014",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1015",
+          "event_ids": [
+            "ACT-70015",
+            "ACT-80015"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1015",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70015",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80015",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1016",
+          "event_ids": [
+            "ACT-70016",
+            "ACT-80016"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1016",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70016",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80016",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1017",
+          "event_ids": [
+            "ACT-70017",
+            "ACT-80017"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1017",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70017",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80017",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1018",
+          "event_ids": [
+            "ACT-70018",
+            "ACT-80018"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1018",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70018",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80018",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        },
+        {
+          "order_ref": "ORD-1019",
+          "event_ids": [
+            "ACT-70019",
+            "ACT-80019"
+          ],
+          "records": [
+            {
+              "system": "OMS",
+              "external_id": "ORD-1019",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-70019",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            },
+            {
+              "system": "PROV",
+              "external_id": "ACT-80019",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "HUB_TIMEOUT (transient); next attempt 2.5 days later; link explicit"
+        }
+      ],
+      "evidence_total": 400,
+      "confidence": {
+        "level": "confirmed",
+        "inferred_link_share": 0
+      },
+      "in_total": true,
+      "breakdown": {
+        "wait_days": 1000,
+        "excluded_permanent": 41,
+        "excluded_maintenance": 0,
+        "uncertain_timeout": 0,
+        "old_pending": 50,
+        "resolved_by_callback": 0,
+        "unknown_code": 0,
+        "inferred_links": 0,
+        "unlinked_failed_attempts": 0,
+        "ambiguous_failed_attempts": 0
+      },
+      "cost": {
+        "kind": "recurring",
+        "period_days": null,
+        "normalisation": null,
+        "hours_month": 283.3,
+        "formula": "hours = affected × (manual_minutes + wait_days × daily_followup_minutes) / 60",
+        "inputs": [
+          {
+            "key": "rates.manual_minutes",
+            "value": 5,
+            "source": null,
+            "owner": null,
+            "date": null
+          },
+          {
+            "key": "rates.daily_followup_minutes",
+            "value": 15,
+            "source": null,
+            "owner": null,
+            "date": null
+          },
+          {
+            "key": "thresholds.retry_window_hours",
+            "value": 24,
+            "source": null,
+            "owner": null,
+            "date": null
+          }
+        ],
+        "terms": [
+          {
+            "name": "Manual handling of the failed activations",
+            "hours": 33.3,
+            "basis": "rate_assumption",
+            "observed": 400,
+            "input_keys": [
+              "rates.manual_minutes"
+            ]
+          },
+          {
+            "name": "Daily follow-up while the order waits",
+            "hours": 250,
+            "basis": "rate_assumption",
+            "observed": 1000,
+            "input_keys": [
+              "rates.daily_followup_minutes"
+            ]
+          }
+        ],
+        "unmeasured": []
+      },
+      "recommendation": "Retry a failed activation automatically, or raise it to a queue a person owns, within the retry window."
+    },
     {
       "id": "R04",
       "rule_version": "R04@2",
@@ -851,18 +1476,443 @@
         "unmeasured": []
       },
       "recommendation": "Make the retry reuse the existing service order, and confirm in billing the orders whose duplicate reached activation."
+    },
+    {
+      "id": "R05",
+      "rule_version": "R05@1",
+      "title": "No end-to-end correlation id",
+      "plain_summary": "Some records cannot be tied to their order by an id they carry, so a person has to work out which belong together.",
+      "where": "OMS-PROV",
+      "severity": "critical",
+      "status": "detected",
+      "affected_orders": 300,
+      "share_of_orders": 0.06,
+      "evidence_level": "weak",
+      "evidence": [
+        {
+          "order_ref": "ACT-70550",
+          "event_ids": [
+            "ACT-70550"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70550",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70550: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70551",
+          "event_ids": [
+            "ACT-70551"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70551",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70551: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70552",
+          "event_ids": [
+            "ACT-70552"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70552",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70552: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70553",
+          "event_ids": [
+            "ACT-70553"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70553",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70553: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70554",
+          "event_ids": [
+            "ACT-70554"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70554",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70554: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70555",
+          "event_ids": [
+            "ACT-70555"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70555",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70555: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70556",
+          "event_ids": [
+            "ACT-70556"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70556",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70556: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70557",
+          "event_ids": [
+            "ACT-70557"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70557",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70557: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70558",
+          "event_ids": [
+            "ACT-70558"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70558",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70558: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70559",
+          "event_ids": [
+            "ACT-70559"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70559",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70559: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70560",
+          "event_ids": [
+            "ACT-70560"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70560",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70560: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70561",
+          "event_ids": [
+            "ACT-70561"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70561",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70561: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70562",
+          "event_ids": [
+            "ACT-70562"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70562",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70562: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70563",
+          "event_ids": [
+            "ACT-70563"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70563",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70563: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70564",
+          "event_ids": [
+            "ACT-70564"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70564",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70564: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70565",
+          "event_ids": [
+            "ACT-70565"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70565",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70565: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70566",
+          "event_ids": [
+            "ACT-70566"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70566",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70566: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70567",
+          "event_ids": [
+            "ACT-70567"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70567",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70567: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70568",
+          "event_ids": [
+            "ACT-70568"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70568",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70568: missing (no service order reference and no terminal serial)"
+        },
+        {
+          "order_ref": "ACT-70569",
+          "event_ids": [
+            "ACT-70569"
+          ],
+          "records": [
+            {
+              "system": "PROV",
+              "external_id": "ACT-70569",
+              "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+            }
+          ],
+          "note": "attempt->service_order ACT-70569: missing (no service order reference and no terminal serial)"
+        }
+      ],
+      "evidence_total": 300,
+      "confidence": {
+        "level": "possible",
+        "inferred_link_share": 1
+      },
+      "in_total": false,
+      "breakdown": {
+        "weak_links": 300,
+        "inferred": 0,
+        "ambiguous": 0,
+        "missing": 300,
+        "conflicting": 0
+      },
+      "cost": {
+        "kind": "recurring",
+        "period_days": null,
+        "normalisation": null,
+        "hours_month": 225,
+        "formula": "hours = incidents × investigation_minutes / 60",
+        "inputs": [
+          {
+            "key": "rates.investigation_minutes",
+            "value": 45,
+            "source": null,
+            "owner": null,
+            "date": null
+          }
+        ],
+        "terms": [
+          {
+            "name": "Investigation of the weak links",
+            "hours": 225,
+            "basis": "rate_assumption",
+            "observed": 300,
+            "input_keys": [
+              "rates.investigation_minutes"
+            ]
+          }
+        ],
+        "unmeasured": []
+      },
+      "recommendation": "Carry the order id (or the service order id) on every record, so no link has to be inferred."
     }
   ],
   "overlap": {
-    "by_order": {},
-    "pairs": []
+    "by_order": {
+      "ORD-1000": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1001": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1002": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1003": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1004": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1005": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1006": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1007": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1008": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1009": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1010": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1011": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1012": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1013": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1014": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1015": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1016": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1017": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1018": [
+        "R01",
+        "R04"
+      ],
+      "ORD-1019": [
+        "R01",
+        "R04"
+      ]
+    },
+    "pairs": [
+      {
+        "rules": [
+          "R01",
+          "R04"
+        ],
+        "orders": 20
+      }
+    ]
   },
   "totals": {
     "gross": {
-      "hours": 30
+      "hours": 313.3
     },
     "net": {
-      "hours": 30
+      "hours": 299.2
     }
   },
   "journeys": [
@@ -870,6 +1920,7 @@
       "order_ref": "ORD-1000",
       "segments": [],
       "findings": [
+        "R01",
         "R04"
       ],
       "correlation": {
@@ -923,7 +1974,7 @@
         {
           "at": "2026-09-01T07:07:57.000Z",
           "system": "PROV",
-          "what": "An activation attempt on SO-20000 failed.",
+          "what": "An activation attempt on SO-20000 failed (error HUB_TIMEOUT).",
           "record": {
             "id": "ACT-70000",
             "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
@@ -962,6 +2013,7 @@
       "order_ref": "ORD-1001",
       "segments": [],
       "findings": [
+        "R01",
         "R04"
       ],
       "correlation": {
@@ -1015,7 +2067,7 @@
         {
           "at": "2026-09-01T09:55:37.400Z",
           "system": "PROV",
-          "what": "An activation attempt on SO-20001 failed.",
+          "what": "An activation attempt on SO-20001 failed (error HUB_TIMEOUT).",
           "record": {
             "id": "ACT-70001",
             "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
@@ -1054,6 +2106,7 @@
       "order_ref": "ORD-1002",
       "segments": [],
       "findings": [
+        "R01",
         "R04"
       ],
       "correlation": {
@@ -1107,7 +2160,7 @@
         {
           "at": "2026-09-01T12:01:44.800Z",
           "system": "PROV",
-          "what": "An activation attempt on SO-20002 failed.",
+          "what": "An activation attempt on SO-20002 failed (error HUB_TIMEOUT).",
           "record": {
             "id": "ACT-70002",
             "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"

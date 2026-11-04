@@ -19,10 +19,11 @@ Deno.test("every finding's hours appear next to its formula", () => {
   for (const f of report.findings) {
     const start = html.indexOf(`id="${f.id}"`);
     const section = html.slice(start, html.indexOf("</article>", start));
-    assert(section.includes(`${f.cost.hoursMonth} h`), "hours");
+    const shown = (n: number) => `${Math.round(n * 10) / 10} h`;
+    assert(section.includes(shown(f.cost.hoursMonth)), "hours");
     assert(section.includes(f.cost.formula.replace(/&/g, "&amp;")), "formula");
     for (const t of f.cost.terms) {
-      assert(section.includes(`${t.hours} h`), `term ${t.name}`);
+      assert(section.includes(shown(t.hours)), `term ${t.name}`);
     }
   }
 });

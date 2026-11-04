@@ -33,7 +33,7 @@ Deno.test("findings.json carries the labels and R04's 30 h", async () => {
     simulated_integration: true,
     estimated_impact: true,
   });
-  const [r04] = file.findings;
+  const r04 = file.findings.find((f: { id: string }) => f.id === "R04");
   assertEquals(r04.cost.terms.map((t: { hours: number }) => t.hours), [30]);
   assertEquals(r04.cost.hours_month, 30);
   assertEquals(file.correlation.links["attempt->service_order"].inferred, 0);
