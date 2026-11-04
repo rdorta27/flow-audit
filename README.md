@@ -4,7 +4,7 @@ Audit workbench for BSS order flows. Reads evidence exported from the product ca
 
 It does not implement, configure or monitor those systems. It observes them.
 
-> **Under construction — 0.4.4 is published; on the way to 0.5.0 (Client-ready).** Demo 1 (0.4.0) is done.
+> **Under construction — 0.4.5 is the Client-ready candidate, pending review.** Demo 1 (0.4.0) is done.
 > `deno task audit --dataset data/demo --out out` reads the four file exports, joins them, runs the quality
 > gate and rules R01 to R05, and writes `out/findings.json` (`findings/2`) and a self-contained `out/report.html`.
 > `deno task audit --source stub` reads the simulated server; R02 and R03 are not evaluated there, because it
@@ -35,7 +35,7 @@ simulated server R02 does not run, because it serves no catalog or process tasks
 rule, a quality gate checks each file (`docs/architecture/quality.md`).
 
 **Where it goes:** **Demo 1** (0.4.0) is done. **Client-ready** (0.5.0) is in progress:
-`0.4.4` is published; the candidate is `0.4.5`. The plan is in
+`0.4.5` is the candidate, pending review. The plan is in
 [`../specs/backlog.md`](../specs/backlog.md); finished cards are in
 [`../specs/done/`](../specs/done/README.md).
 
@@ -98,7 +98,7 @@ The plan is in [`../specs/backlog.md`](../specs/backlog.md):
 | — | Definition, skeleton, synthetic dataset, report preview | **done** (0.1.0) |
 | M0 | Sources validated: bss-oss-rust tested locally; the TMF stub serves the synthetic dataset | **done** (0.2.0) |
 | Demo 1 | One real report: R04 read from the TMF stub, with its evidence and its hours | **done** (0.4.0) |
-| Client-ready | Audit file exports through a mapping; R01–R05, a gate and a defensible report | **in progress** (0.4.4 published; candidate 0.4.5) |
+| Client-ready | Audit file exports through a mapping; R01–R05, a gate and a defensible report | **candidate 0.4.5**, pending review |
 | Order-to-cash | Follow the order into billing | planned (0.6.0) |
 
 ## Versions

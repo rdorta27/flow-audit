@@ -4,6 +4,15 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.4.5 — 2026-11-04
+
+Candidate for Client-ready. The file audit is checked as one command, the report draws ORD-1005, and it measures waiting time per stage. The site shows that run. A later review and a comprehension test remain before 0.5.0.
+
+- The example order in the report is ORD-1005 (M4-11).
+- Measured waiting per stage: median and 90th percentile of work, wait, queue and gap. On the demo files the stage with the most waiting is the process orchestrator's expired timer (M4-10).
+- `deno task audit --dataset data/demo --out out` matches the planted order counts (M5-06).
+- The site's example page, journey and landing excerpt come from the engine's files (S-06, S-13, S-26). A five-minute presentation lives in the site (S-27).
+
 ## 0.4.4 — 2026-11-04
 
 Fourth step to 0.5.0: assumptions in plain sight and a report that can be defended.

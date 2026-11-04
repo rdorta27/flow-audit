@@ -1,13 +1,13 @@
 # AGENTS
 
-- This repo is at **0.4.4, published**, on the way to **0.5.0, Client-ready** (versions mark
+- This repo is at **0.4.5, the Client-ready candidate**, on the way to **0.5.0** (versions mark
   milestones, not semver). It has the synthetic dataset, the simulated TMF stub, TMF readers
   and file readers (`src/adapters/ingest/`), correlation, segments, a quality gate
   (`src/domain/quality.ts`) and rules R01 to R05. `deno task audit --dataset data/demo --out out`
   runs R01 to R05 and writes `findings.json` (`findings/2`) and `report.html`, including the
   assumptions table, the story of one order and the net total. On the stub, R02 and R03 are not
   evaluated. Data files use snake_case keys (TS stays camelCase). What is left is
-  `../specs/backlog.md` (M5-06, M4-10, M4-11, the site cards, and the known corrections). Closed
+  `../specs/backlog.md` (the user's review, S-20, and known holes that do not block the name). Closed
   cards are in `../specs/done/`; if they disagree with the backlog, `done/` wins.
 - This version is English only: code, docs, CLI and report. Spanish and Portuguese output
   come later (backlog L-01).
