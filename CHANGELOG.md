@@ -19,6 +19,9 @@ Third step to 0.5.0: the fifth rule, a fuller BPM model and amendments.
   and `supersededBy`. An amendment is not a duplicate (R04) and not a missing link (R05); the
   demo gained one amendment, and R04 stays at 20 orders (M2-08).
 - Site: who uses Flow Audit and when it helps (S-04).
+- Orders lead, hours follow (D-23): the report, the terminal and the site open with how many
+  orders have a problem, the proof and the cause; hours are an estimate shown next to the
+  example assumptions behind them, and measured waiting time is shown apart.
 
 ## 0.4.2 — 2026-11-04
 
