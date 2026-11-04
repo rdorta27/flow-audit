@@ -4,7 +4,9 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
-## Next, not yet cut — corrections for 0.5.0
+## 0.5.0 — 2026-11-04
+
+Client-ready. The release holds only the corrections from the author's review of the 0.4.5 candidate and a first read of the report (comprehension round 1). The round with outside readers was dropped by decision.
 
 - The report's cover and assumptions table state the audited period, how many records were removed and that the hours were not rescaled (M5-19).
 - A normal run prints one line on the assumptions and where their table is; `--quiet` prints one line, the result (M5-22).

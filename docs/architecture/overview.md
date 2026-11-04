@@ -1,6 +1,6 @@
 # Architecture
 
-> **Under construction — 0.4.5 candidate, on the way to 0.5.0.** File readers, the TMF readers,
+> **Under construction — 0.5.0 Client-ready, on the way to 0.6.0.** File readers, the TMF readers,
 > the join, the quality gate and rules R01 to R05 run end to end. `deno task audit --dataset data/demo`
 > writes `findings.json` (`findings/2`) and `report.html`. On the stub, R02 and R03 are not evaluated.
 > Complements [product](../product.md).

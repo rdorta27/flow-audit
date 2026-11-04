@@ -1,6 +1,6 @@
 {
   "license": "MIT",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "tasks": {
     "check": "deno check src/cli/main.ts src/cli/read.ts src/cli/explain.ts src/cli/diff.ts src/cli/generate_dataset.ts src/adapters/clock/system_clock.ts src/stub/main.ts src/adapters/ingest/ src/domain/ src/adapters/report/ tests/",
     "test": "deno test --allow-read --allow-write --allow-env=UPDATE_GOLDEN,FLOW_AUDIT_HOME,FLOW_AUDIT_REDACT_SECRET",
