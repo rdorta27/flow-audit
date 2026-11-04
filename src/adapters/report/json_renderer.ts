@@ -8,7 +8,16 @@ import type { ReportRenderer } from "../../ports/report_renderer.ts";
  * to one decimal. It is applied here and nowhere else, so `283.3` never
  * becomes `283.33333333333337` in a file an analyst diffs.
  */
-const HOURS_KEYS = new Set(["hours", "hours_month"]);
+const HOURS_KEYS = new Set([
+  "hours",
+  "hours_month",
+  "hours_low",
+  "hours_high",
+  "hours_after",
+  "hours_at_low",
+  "hours_at_high",
+  "swing",
+]);
 
 export const roundTo = (value: number, decimals: number): number => {
   const f = 10 ** decimals;

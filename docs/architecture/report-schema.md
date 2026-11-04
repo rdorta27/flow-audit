@@ -1,6 +1,8 @@
-# Report schema: `findings/1`
+# Report schema: `findings/2`
 
-Status: defined in M4-01. The in-memory form is `AuditReport` (`src/domain/model.ts`,
+Status: defined in M4-01. `findings/2` (M4-09, M5-07, M5-13) only adds fields to `findings/1`:
+`assumptions[]`, `sensitivity[]`, `rules[]`, `scope`, `findings[].scenario`, `hours_low`/`hours_high` on
+costs and totals, and the object form of a rate in `config`; nothing was renamed or removed. The in-memory form is `AuditReport` (`src/domain/model.ts`,
 re-exported by `src/ports/report_renderer.ts`); `runAudit` returns it. `deno task audit --out <dir>` writes it
 as `findings.json` (M4-02) next to `report.html` (M4-03). The report, the site and any future client read this one
 contract. Every number in it carries its formula and the inputs it came from.
@@ -22,7 +24,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 
 | Key | What it holds |
 |---|---|
-| `schema_version` | `"findings/1"`. |
+| `schema_version` | `"findings/2"`. |
 | `engine_version` | Version of the engine that produced the file. |
 | `run` | `id`, `generated_at` (from the injected clock), `inputs_hash`, `config_hash`, `rules_hash` (SHA-256; the run `id` is the first 16 hex characters of the hash of the three). Same inputs, config and rules give the same hashes; changing one byte of an input changes `inputs_hash`. |
 | `sources[]` | One per reader: `system`, `name`, `kind` (`tmf-api` or `file`), `endpoint` (URL or path), `simulated`, `evidence_kind` (`snapshot` or `history`), `records`, `rows_read`, `rows_discarded`, `sha256` (of the records as read, not of when they were read). Catalog counts and the rules versions per source come with later cards. |
@@ -32,7 +34,11 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `systems[]` | One per `CAT`, `OMS`, `BPM`, `PROV`: `name`, `role`, `position` (1-based in the flow), `read`, `source_kind` (null if not read), `records`, `coverage` (share of orders with a record from that system, null when not read), `cannot_observe[]`, `findings[]` (rule ids whose evidence touches it). |
 | `findings[]` | See below. |
 | `overlap` | `by_order`: order id to the rule ids that charge it, only for orders charged by two or more rules (`{}` when none). `pairs[]`: `rules` (two ids) and `orders` (how many orders they share). |
-| `totals` | `gross`: `hours` summed over findings with `in_total` true. `net`: the same with each order counted once, at its largest charge (`rules.md`, "Overlap"); equals `gross` when nothing overlaps. |
+| `totals` | `gross`: `hours` summed over findings with `in_total` true. `net`: the same with each order counted once, at its largest charge (`rules.md`, "Overlap"); equals `gross` when nothing overlaps. Each also has `hours_low` and `hours_high`: the same total with every rate at its low and at its high value (M5-07); both equal `hours` when no rate has a range. |
+| `assumptions[]` | One row per rate or threshold that a finding's `cost.inputs` names (M4-09): `key` (dotted key of `config.json`), `unit` (`minutes` or `hours`), `value` (the base), `low`, `high` (equal to `value` for a plain number), `source` (`client`, `benchmark`, `assumption`, or `example` when the config declares none), `owner`, `date` (`null` when not declared) and `used_by[]` (finding ids). Every `cost.inputs[].key` has a row; the validator and a test fail otherwise. The report links every hour figure to its row. |
+| `sensitivity[]` | Only when some rate has a range: for each such rate, `low`, `high`, `hours_at_low` and `hours_at_high` (the net total with only that rate moved) and `swing` (their difference). Ordered by `swing`, largest first. `[]` when no rate has a range. |
+| `rules[]` | One per registered rule: `id`, `title`, `version` and `outcome`: `found`, `nothing_found` (the rule ran) or `not_evaluable` (a system it needs was not read, or covers too little; `reason` says which). "Nothing found" and "not evaluable" are never the same. |
+| `scope` | `orders`: how many orders the run read. |
 | `journeys[]` | Orders the report draws (at most 3): `order_ref`, `segments[]`, `segments_unavailable` (why there are no segments; a snapshot has no history), `findings[]`, `correlation`, and `story[]`: the order step by step (`at`, `system`, `what` (one plain sentence), `record` (`id` and `endpoint`, or `null`), `finding` (the rule id that starts at this step, or `null`), `observed`, `reason` (why a step is not observed)). A step the source cannot show stays in the list with `observed` false. |
 
 ## Findings
@@ -51,6 +57,7 @@ contract. Every number in it carries its formula and the inputs it came from.
 | `breakdown` | Optional, rule-specific counts. R04: `groups`, `extra_service_orders`, `retry_new_order`, `parallel_duplicate`, `needs_review`, `amendments`, `reached_activation`, `activation_attempts`. |
 | `in_total` | Whether the finding counts in `totals`. R05 is `false` (D-11). |
 | `cost` | See below. |
+| `scenario` | The projection "if the cause is fixed" (M4-09), derived by the rule from the same orders and rates: `fix` (in words), `mechanism` (why those orders drop out), `fixed_orders`, `orders_after`, `hours_after` (the estimate left, at the base rates) and `kind` (always `projection`). It is never a promise and not a measurement after a real fix. |
 | `recommendation` | What to do about it. |
 
 ## Cost
@@ -59,14 +66,25 @@ contract. Every number in it carries its formula and the inputs it came from.
 |---|---|
 | `kind` | `recurring` (R01, R02, R05), `one_off` (R04 clean-up) or `accumulated_to_period_end` (R03). The report never mixes kinds in one "per month" column. |
 | `period_days`, `normalisation` | Days the hours cover and how it became "per month"; `null` when it did not need to (a one-off). |
+| `hours_low`, `hours_high` | The same hours with every rate at its low and at its high value (M5-07). Equal to `hours_month` when no rate has a range. `hours_low <= hours_month <= hours_high`. |
 | `hours_month` | The hours. For a `one_off` they are the hours of the audited period, not a monthly rate. **`hours_month` is the sum of `terms[].hours`.** |
 | `formula` | The text of the formula in `rules.md`. Required. |
-| `inputs[]` | `key` (a dotted key of `config.json`, such as `rates.cleanup_minutes`), `value` (must equal the config), and `source`, `owner`, `date` (null until M5-07 provides them). |
+| `inputs[]` | `key` (a dotted key of `config.json`, such as `rates.cleanup_minutes`), `value` (must equal the config), and `source`, `owner`, `date` (from the config, M5-07; `null` when the config does not declare them). |
 | `terms[]` | `name`, `hours`, `basis`, `observed` (the count the term multiplies, when measured) and `input_keys` (keys in `inputs`). `basis` is `measured` (counted in the evidence), `rate_assumption` (hours from a rate in `config.json`) or `not_observed`. A rate times a measured count is `rate_assumption`; `observed` says the count was measured. |
 | `unmeasured[]` | `term` and `reason` for a term the source cannot show; it is not in `terms` and not in the hours. |
 
 R04 has one term: clean-up (`rates.cleanup_minutes`). Whether a duplicate reached activation is
 a count in `breakdown` (`reached_activation`, `activation_attempts`), not a cost term.
+
+## Rates with a range and a source (`config.json`)
+
+A rate or threshold in `config.json` is a number, or an object `{ "low", "base", "high", "source",
+"owner", "date" }` (thresholds may write `value` for `base`). Only `base` is required. `source` is
+`client`, `benchmark` or `assumption`; one that is not declared shows as `example` in the assumptions
+table. `low <= base <= high` or the config is refused. The rules run on `base`; the ranges come from
+running them again with every rate at `low` and at `high` (thresholds stay at `base`: they change which
+orders count, not how long each takes). `config` in `findings.json` is printed as the file has it, so
+`cost.inputs[].value` is compared with the `base`. No money anywhere (D-21).
 
 ## Numbers
 
@@ -75,9 +93,9 @@ Hours (`hours`, `hours_month`) are rounded to one decimal, in `src/adapters/repo
 `run.id` and `run.generated_at` are the only fields that differ between two runs on the same
 input.
 
-## Not in `findings/1` yet
+## Not in `findings/2` yet
 
-Ranges (a later card), redaction of identifiers (a
+Redaction of identifiers (a
 later card), catalog counts, `rules_versions` per source.
 Their keys either exist with an empty value, as listed above, or are added with a version
 bump of the schema.
@@ -91,7 +109,7 @@ sample up to twenty. A test validates this exact block.
 
 ```json
 {
-  "schema_version": "findings/1",
+  "schema_version": "findings/2",
   "engine_version": "0.4.3",
   "run": {
     "id": "b11b48203b389607",
@@ -146,15 +164,58 @@ sample up to twenty. A test validates this exact block.
   "config": {
     "orders_per_month": 5000,
     "rates": {
-      "manual_minutes": 5,
-      "daily_followup_minutes": 15,
-      "cleanup_minutes": 90,
-      "investigation_minutes": 45
+      "manual_minutes": {
+        "low": 3,
+        "base": 5,
+        "high": 8,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "daily_followup_minutes": {
+        "low": 10,
+        "base": 15,
+        "high": 25,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "cleanup_minutes": {
+        "low": 60,
+        "base": 90,
+        "high": 120,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "investigation_minutes": {
+        "low": 30,
+        "base": 45,
+        "high": 90,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      }
     },
     "thresholds": {
-      "retry_window_hours": 24,
-      "stuck_after_hours": 72,
-      "duplicate_window_minutes": 10
+      "retry_window_hours": {
+        "base": 24,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "stuck_after_hours": {
+        "base": 72,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      },
+      "duplicate_window_minutes": {
+        "base": 10,
+        "source": "assumption",
+        "owner": "Flow Audit (example values)",
+        "date": "2026-11-04"
+      }
     }
   },
   "correlation": {
@@ -340,14 +401,16 @@ sample up to twenty. A test validates this exact block.
         "period_days": null,
         "normalisation": null,
         "hours_month": 30,
+        "hours_low": 20,
+        "hours_high": 40,
         "formula": "hours = groups × cleanup_minutes / 60",
         "inputs": [
           {
             "key": "rates.cleanup_minutes",
             "value": 90,
-            "source": null,
-            "owner": null,
-            "date": null
+            "source": "assumption",
+            "owner": "Flow Audit (example values)",
+            "date": "2026-11-04"
           }
         ],
         "terms": [
@@ -363,6 +426,14 @@ sample up to twenty. A test validates this exact block.
         ],
         "unmeasured": []
       },
+      "scenario": {
+        "fix": "make the retry reuse the existing service order instead of creating a new one",
+        "mechanism": "removes the duplicates created by a retry after a failure; duplicates created in parallel need a separate deduplication and are assumed to stay",
+        "fixed_orders": 20,
+        "orders_after": 0,
+        "hours_after": 0,
+        "kind": "projection"
+      },
       "recommendation": "Make the retry reuse the existing service order, and confirm in billing the orders whose duplicate reached activation."
     }
   ],
@@ -372,11 +443,52 @@ sample up to twenty. A test validates this exact block.
   },
   "totals": {
     "gross": {
-      "hours": 30
+      "hours": 30,
+      "hours_low": 20,
+      "hours_high": 40
     },
     "net": {
-      "hours": 30
+      "hours": 30,
+      "hours_low": 20,
+      "hours_high": 40
     }
+  },
+  "assumptions": [
+    {
+      "key": "rates.cleanup_minutes",
+      "unit": "minutes",
+      "value": 90,
+      "low": 60,
+      "high": 120,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04",
+      "used_by": [
+        "R04"
+      ]
+    }
+  ],
+  "sensitivity": [
+    {
+      "key": "rates.cleanup_minutes",
+      "low": 60,
+      "high": 120,
+      "hours_at_low": 20,
+      "hours_at_high": 40,
+      "swing": 20
+    }
+  ],
+  "rules": [
+    {
+      "id": "R04",
+      "title": "Duplicate service order",
+      "version": "R04@2",
+      "outcome": "found",
+      "reason": null
+    }
+  ],
+  "scope": {
+    "orders": 5000
   },
   "journeys": [
     {
@@ -391,85 +503,85 @@ sample up to twenty. A test validates this exact block.
       },
       "segments_unavailable": "ORD-1000: the evidence is a snapshot read from http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder; a snapshot has no record of when each step ran, so no segments can be built",
       "story": [
-      {
-            "at": "2026-09-01T00:00:27.000Z",
-            "system": "OMS",
-            "what": "The order manager received the order.",
-            "record": {
-                  "id": "ORD-1000",
-                  "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
-            },
-            "finding": null,
-            "observed": true,
-            "reason": null
-      },
-      {
-            "at": null,
-            "system": "CAT",
-            "what": "The product catalog was checked that the offer can be sold and activated.",
-            "record": null,
-            "finding": null,
-            "observed": false,
-            "reason": "not visible in this source"
-      },
-      {
-            "at": "2026-09-01T02:32:27.000Z",
-            "system": "OMS",
-            "what": "A service order (SO-20000) was created for line 1.",
-            "record": {
-                  "id": "SO-20000",
-                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
-            },
-            "finding": null,
-            "observed": true,
-            "reason": null
-      },
-      {
-            "at": null,
-            "system": "BPM",
-            "what": "The process orchestrator ran its tasks for the order.",
-            "record": null,
-            "finding": null,
-            "observed": false,
-            "reason": "not visible in this source"
-      },
-      {
-            "at": "2026-09-01T07:07:57.000Z",
-            "system": "PROV",
-            "what": "An activation attempt on SO-20000 failed.",
-            "record": {
-                  "id": "ACT-70000",
-                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
-            },
-            "finding": null,
-            "observed": true,
-            "reason": null
-      },
-      {
-            "at": "2026-09-03T19:07:27.000Z",
-            "system": "OMS",
-            "what": "A second service order (SO-30000) was created for line 1, which already had one.",
-            "record": {
-                  "id": "SO-30000",
-                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
-            },
-            "finding": "R04",
-            "observed": true,
-            "reason": null
-      },
-      {
-            "at": "2026-09-03T19:08:07.000Z",
-            "system": "PROV",
-            "what": "An activation attempt on SO-30000 succeeded.",
-            "record": {
-                  "id": "ACT-80000",
-                  "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
-            },
-            "finding": null,
-            "observed": true,
-            "reason": null
-      }
-]
+        {
+          "at": "2026-09-01T00:00:27.000Z",
+          "system": "OMS",
+          "what": "The order manager received the order.",
+          "record": {
+            "id": "ORD-1000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/productOrdering/v4/productOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "CAT",
+          "what": "The product catalog was checked that the offer can be sold and activated.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T02:32:27.000Z",
+          "system": "OMS",
+          "what": "A service order (SO-20000) was created for line 1.",
+          "record": {
+            "id": "SO-20000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": null,
+          "system": "BPM",
+          "what": "The process orchestrator ran its tasks for the order.",
+          "record": null,
+          "finding": null,
+          "observed": false,
+          "reason": "not visible in this source"
+        },
+        {
+          "at": "2026-09-01T07:07:57.000Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-20000 failed.",
+          "record": {
+            "id": "ACT-70000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-03T19:07:27.000Z",
+          "system": "OMS",
+          "what": "A second service order (SO-30000) was created for line 1, which already had one.",
+          "record": {
+            "id": "SO-30000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceOrdering/v4/serviceOrder"
+          },
+          "finding": "R04",
+          "observed": true,
+          "reason": null
+        },
+        {
+          "at": "2026-09-03T19:08:07.000Z",
+          "system": "PROV",
+          "what": "An activation attempt on SO-30000 succeeded.",
+          "record": {
+            "id": "ACT-80000",
+            "endpoint": "http://127.0.0.1:8081/tmf-api/serviceActivationAndConfiguration/v4/serviceActivation"
+          },
+          "finding": null,
+          "observed": true,
+          "reason": null
+        }
+      ]
     }
   ]
 }

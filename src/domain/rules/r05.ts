@@ -24,6 +24,7 @@ import type { RuleContext } from "./index.ts";
 import { severityFor } from "./severity.ts";
 
 export const R05_ID = "R05";
+export const R05_TITLE = "No end-to-end correlation id";
 export const R05_VERSION = "R05@1";
 export const R05_FORMULA = "hours = incidents × investigation_minutes / 60";
 
@@ -105,7 +106,7 @@ export function detectR05(
   return {
     id: R05_ID,
     ruleVersion: R05_VERSION,
-    title: "No end-to-end correlation id",
+    title: R05_TITLE,
     plainSummary: "Some records cannot be tied to their order by an id they carry, so a person " +
       "has to work out which belong together.",
     where: "OMS → PROV",
@@ -130,6 +131,8 @@ export function detectR05(
       periodDays: null,
       normalisation: null,
       hoursMonth: hours,
+      hoursLow: hours,
+      hoursHigh: hours,
       formula: R05_FORMULA,
       inputs,
       terms: [{
@@ -140,6 +143,15 @@ export function detectR05(
         inputKeys: ["rates.investigation_minutes"],
       }],
       unmeasured: [],
+    },
+    scenario: {
+      fix: "carry the order id (or the service order id) on every record",
+      mechanism: "every link then names its parent, so no link has to be inferred and none " +
+        "needs investigating",
+      fixedOrders: incidents,
+      ordersAfter: 0,
+      hoursAfter: 0,
+      kind: "projection",
     },
     recommendation: "Carry the order id (or the service order id) on every record, so no link " +
       "has to be inferred.",

@@ -74,7 +74,15 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   },
   projected: {
     plain: "Projected",
-    means: "Calculated: a measured count times minutes from the rates. Hours are always projected.",
+    means: "A what-if worked out from the same orders and rates. It is not a promise.",
+  },
+  assumed: {
+    plain: "Assumed",
+    means: "Rests on a number somebody declared, such as minutes per case. Hours are assumed.",
+  },
+  suspected: {
+    plain: "Suspected",
+    means: "The records suggest it, but they are a snapshot, so it is not confirmed.",
   },
   assumption: {
     plain: "Assumption",
@@ -162,6 +170,13 @@ export function inputPlain(key: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+/** A rule that produced no finding is still named: what it looked for and why it is silent. */
+function ruleWithoutFinding(r: AuditReport["rules"][number]): string {
+  return r.outcome === "not_evaluable"
+    ? `Looks for: ${r.title}. It was not evaluated in this run, which is not the same as zero findings.`
+    : `Looks for: ${r.title}. It ran and found nothing in these orders.`;
+}
+
 /** A rule's entry comes from its finding: nothing here changes when a rule is added. */
 export function ruleEntry(f: Finding): GlossaryEntry {
   return { plain: f.title, means: f.plainSummary };
@@ -174,6 +189,11 @@ export interface GlossaryRow extends GlossaryEntry {
 /** Every entry the report may point to: the rules of this run first, then the static terms. */
 export function glossaryFor(report: AuditReport): GlossaryRow[] {
   const rules = report.findings.map((f) => ({ term: f.id, ...ruleEntry(f) }));
+  for (const r of report.rules) {
+    if (!rules.some((x) => x.term === r.id)) {
+      rules.push({ term: r.id, plain: r.title, means: ruleWithoutFinding(r) });
+    }
+  }
   const fixed = Object.entries(GLOSSARY).map(([term, e]) => ({ term, ...e }));
   return [...rules, ...fixed];
 }
@@ -181,5 +201,7 @@ export function glossaryFor(report: AuditReport): GlossaryRow[] {
 /** The entry for a term of this report, or null when there is none (a gap the test catches). */
 export function lookup(report: AuditReport, term: string): GlossaryEntry | null {
   const f = report.findings.find((x) => x.id === term);
-  return f ? ruleEntry(f) : GLOSSARY[term] ?? null;
+  if (f) return ruleEntry(f);
+  const r = report.rules.find((x) => x.id === term);
+  return r ? { plain: r.title, means: ruleWithoutFinding(r) } : GLOSSARY[term] ?? null;
 }

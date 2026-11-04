@@ -83,6 +83,12 @@ const STEP_MS = Math.floor((WINDOW_END - WINDOW_START) / ORDERS);
 const OFFER_V2_FROM = new Date(WINDOW_START + V2_FIRST_INDEX * STEP_MS - 2 * MINUTE)
   .toISOString();
 
+const EXAMPLE = {
+  source: "assumption" as const,
+  owner: "Flow Audit (example values)",
+  date: "2026-11-04",
+};
+
 export const IMPACT_CONFIG: ImpactConfig = {
   ordersPerMonth: ORDERS,
   rates: {
@@ -115,6 +121,15 @@ export const IMPACT_CONFIG: ImpactConfig = {
       compensationActivities: ["activation_recovery"],
       humanManagementTasks: ["fallout_review"],
     },
+  },
+  parameters: {
+    "rates.manual_minutes": { low: 3, high: 8, ...EXAMPLE },
+    "rates.daily_followup_minutes": { low: 10, high: 25, ...EXAMPLE },
+    "rates.cleanup_minutes": { low: 60, high: 120, ...EXAMPLE },
+    "rates.investigation_minutes": { low: 30, high: 90, ...EXAMPLE },
+    "thresholds.retry_window_hours": { ...EXAMPLE },
+    "thresholds.stuck_after_hours": { ...EXAMPLE },
+    "thresholds.duplicate_window_minutes": { ...EXAMPLE },
   },
 };
 

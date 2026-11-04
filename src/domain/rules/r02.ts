@@ -29,6 +29,7 @@ import type { RuleContext } from "./index.ts";
 import { severityFor } from "./severity.ts";
 
 export const R02_ID = "R02";
+export const R02_TITLE = "Missing catalog attribute forces a manual task";
 export const R02_VERSION = "R02@1";
 export const R02_FORMULA = "hours = affected × manual_minutes / 60";
 
@@ -151,7 +152,7 @@ export function detectR02(
   return {
     id: R02_ID,
     ruleVersion: R02_VERSION,
-    title: "Missing catalog attribute forces a manual task",
+    title: R02_TITLE,
     plainSummary: "The product's technical spec lacks a value the activation system needs, so " +
       "a person fills it in by hand on every order.",
     where: "CAT",
@@ -177,6 +178,8 @@ export function detectR02(
       periodDays: null,
       normalisation: null,
       hoursMonth: hours,
+      hoursLow: hours,
+      hoursHigh: hours,
       formula: R02_FORMULA,
       inputs,
       terms: [{
@@ -187,6 +190,15 @@ export function detectR02(
         inputKeys: ["rates.manual_minutes"],
       }],
       unmeasured,
+    },
+    scenario: {
+      fix: "add the missing attribute to the spec of the offer version",
+      mechanism: "the manual task exists only because the attribute is missing, so every " +
+        "order that ran it is assumed not to need it",
+      fixedOrders: affected,
+      ordersAfter: 0,
+      hoursAfter: 0,
+      kind: "projection",
     },
     recommendation: "Add the missing attribute to the spec of the offer version, so the " +
       "activation system gets it without a manual step. The hours are freeable capacity, " +

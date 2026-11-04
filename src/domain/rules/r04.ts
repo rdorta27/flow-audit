@@ -26,6 +26,7 @@ import type { OrderCharge } from "../totals.ts";
 import { severityFor } from "./severity.ts";
 
 export const R04_ID = "R04";
+export const R04_TITLE = "Duplicate service order";
 export const R04_VERSION = "R04@2";
 
 export const R04_FORMULA = "hours = groups × cleanup_minutes / 60";
@@ -168,7 +169,7 @@ export function detectR04(
   return {
     id: R04_ID,
     ruleVersion: R04_VERSION,
-    title: "Duplicate service order",
+    title: R04_TITLE,
     plainSummary: "A second service order exists for the same order line. When activation " +
       "failed, a retry created a new order instead of reusing the first.",
     where: "OMS",
@@ -196,10 +197,21 @@ export function detectR04(
       periodDays: null,
       normalisation: null,
       hoursMonth: hours,
+      hoursLow: hours,
+      hoursHigh: hours,
       formula: R04_FORMULA,
       inputs,
       terms,
       unmeasured,
+    },
+    scenario: {
+      fix: "make the retry reuse the existing service order instead of creating a new one",
+      mechanism: "removes the duplicates created by a retry after a failure; duplicates created " +
+        "in parallel need a separate deduplication and are assumed to stay",
+      fixedOrders: retryNewOrder,
+      ordersAfter: parallelDuplicate,
+      hoursAfter: parallelDuplicate * config.rates.cleanupMinutes / 60,
+      kind: "projection",
     },
     recommendation:
       "Make the retry reuse the existing service order, and confirm in billing the orders " +

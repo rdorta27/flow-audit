@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: MIT
 import { mapActivation, mapProductOrder, mapServiceOrder } from "../adapters/ingest/tmf_mapping.ts";
 import { correlate, type CorrelationResult, summarizeLinks } from "../domain/correlation.ts";
+import {
+  buildAssumptions,
+  buildSensitivity,
+  configAt,
+  fillInputs,
+  type RatePick,
+} from "../domain/assumptions.ts";
 import { journeysWithSegments } from "../domain/segments.ts";
 import { buildStory } from "../domain/story.ts";
 import { computeTotals, type OrderCharge } from "../domain/totals.ts";
@@ -12,6 +19,7 @@ import {
   type OrderJourney,
   type ReportSource,
   type ReportSystem,
+  type RuleOutcome,
   SCHEMA_VERSION,
   type SystemId,
 } from "../domain/model.ts";
@@ -24,6 +32,7 @@ import {
   type QualityThresholds,
   rangeOf,
   type ReaderFacts,
+  RULE_SYSTEMS,
   type SystemFacts,
 } from "../domain/quality.ts";
 import type { Order, ProcessInstance, ProvisioningAttempt, ServiceOrder } from "../domain/model.ts";
@@ -396,20 +405,62 @@ export async function runAudit(
   const skipped: NotEvaluable[] = quality?.notEvaluable ?? [];
 
   const context: RuleContext = { correlation, catalog: catalogOf(rawCatalog) };
-  const findings: Finding[] = [];
-  const charges: OrderCharge[] = [];
-  for (const rule of RULES) {
-    if (skipped.some((n) => n.rule === rule.id)) {
-      say(`skipping ${rule.version}: not evaluable`);
-      continue;
+  const evaluate = (cfg: ImpactConfig, announce = false) => {
+    const found: Finding[] = [];
+    const charged: OrderCharge[] = [];
+    const outcomes: RuleOutcome[] = [];
+    for (const rule of RULES) {
+      const skip = skipped.find((n) => n.rule === rule.id);
+      if (skip) {
+        if (announce) say(`skipping ${rule.version}: not evaluable`);
+        outcomes.push({
+          id: rule.id,
+          title: rule.title,
+          version: rule.version,
+          outcome: "not_evaluable",
+          reason: skip.reason,
+        });
+        continue;
+      }
+      if (announce) say(`running ${rule.version}`);
+      const finding = rule.detect(correlation.orders, cfg, context);
+      outcomes.push({
+        id: rule.id,
+        title: rule.title,
+        version: rule.version,
+        outcome: finding ? "found" : "nothing_found",
+        reason: null,
+      });
+      if (finding) {
+        found.push(finding);
+        charged.push(...rule.charges(correlation.orders, cfg, context));
+      }
     }
-    say(`running ${rule.version}`);
-    const finding = rule.detect(correlation.orders, config, context);
-    if (finding) {
-      findings.push(finding);
-      charges.push(...rule.charges(correlation.orders, config, context));
-    }
+    return { found, charged, outcomes };
+  };
+  const base = evaluate(config, true);
+  const { found: findings, charged: charges, outcomes } = base;
+  for (const f of findings) fillInputs(config, f);
+
+  // Hours at the low and at the high end of every rate (M5-07). With plain numbers the three
+  // runs are the same run, so it is skipped and the range equals the estimate.
+  const assumptions = buildAssumptions(config, findings);
+  const ranged = assumptions.some((a) => a.key.startsWith("rates.") && a.low !== a.high);
+  const at = (pick: RatePick) => {
+    if (!ranged) return base;
+    return evaluate(configAt(config, () => pick));
+  };
+  const low = at("low");
+  const high = at("high");
+  for (const f of findings) {
+    f.cost.hoursLow = low.found.find((x) => x.id === f.id)?.cost.hoursMonth ?? f.cost.hoursMonth;
+    f.cost.hoursHigh = high.found.find((x) => x.id === f.id)?.cost.hoursMonth ?? f.cost.hoursMonth;
   }
+  const netAt = (cfg: ImpactConfig) => {
+    const r = evaluate(cfg);
+    return computeTotals(r.found, r.charged).net.hours;
+  };
+  const sensitivity = ranged ? buildSensitivity(config, assumptions, netAt) : [];
 
   // A source that served nothing cannot name its system; take it from the reader's role.
   const described: [EvidenceSource, RawRecord[], SystemId][] = [
@@ -462,11 +513,31 @@ export async function runAudit(
     }];
   });
 
+  // Without the gate no one marked the rules whose system was never read: "found nothing"
+  // would be false for them, so they are not evaluable (M5-13).
+  for (const outcome of outcomes) {
+    if (outcome.outcome !== "nothing_found") continue;
+    const missing = (RULE_SYSTEMS[outcome.id] ?? ["OMS"]).filter((system) =>
+      !reportSources.some((r) => r.system === system)
+    );
+    if (missing.length > 0) {
+      outcome.outcome = "not_evaluable";
+      outcome.reason = `${missing.join(" and ")} ${missing.length === 1 ? "was" : "were"} not read`;
+    }
+  }
+
   const inputsHash = await sha256(reportSources.map((s) => s.sha256).join("\n"));
   const configHash = await sha256(canonical(config));
   const rulesHash = await sha256(RULES.map((r) => r.version).join("\n"));
   const simulated = reportSources.some((s) => s.simulated);
   const totals = computeTotals(findings, charges);
+  const totalsLow = computeTotals(low.found, low.charged);
+  const totalsHigh = computeTotals(high.found, high.charged);
+  const withRange = (t: { hours: number }, lo: number, hi: number) => ({
+    hours: t.hours,
+    hoursLow: lo,
+    hoursHigh: hi,
+  });
 
   const report: AuditReport = {
     schemaVersion: SCHEMA_VERSION,
@@ -495,7 +566,14 @@ export async function runAudit(
     systems,
     findings,
     overlap: totals.overlap,
-    totals: { gross: totals.gross, net: totals.net },
+    totals: {
+      gross: withRange(totals.gross, totalsLow.gross.hours, totalsHigh.gross.hours),
+      net: withRange(totals.net, totalsLow.net.hours, totalsHigh.net.hours),
+    },
+    assumptions,
+    sensitivity,
+    rules: outcomes,
+    scope: { orders: correlation.orders.length },
     journeys: journeys.map((j) => ({
       ...j,
       story: buildStory(

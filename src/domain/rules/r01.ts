@@ -28,6 +28,7 @@ import type { RuleContext } from "./index.ts";
 import { severityFor } from "./severity.ts";
 
 export const R01_ID = "R01";
+export const R01_TITLE = "Activation fails and nobody retries";
 export const R01_VERSION = "R01@1";
 export const R01_FORMULA =
   "hours = affected × (manual_minutes + wait_days × daily_followup_minutes) / 60";
@@ -251,6 +252,8 @@ export function detectR01(
     },
   ];
   const hours = terms[0].hours + terms[1].hours;
+  const fixed = scan.hits.filter((h) => h.errorClass === "transient");
+  const remaining = scan.hits.filter((h) => h.errorClass !== "transient");
   const inputs: Cost["inputs"] = [
     input("rates.manual_minutes", manualMinutes),
     input("rates.daily_followup_minutes", dailyFollowupMinutes),
@@ -278,7 +281,7 @@ export function detectR01(
   return {
     id: R01_ID,
     ruleVersion: R01_VERSION,
-    title: "Activation fails and nobody retries",
+    title: R01_TITLE,
     plainSummary: "An activation failed and nothing tried it again within the retry window, " +
       "so a person has to find the order and push it through by hand.",
     where: "PROV",
@@ -311,10 +314,21 @@ export function detectR01(
       periodDays: null,
       normalisation: null,
       hoursMonth: hours,
+      hoursLow: hours,
+      hoursHigh: hours,
       formula: R01_FORMULA,
       inputs,
       terms,
       unmeasured,
+    },
+    scenario: {
+      fix: `retry a failed activation automatically within ${config.thresholds.retryWindowHours} h`,
+      mechanism: "a retry clears the failures whose error code the config classes as transient; " +
+        "failures with a code it does not classify are assumed to stay",
+      fixedOrders: fixed.length,
+      ordersAfter: affected - fixed.length,
+      hoursAfter: remaining.reduce((sum, h) => sum + hitHours(h, config), 0),
+      kind: "projection",
     },
     recommendation: "Retry a failed activation automatically, or raise it to a queue a person " +
       "owns, within the retry window.",
@@ -327,12 +341,16 @@ export function chargesR01(
   config: ImpactConfig,
   context?: RuleContext,
 ): OrderCharge[] {
-  const { manualMinutes, dailyFollowupMinutes } = config.rates;
   return scanR01(orders, config, context).hits.map((h) => ({
     ruleId: R01_ID,
     orderRef: h.orderRef,
-    hours: (manualMinutes + h.waitDays * dailyFollowupMinutes) / 60,
+    hours: hitHours(h, config),
   }));
+}
+
+function hitHours(h: R01Hit, config: ImpactConfig): number {
+  const { manualMinutes, dailyFollowupMinutes } = config.rates;
+  return (manualMinutes + h.waitDays * dailyFollowupMinutes) / 60;
 }
 
 function input(key: string, value: number): Cost["inputs"][number] {

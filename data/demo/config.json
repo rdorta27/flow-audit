@@ -1,15 +1,58 @@
 {
   "orders_per_month": 5000,
   "rates": {
-    "manual_minutes": 5,
-    "daily_followup_minutes": 15,
-    "cleanup_minutes": 90,
-    "investigation_minutes": 45
+    "manual_minutes": {
+      "low": 3,
+      "base": 5,
+      "high": 8,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04"
+    },
+    "daily_followup_minutes": {
+      "low": 10,
+      "base": 15,
+      "high": 25,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04"
+    },
+    "cleanup_minutes": {
+      "low": 60,
+      "base": 90,
+      "high": 120,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04"
+    },
+    "investigation_minutes": {
+      "low": 30,
+      "base": 45,
+      "high": 90,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04"
+    }
   },
   "thresholds": {
-    "retry_window_hours": 24,
-    "stuck_after_hours": 72,
-    "duplicate_window_minutes": 10
+    "retry_window_hours": {
+      "base": 24,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04"
+    },
+    "stuck_after_hours": {
+      "base": 72,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04"
+    },
+    "duplicate_window_minutes": {
+      "base": 10,
+      "source": "assumption",
+      "owner": "Flow Audit (example values)",
+      "date": "2026-11-04"
+    }
   },
   "rules": {
     "r01": {

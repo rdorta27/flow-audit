@@ -8,7 +8,7 @@
  * the gross figure.
  */
 
-import type { Finding, ReportOverlap, ReportTotals } from "./model.ts";
+import type { Finding, ReportOverlap } from "./model.ts";
 
 /** What one rule charges to one order, in the same units as the finding's cost. */
 export interface OrderCharge {
@@ -18,8 +18,8 @@ export interface OrderCharge {
 }
 
 export interface Totals {
-  gross: ReportTotals;
-  net: ReportTotals;
+  gross: { hours: number };
+  net: { hours: number };
   overlap: ReportOverlap;
 }
 

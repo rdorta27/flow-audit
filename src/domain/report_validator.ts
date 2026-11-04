@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
- * Checks a report in its file form (snake_case, see `report_json.ts`) against `findings/1`
+ * Checks a report in its file form (snake_case, see `report_json.ts`) against `findings/2`
  * (`docs/architecture/report-schema.md`). No dependencies. It returns every problem found,
  * each prefixed with the path, so an empty list means the report is valid.
  */
@@ -34,7 +34,8 @@ function lookup(config: unknown, key: string): unknown {
     if (!isObj(node) || !(part in node)) return undefined;
     node = node[part];
   }
-  return node;
+  // A rate written as {low, base, high, ...} (M5-07): its value is the base.
+  return isObj(node) ? node.base ?? node.value : node;
 }
 
 /**
@@ -211,6 +212,28 @@ export function validateReport(report: unknown, config?: unknown): string[] {
       str(u, "term", `${c}.unmeasured[${j}]`);
       str(u, "reason", `${c}.unmeasured[${j}]`);
     });
+    num(cost, "hours_low", c);
+    num(cost, "hours_high", c);
+    if (
+      isNum(cost.hours_month) && isNum(cost.hours_low) && isNum(cost.hours_high) &&
+      (cost.hours_low > cost.hours_month + 1e-6 || cost.hours_high < cost.hours_month - 1e-6)
+    ) {
+      err(`${c}.hours_low`, "must satisfy hours_low <= hours_month <= hours_high");
+    }
+    const scenario = obj(f, "scenario", p);
+    if (scenario) {
+      const q = `${p}.scenario`;
+      str(scenario, "fix", q);
+      str(scenario, "mechanism", q);
+      for (const k of ["fixed_orders", "orders_after", "hours_after"]) num(scenario, k, q);
+      oneOf(scenario, "kind", q, ["projection"]);
+      if (
+        isNum(scenario.orders_after) && isNum(f.affected_orders) &&
+        scenario.orders_after > f.affected_orders
+      ) {
+        err(`${q}.orders_after`, "must not exceed affected_orders");
+      }
+    }
     if (isNum(cost.hours_month) && Math.abs(cost.hours_month - sum) > 1e-6) {
       err(`${c}.hours_month`, `must equal the sum of the terms (${sum})`);
     }
@@ -229,6 +252,8 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     const gross = obj(totals, "gross", "totals");
     if (gross) {
       num(gross, "hours", "totals.gross");
+      num(gross, "hours_low", "totals.gross");
+      num(gross, "hours_high", "totals.gross");
       if (isNum(gross.hours) && Math.abs(gross.hours - grossHours) > 1e-6) {
         err("totals.gross.hours", `must equal the sum of findings with in_total (${grossHours})`);
       }
@@ -236,11 +261,58 @@ export function validateReport(report: unknown, config?: unknown): string[] {
     const net = obj(totals, "net", "totals");
     if (net) {
       num(net, "hours", "totals.net");
+      num(net, "hours_low", "totals.net");
+      num(net, "hours_high", "totals.net");
       if (gross && isNum(net.hours) && isNum(gross.hours) && net.hours > gross.hours + 1e-6) {
         err("totals.net.hours", "must not exceed totals.gross.hours");
       }
     }
   }
+  const rowKeys = new Set<string>();
+  list(report, "assumptions", "report").forEach((a, i) => {
+    const p = `assumptions[${i}]`;
+    if (!isObj(a)) return err(p, "must be an object");
+    str(a, "key", p);
+    oneOf(a, "unit", p, ["minutes", "hours"]);
+    oneOf(a, "source", p, ["client", "benchmark", "assumption", "example"]);
+    for (const k of ["value", "low", "high"]) num(a, k, p);
+    for (const k of ["owner", "date"]) {
+      if (a[k] !== null && !isStr(a[k])) err(`${p}.${k}`, "must be a string or null");
+    }
+    list(a, "used_by", p);
+    if (isStr(a.key)) {
+      rowKeys.add(a.key);
+      const found = lookup(keysFrom, a.key);
+      if (found === undefined) err(`${p}.key`, `"${a.key}" is not a key of config.json`);
+      else if (found !== a.value) err(`${p}.value`, `differs from config.json "${a.key}"`);
+    }
+  });
+  // Every rate a finding uses has its row (M4-09).
+  (Array.isArray(report.findings) ? report.findings : []).forEach((f, i) => {
+    const inputs = isObj(f) && isObj(f.cost) && Array.isArray(f.cost.inputs) ? f.cost.inputs : [];
+    for (const inp of inputs) {
+      if (isObj(inp) && isStr(inp.key) && !rowKeys.has(inp.key)) {
+        err(`findings[${i}].cost.inputs`, `"${inp.key}" has no row in assumptions`);
+      }
+    }
+  });
+  list(report, "sensitivity", "report").forEach((r, i) => {
+    const p = `sensitivity[${i}]`;
+    if (!isObj(r)) return err(p, "must be an object");
+    str(r, "key", p);
+    for (const k of ["low", "high", "hours_at_low", "hours_at_high", "swing"]) num(r, k, p);
+  });
+  list(report, "rules", "report").forEach((r, i) => {
+    const p = `rules[${i}]`;
+    if (!isObj(r)) return err(p, "must be an object");
+    str(r, "id", p);
+    str(r, "title", p);
+    str(r, "version", p);
+    oneOf(r, "outcome", p, ["found", "nothing_found", "not_evaluable"]);
+    if (r.reason !== null && !isStr(r.reason)) err(`${p}.reason`, "must be a string or null");
+  });
+  const scope = obj(report, "scope", "report");
+  if (scope) num(scope, "orders", "scope");
   list(report, "journeys", "report").forEach((j, i) => {
     const p = `journeys[${i}]`;
     if (!isObj(j)) return err(p, "must be an object");

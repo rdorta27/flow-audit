@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
- * The file form of the report (`findings/1`, M4-01): the engine keeps camelCase objects and
+ * The file form of the report (`findings/2`, M4-01): the engine keeps camelCase objects and
  * this maps them to the snake_case keys of `findings.json` (D-12). Pure: no I/O.
  *
  * Two subtrees keep their keys as they are, because the keys are data and not field names:

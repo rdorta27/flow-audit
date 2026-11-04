@@ -324,7 +324,7 @@ finding's cost. This only removes double counting; it does not say which rule is
 ## Output
 
 Every rule returns the same `Finding` (`src/domain/model.ts`) and the file keeps one shape
-for all of them: the `findings/1` schema, documented with a complete R04 example in
+for all of them: the `findings/2` schema, documented with a complete R04 example in
 [report-schema.md](report-schema.md). A finding carries its `cost` block: the formula
 written in this catalogue, the `config.json` inputs it used, the terms that add up to the
 hours (each with its `basis`) and what could not be measured. The old per-rule example is replaced by the schema.
