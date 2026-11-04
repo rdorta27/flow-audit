@@ -20,6 +20,7 @@ import {
 } from "../domain/model.ts";
 import { type RuleContext, RULES } from "../domain/rules/index.ts";
 import {
+  type ActivationChecks,
   assessQuality,
   type NotEvaluable,
   notEvaluableRules,
@@ -234,6 +235,32 @@ interface Prepared {
   warnings: string[];
 }
 
+/** The consistency tests of the activation attempts against their service orders (M6-02). */
+function activationChecks(c: CorrelationResult): ActivationChecks {
+  const out: ActivationChecks = {
+    settledServiceOrders: 0,
+    withoutAttempt: 0,
+    placedAttempts: 0,
+    beforeServiceOrder: 0,
+  };
+  for (const entry of c.orders) {
+    const created = new Map(entry.serviceOrders.map((l) => [l.item.soRef, l.item]));
+    const withAttempt = new Set(entry.attempts.map((a) => a.link.toId));
+    for (const { item: so } of entry.serviceOrders) {
+      if (so.state !== "ACTIVE" && so.state !== "FAILED") continue;
+      out.settledServiceOrders++;
+      if (!withAttempt.has(so.soRef)) out.withoutAttempt++;
+    }
+    for (const { item: attempt, link } of entry.attempts) {
+      const so = created.get(link.toId ?? "");
+      if (!so) continue;
+      out.placedAttempts++;
+      if (Date.parse(attempt.startedAt) < Date.parse(so.createdAt)) out.beforeServiceOrder++;
+    }
+  }
+  return out;
+}
+
 /** Facts per system for the gate, from the mapped records and what the readers dropped. */
 async function gateFacts(
   p: Pick<Prepared, "sources" | "correlation" | "rawOrders" | "rawServices" | "rawAttempts"> & {
@@ -303,6 +330,8 @@ async function gateFacts(
     c.unresolved.attempts.length,
     p.attempts.length,
   ));
+  const prov = list.find((f) => f.system === "PROV")!;
+  prov.activationChecks = activationChecks(c);
   if (sources.catalog) {
     list.push(facts("CAT", sources.catalog.name, p.rawCatalog.length, [], 0, 0, 0));
   }
