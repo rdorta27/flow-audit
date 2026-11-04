@@ -20,7 +20,7 @@ open-source (MIT) technical demo under construction; there is no commercial offe
 
 | Part | Status | What that means |
 |---|---|---|
-| Engine: read, join, R01 to R05, quality gate, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --source stub --out out` |
+| Engine: read, join, R01 to R05, quality gate, assumptions table, diff, CSV, story, net total, `findings.json`, `report.html` | **Real** | Runs today: `deno task audit --source stub --out out` |
 | Evidence source | **Simulated** | A TMF-shaped server over synthetic data (`deno task stub`); every response is marked simulated |
 | Data | **Simulated** | 5,000 made-up orders of a fictional operator, defects planted on purpose (`data/demo/`) |
 | Rates (minutes per action) | **Example** | From `data/demo/config.json`, not measured at any operator |

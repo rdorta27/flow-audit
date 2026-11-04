@@ -4,6 +4,28 @@ Version numbers mark progress towards a milestone (`0.4.0` Demo 1, `0.5.0` Clien
 `0.6.0` Order-to-cash); they are not semver. `core` and `site` share the number of each
 release.
 
+## 0.4.4 — 2026-11-04
+
+Fourth step to 0.5.0: assumptions in plain sight and a report that can be defended.
+
+- Assumptions table and before-and-after (M4-09): `findings/2` adds `assumptions[]` (every
+  rate with value, source, owner and date), a per-finding scenario ("if the cause is fixed")
+  and `rules[]` that tells "nothing found" from "not evaluable". Every hour in the report links
+  to its assumption.
+- Rates may be a range `{low, base, high}`; the report shows the range next to the estimate
+  and a sensitivity table (M5-07). A cover says what was audited, what was not, and how sure
+  each finding is (M5-13).
+- `deno task diff a b` compares two audits: orders that enter or leave, then the estimate
+  (M5-14). `findings.csv` with every audit (M5-09). `--engagement` / `FLOW_AUDIT_HOME` keeps
+  a client's files outside the repository (M5-11). `--redact` pseudonymises ids in the
+  outputs and writes the table apart (M5-12).
+- Child BPM processes count once; timestamps in local time keep their original text;
+  thresholds in business hours with a calendar; a declared period removes records outside it
+  (M2-10, M5-08).
+- Independent validation: 41 hand-labelled orders, fault injection (dropping 10% of
+  activations now trips the gate) and property tests; 5,000 orders take about 1 s (M6-02).
+- Site: one pass that removes repeated blocks, labels and decoration in three languages.
+
 ## 0.4.3 — 2026-11-04
 
 Third step to 0.5.0: the fifth rule, a fuller BPM model and amendments.
