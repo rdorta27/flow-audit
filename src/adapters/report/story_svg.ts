@@ -14,19 +14,55 @@ const LANE0 = 55;
 const LANE_GAP = 103;
 const TOP = 80;
 const ROW = 30;
+/** Extra pitch when a flag sits under the stop, so the next stop does not cover it. */
+const FLAG_ROW = 48;
+const DOT_R = 11;
+/** Clearance a flag keeps from a neighbouring lane line. */
+const FLAG_PAD = 8;
+/**
+ * Width reserved per character of a flag, wider than 11px system-ui, so `textLength`
+ * never asks the label to be narrower than a real font would draw it.
+ */
+const FLAG_ADVANCE = 8;
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const laneX = (s: SystemId) => LANE0 + ORDER.indexOf(s) * LANE_GAP;
+const gap = (s: StoryStep) => !s.observed || s.finding !== null;
+const flagText = (s: StoryStep) => s.finding ? "problem starts here" : "not seen";
 
 function stationName(system: SystemId): string[] {
   const words = SYSTEM_PLAIN[system].split(" ");
   return words.length > 1 ? [words[0], words.slice(1).join(" ")] : words;
 }
 
+/**
+ * Places a flag under its stop, centered on the lane, and keeps it off the neighbouring
+ * lane lines. `textLength` is the width the drawing claims, so a wide font cannot spill.
+ */
+function flagBox(system: SystemId, text: string): { x: number; width: number } {
+  const i = ORDER.indexOf(system);
+  const center = laneX(system);
+  const leftLine = i === 0 ? 0 : laneX(ORDER[i - 1]);
+  const rightLine = i === ORDER.length - 1 ? W : laneX(ORDER[i + 1]);
+  const left = leftLine + FLAG_PAD;
+  const right = rightLine - FLAG_PAD;
+  const width = Math.min(text.length * FLAG_ADVANCE, Math.max(0, right - left));
+  let x = center;
+  if (x - width / 2 < left) x = left + width / 2;
+  if (x + width / 2 > right) x = right - width / 2;
+  return { x: Math.round(x * 10) / 10, width: Math.round(width * 10) / 10 };
+}
+
 /** Draws the steps in order. A step with `observed: false` or a `finding` is a gap, in red. */
 export function storySvg(steps: readonly StoryStep[], orderRef: string): string {
-  const height = TOP + steps.length * ROW + 6;
+  const ys: number[] = [];
+  let cursor = TOP;
+  for (const s of steps) {
+    ys.push(cursor);
+    cursor += gap(s) ? FLAG_ROW : ROW;
+  }
+  const height = cursor + 6;
   const desc = steps.map((s, i) =>
     `${i + 1}. ${SYSTEM_PLAIN[s.system]}: ${s.what}${s.observed ? "" : " (not seen)"}${
       s.finding ? " (problem starts here)" : ""
@@ -52,8 +88,6 @@ export function storySvg(steps: readonly StoryStep[], orderRef: string): string 
         ).join("") + `</g>`,
     );
   }
-  const y = (i: number) => TOP + i * ROW;
-  const gap = (s: StoryStep) => !s.observed || s.finding !== null;
   steps.forEach((s, i) => {
     if (i === 0) return;
     const p = steps[i - 1];
@@ -62,7 +96,7 @@ export function storySvg(steps: readonly StoryStep[], orderRef: string): string 
       `<line class="hop${bad ? " gap" : ` st-${s.system.toLowerCase()}`}" x1="${
         laneX(p.system)
       }" ` +
-        `y1="${y(i - 1)}" x2="${laneX(s.system)}" y2="${y(i)}"/>`,
+        `y1="${ys[i - 1]}" x2="${laneX(s.system)}" y2="${ys[i]}"/>`,
     );
   });
   steps.forEach((s, i) => {
@@ -70,16 +104,16 @@ export function storySvg(steps: readonly StoryStep[], orderRef: string): string 
     const cls = s.observed ? `st-${s.system.toLowerCase()}` : "gap";
     out.push(
       `<g class="stop ${cls}${s.finding ? " problem" : ""}">` +
-        (s.finding ? `<circle class="ring" cx="${x}" cy="${y(i)}" r="16"/>` : "") +
-        `<circle class="dot" cx="${x}" cy="${y(i)}" r="11"/>` +
-        `<text x="${x}" y="${y(i) + 4}" text-anchor="middle">${i + 1}</text></g>`,
+        (s.finding ? `<circle class="ring" cx="${x}" cy="${ys[i]}" r="16"/>` : "") +
+        `<circle class="dot" cx="${x}" cy="${ys[i]}" r="${DOT_R}"/>` +
+        `<text x="${x}" y="${ys[i] + 4}" text-anchor="middle">${i + 1}</text></g>`,
     );
     if (gap(s)) {
-      const right = x < W / 2;
+      const text = flagText(s);
+      const box = flagBox(s.system, text);
       out.push(
-        `<text class="flag" x="${right ? x + 21 : x - 21}" y="${y(i) + 4}" text-anchor="${
-          right ? "start" : "end"
-        }">${s.finding ? "problem starts here" : "not seen"}</text>`,
+        `<text class="flag" x="${box.x}" y="${ys[i] + DOT_R + 14}" text-anchor="middle" ` +
+          `textLength="${box.width}" lengthAdjust="spacingAndGlyphs">${esc(text)}</text>`,
       );
     }
   });

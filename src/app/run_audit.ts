@@ -48,6 +48,37 @@ import { ENGINE_VERSION } from "../version.ts";
 /** How many orders the report draws as journeys. */
 export const REPORT_JOURNEYS_MAX = 3;
 
+/**
+ * The order the report draws first when the evidence contains it (D-07). The site tells
+ * this order; picking the one with the most findings draws a different one on a tie.
+ */
+export const EXAMPLE_ORDER_REF = "ORD-1005";
+
+/**
+ * The orders the report draws. The example comes first when it is in the evidence and a
+ * finding charges it or lists it; the rest are the orders that carry the most findings.
+ */
+export function selectJourneyRefs(
+  findings: readonly Finding[],
+  charges: readonly OrderCharge[],
+  known: readonly string[],
+): string[] {
+  const present = new Set(known);
+  const refs = [...new Set(findings.flatMap((f) => f.evidence.map((e) => e.orderRef)))]
+    .filter((ref) => present.has(ref));
+  const carried = (ref: string) =>
+    findings.filter((f) => f.evidence.some((e) => e.orderRef === ref)).length;
+  const ranked = refs.map((ref, i) => ({ ref, i, n: carried(ref) }))
+    .sort((a, b) => b.n - a.n || a.i - b.i)
+    .map((x) => x.ref);
+  const charged = new Set(charges.map((c) => c.orderRef));
+  const listed = ranked.includes(EXAMPLE_ORDER_REF) || charged.has(EXAMPLE_ORDER_REF);
+  const example = present.has(EXAMPLE_ORDER_REF) && listed ? EXAMPLE_ORDER_REF : undefined;
+  const rest = ranked.filter((ref) => ref !== example);
+  return [example, ...rest].filter((ref): ref is string => ref !== undefined)
+    .slice(0, REPORT_JOURNEYS_MAX);
+}
+
 export interface AuditOptions {
   /** Directory with the exports; reserved for the file sources (M5-02). */
   dataset?: string;
@@ -642,12 +673,7 @@ export async function runAudit(
     e.processes.flatMap((p) => p.item.activities ?? [])
   );
   const allJourneys = journeysWithSegments(correlation, activities);
-  // Orders that carry the most findings tell the most, so they are drawn first.
-  const refs = [...new Set(findings.flatMap((f) => f.evidence.map((e) => e.orderRef)))];
-  const carried = (ref: string) =>
-    findings.filter((f) => f.evidence.some((e) => e.orderRef === ref)).length;
-  const sampled = refs.map((ref, i) => ({ ref, i, n: carried(ref) }))
-    .sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.ref).slice(0, REPORT_JOURNEYS_MAX);
+  const sampled = selectJourneyRefs(findings, charges, allJourneys.map((j) => j.orderRef));
   const journeys = sampled.flatMap((ref) => {
     const journey = allJourneys.find((j) => j.orderRef === ref);
     if (!journey) return [];

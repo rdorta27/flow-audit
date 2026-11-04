@@ -2,9 +2,11 @@
 /** The HTML report (M4-03). */
 
 import { renderHtml } from "../src/adapters/report/html_renderer.ts";
+import { selectJourneyRefs } from "../src/app/run_audit.ts";
 import { glossaryFor, lookup } from "../src/adapters/report/glossary.ts";
 import { storySvg } from "../src/adapters/report/story_svg.ts";
 import { buildStory } from "../src/domain/story.ts";
+import type { StoryStep, SystemId } from "../src/domain/model.ts";
 import { assert, assertEquals } from "./assert.ts";
 import { auditStub } from "./stub_sources.ts";
 
@@ -125,6 +127,68 @@ Deno.test("the first screen matches its snapshot", async () => {
   assert(section.includes("could not see"));
 });
 
+/** Lane lines, and each flag's claimed span (`textLength`, middle-anchored). */
+function flagSpans(svg: string): { text: string; x1: number; x2: number }[] {
+  return [...svg.matchAll(
+    /<text class="flag" x="([^"]+)"[^>]*textLength="([^"]+)"[^>]*>([^<]*)<\/text>/g,
+  )].map((m) => {
+    const x = Number(m[1]);
+    const width = Number(m[2]);
+    return { text: m[3], x1: x - width / 2, x2: x + width / 2 };
+  });
+}
+
+function laneLines(svg: string): number[] {
+  return [...svg.matchAll(/class="lane [^"]*" x1="([^"]+)"/g)].map((m) => Number(m[1]));
+}
+
+/** A flag crosses a lane line when that line lies inside its span and is not its own lane. */
+function assertFlagsInsideLanes(svg: string): void {
+  const lanes = laneLines(svg);
+  const flags = flagSpans(svg);
+  assert(flags.length > 0, "flags");
+  for (const flag of flags) {
+    const own = lanes.reduce((best, lane) =>
+      Math.abs(lane - (flag.x1 + flag.x2) / 2) < Math.abs(best - (flag.x1 + flag.x2) / 2)
+        ? lane
+        : best
+    );
+    for (const lane of lanes) {
+      if (lane === own) continue;
+      assert(
+        lane < flag.x1 || lane > flag.x2,
+        `"${flag.text}" crosses the lane at ${lane} (span ${flag.x1} to ${flag.x2})`,
+      );
+    }
+  }
+}
+
+Deno.test("ORD-1005 is drawn before an order that carries the same findings", () => {
+  const evidence = (refs: string[]) =>
+    refs.map((orderRef) => ({ orderRef, eventIds: [], records: [] }));
+  const refs = selectJourneyRefs(
+    [{ evidence: evidence(["ORD-1000", "ORD-1005"]) }] as never,
+    [],
+    ["ORD-1000", "ORD-1005"],
+  );
+  assertEquals(refs[0], "ORD-1005");
+  const absent = selectJourneyRefs(
+    [{ evidence: evidence(["ORD-1000", "ORD-1001"]) }] as never,
+    [],
+    ["ORD-1000", "ORD-1001"],
+  );
+  assertEquals(absent[0], "ORD-1000");
+});
+
+Deno.test("the example order drawn in the report is ORD-1005", () => {
+  assertEquals(report.journeys[0].orderRef, "ORD-1005");
+  const start = html.indexOf('id="tl"');
+  const section = html.slice(start, html.indexOf("</section>", start));
+  const summary = section.match(/<summary>Order <code>([^<]+)<\/code>/);
+  assertEquals(summary?.[1], "ORD-1005");
+  assert(section.includes('details class="card" open'), "the example is the open drawing");
+});
+
 Deno.test("the story of ORD-1005 is drawn: four stations, six stops, the gap in red", () => {
   const entry = audit.correlation.orders.find((o) => o.order.orderRef === "ORD-1005")!;
   const steps = buildStory(entry, audit.findings);
@@ -138,7 +202,25 @@ Deno.test("the story of ORD-1005 is drawn: four stations, six stops, the gap in 
   );
   assertEquals((svg.match(/class="ring"/g) ?? []).length, 1);
   assert(svg.includes("problem starts here") && svg.includes("not seen"));
+  assertFlagsInsideLanes(svg);
   assert(!/https?:/.test(svg.replace('xmlns="http://www.w3.org/2000/svg"', "")));
+});
+
+Deno.test("the problem label stays inside its lane on every system", () => {
+  const step = (system: SystemId): StoryStep => ({
+    at: "2026-09-01T00:00:00.000Z",
+    system,
+    what: "A second service order was created for line 1, which already had one.",
+    record: null,
+    finding: "R04",
+    observed: true,
+    reason: null,
+  });
+  for (const system of ["CAT", "OMS", "BPM", "PROV"] as const) {
+    const svg = storySvg([step(system)], "ORD-1005");
+    assert(svg.includes("problem starts here"), system);
+    assertFlagsInsideLanes(svg);
+  }
 });
 
 // The cover and the links to the assumptions (M4-09, M5-13) -------------------------------
