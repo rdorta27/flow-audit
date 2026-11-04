@@ -176,7 +176,7 @@ Deno.test("full-size run over data/demo: counts, links and R04 as on the stub", 
   assertEquals(r.processes.length, EXPECTED.processes);
   assertEquals(r.activations.length, EXPECTED.attempts);
   assertEquals(result.findings.map((f) => f.id), ["R01", "R02", "R03", "R04", "R05"]);
-  assert(summaryLines(result).includes("R04@2 · 20 orders · 30 h"));
+  assert(summaryLines(result).includes("R04@2 · 20 orders · estimate 30 h"));
   const attempts = result.report.correlation.links["attempt->service_order"];
   assertEquals(attempts.explicit, EXPECTED.attempts - 300);
   assertEquals(attempts.inferred + attempts.ambiguous, 300);
@@ -197,7 +197,7 @@ Deno.test("the CLI reads --dataset and refuses --source with it", async () => {
     console.log = log;
     console.error = error;
   }
-  assert(logs.includes("R04@2 · 20 orders · 30 h"), logs.join("\n"));
+  assert(logs.includes("R04@2 · 20 orders · estimate 30 h"), logs.join("\n"));
 });
 
 Deno.test("oms: a client's item columns give a two-line order and a service order per line", async () => {

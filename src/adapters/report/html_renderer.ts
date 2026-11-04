@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 /**
  * The HTML report (M4-03, M4-07): one self-contained page, inline CSS, no script, no network.
- * Every figure is read from `AuditReport`; a section with no data says why. Hours only, never
- * money. Counts are "measured", hours are "projected" from rates, and the two are never mixed
+ * Every figure is read from `AuditReport`; a section with no data says why. Orders lead (D-23); hours only,
+ * never money. Counts are "measured", hours are an "estimate" from assumed rates, and the two are never mixed
  * in one figure. Nothing here is specific to one rule: names and advice come from the finding.
  */
 import type { AuditReport, Finding, ReportSystem, SystemId } from "../../domain/model.ts";
@@ -67,9 +67,9 @@ function findingSection(f: Finding): string {
   const c = f.cost;
   const counted = c.terms.map((t) => {
     const math = arithmetic(t);
-    return `<li><strong>${esc(t.name)}:</strong> ${math ? `${math}` : hours(t.hours)} · ${
-      term(t.basis)
-    }</li>`;
+    return `<li><strong>${esc(t.name)}:</strong> ${math ? `${math}` : hours(t.hours)} (${
+      term("assumption", "assumption")
+    }) · ${term(t.basis)}</li>`;
   }).join("");
   const unmeasured = c.unmeasured.map((u) =>
     `<li><strong>${esc(u.term)}</strong> ${term("not_observed", "not counted")}: ${
@@ -98,18 +98,9 @@ function findingSection(f: Finding): string {
   }</span>${f.inTotal ? "" : ` <span class="note">not in the total</span>`}</p></header>
 <dl class="steps">
 <dt>What happens</dt><dd>${esc(f.plainSummary)}</dd>
-<dt>In how many orders</dt><dd><span class="tag">${term("measured")}</span> <strong>${
+<dt>In how many orders</dt><dd><span class="tag">${term("measured")}</span> <span class="big">${
     num(f.affectedOrders)
-  }</strong> orders, ${pct(f.shareOfOrders)} of those read.</dd>
-<dt>How many hours</dt><dd><span class="tag">${term("projected")}</span> <span class="big">${
-    hours(c.hoursMonth)
-  }</span> a month${c.kind === "recurring" ? "" : ` · ${term(c.kind)}`}${
-    c.normalisation ? ` · ${esc(c.normalisation)}` : ""
-  }</dd>
-<dt>How it is counted</dt><dd><ul>${counted}</ul>${
-    unmeasured ? `<ul class="note">${unmeasured}</ul>` : ""
-  }<p class="formula">${term("formula")}: <code>${esc(c.formula)}</code></p>
-<details><summary>Minutes used (you can change them)</summary><ul>${minutes}</ul></details></dd>
+  }</span> orders, ${pct(f.shareOfOrders)} of those read.</dd>
 <dt>Proof</dt><dd>${term("proof", "Orders")} found in the records: ${num(f.evidenceTotal)}. ${
     term(f.evidenceLevel)
   }, ${term(f.confidence.level)}; ${pct(f.confidence.inferredLinkShare)} of its links are ${
@@ -118,6 +109,14 @@ function findingSection(f: Finding): string {
     num(f.evidenceTotal)
   } orders shown</summary><ul>${sample}</ul>${breakdown}</details></dd>
 <dt>What to do</dt><dd>${esc(f.recommendation)}</dd>
+<dt>Estimate</dt><dd><span class="tag">${term("projected")}</span> <span class="big">${
+    hours(c.hoursMonth)
+  }</span> a month, ${term("estimate", "an estimate")} from ${term("assumption", "assumptions")}${
+    c.kind === "recurring" ? "" : ` · ${term(c.kind)}`
+  }${c.normalisation ? ` · ${esc(c.normalisation)}` : ""}<ul>${counted}</ul>${
+    unmeasured ? `<ul class="note">${unmeasured}</ul>` : ""
+  }<p class="formula">${term("formula")}: <code>${esc(c.formula)}</code></p>
+<details><summary>Minutes used (you can change them)</summary><ul>${minutes}</ul></details></dd>
 </dl>
 </article>`;
 }
@@ -225,7 +224,7 @@ function totalsBlock(report: AuditReport): string {
     }). Each such order is counted once, at its largest charge; the ${
       hours(gross.hours - net.hours)
     } difference is the smaller charges removed, order by order in the findings file.`;
-  return `<table><thead><tr><th>Per finding</th><th class="n">Hours (projected)</th></tr></thead><tbody>${rows}
+  return `<table><thead><tr><th>Per finding</th><th class="n">Hours (estimate)</th></tr></thead><tbody>${rows}
 <tr><td>${term("gross")}</td><td class="n">${hours(gross.hours)}</td></tr>
 <tr><th>${term("net")}, each order counted once</th><th class="n">${
     hours(net.hours)
@@ -293,22 +292,88 @@ function blindSpots(report: AuditReport): string[] {
   return out;
 }
 
+/** Orders with at least one finding, each counted once, from the overlap data. */
+function distinctAffected(report: AuditReport): number {
+  const detected = report.findings.filter((f) => f.status === "detected");
+  const ids = new Set(detected.map((f) => f.id));
+  const sum = detected.reduce((a, f) => a + f.affectedOrders, 0);
+  const repeats = Object.values(report.overlap.byOrder).reduce(
+    (a, rules) => a + Math.max(0, rules.filter((r) => ids.has(r)).length - 1),
+    0,
+  );
+  return sum - repeats;
+}
+
+/** Each rate used: its value, where it comes from and the findings that use it. */
+function assumptionsBox(report: AuditReport): string {
+  const rows = new Map<string, { value: number; source: string | null; used: Finding[] }>();
+  for (const f of report.findings) {
+    for (const i of f.cost.inputs) {
+      if (!i.key.startsWith("rates.")) continue;
+      const r = rows.get(i.key) ?? { value: i.value, source: i.source, used: [] };
+      r.used.push(f);
+      rows.set(i.key, r);
+    }
+  }
+  const body = [...rows].map(([key, r]) =>
+    `<tr><td>${esc(inputPlain(key))}</td><td class="n">${num(r.value)} min</td><td>${
+      r.source
+        ? `declared in the config (${esc(r.source)})`
+        : "example, not measured at any operator"
+    }</td><td>${r.used.map(ruleName).join(", ")}</td></tr>`
+  ).join("");
+  return `<aside class="card assume" aria-labelledby="as"><h2 id="as">Assumptions behind the hours</h2>
+<p><span class="tag">${term("projected")}</span> <strong>Estimate with these assumptions: ${
+    hours(report.totals.net.hours)
+  } a month</strong>, each order counted once. It is ${
+    term("estimate", "an estimate")
+  }, not a measurement and not money. Change a rate and it changes.</p>
+<table><thead><tr><th>Rate (${
+    term("assumption", "assumption")
+  })</th><th class="n">Value</th><th>Where it comes from</th><th>Used by</th></tr></thead><tbody>${body}</tbody></table></aside>`;
+}
+
+/** Waiting time read from dated history; never part of the estimate. */
+function waitingBlock(report: AuditReport): string {
+  const rows: string[] = [];
+  for (const f of report.findings) {
+    if (f.evidenceLevel !== "history" || f.status !== "detected") continue;
+    for (const t of f.cost.terms) {
+      if (!t.inputKeys.includes("rates.daily_followup_minutes") || !t.observed) continue;
+      rows.push(
+        `<li>${ruleName(f)}: <strong>${num(Math.round(t.observed * 10) / 10)} days</strong> in ${
+          num(f.affectedOrders)
+        } orders, from dated history.</li>`,
+      );
+    }
+  }
+  if (rows.length === 0) return "";
+  return `<aside class="card wait" aria-labelledby="wt"><h2 id="wt">Measured waiting time</h2>
+<p><span class="tag">${
+    term("measured")
+  }</span> Days orders waited, read from dated changes in the records. It is not part of the estimate.</p><ul>${
+    rows.join("")
+  }</ul></aside>`;
+}
+
 function firstScreen(report: AuditReport): string {
   const orders = report.sources.find((s) => s.name.includes("622"))?.records ??
     report.config.ordersPerMonth;
   const top = [...report.findings].filter((f) => f.status === "detected")
-    .sort((a, b) => b.cost.hoursMonth - a.cost.hoursMonth).slice(0, 3);
+    .sort((a, b) => b.affectedOrders - a.affectedOrders).slice(0, 3);
   const sys = report.systems.filter((s) => s.read).map((s) => plain(s.system));
   const headline = top.length === 0
     ? "No problem pattern was detected in these orders"
-    : `Orders cost about ${hours(report.totals.net.hours)} of manual rework a month`;
+    : `${num(distinctAffected(report))} of ${
+      num(orders)
+    } orders have a problem that a person has to fix by hand`;
   const list = top.length === 0
     ? ""
     : `<ol class="top">${
       top.map((f) =>
         `<li><a href="#${esc(f.id)}">${esc(f.title)} (${esc(f.id)})</a> <span class="tag">${
-          hours(f.cost.hoursMonth)
-        }</span> in ${num(f.affectedOrders)} orders</li>`
+          term("measured")
+        }</span> <strong>${num(f.affectedOrders)}</strong> orders: ${esc(f.plainSummary)}</li>`
       ).join("")
     }</ol>`;
   const blind = blindSpots(report).slice(0, 3);
@@ -318,12 +383,14 @@ function firstScreen(report: AuditReport): string {
     num(report.sources.length)
   } sources) and looked for ${num(report.findings.length)} pattern${
     report.findings.length === 1 ? "" : "s"
-  } that make people redo work by hand. ${term("measured")}: ${num(orders)} orders, ${
-    num(report.findings.reduce((a, f) => a + f.affectedOrders, 0))
-  } with a finding. ${term("projected")}: ${
-    hours(report.totals.net.hours)
-  } a month, from minutes you can change; not money, not a booked loss.</p>
-${list ? `<h2 class="sub">Where the hours go</h2>${list}` : ""}
+  } that make people redo work by hand. ${
+    term("measured")
+  }: the orders and records counted here. Hours are ${
+    term("estimate", "an estimate")
+  } and sit in the assumptions below.</p>
+${list ? `<h2 class="sub">Most orders affected</h2>${list}` : ""}
+${assumptionsBox(report)}
+${waitingBlock(report)}
 ${
     blind.length
       ? `<p class="blind"><strong>What it could not see.</strong> ${blind.map(esc).join(" ")}</p>`
@@ -334,7 +401,7 @@ ${
 
 function howToRead(): string {
   return `<aside class="card how" aria-labelledby="how"><h2 id="how">How to read this report</h2>
-<p>The top says where the hours go. Each finding below is written in the same order: what happens, in how many orders, how many hours, how they were counted, the proof and what to do. Counts of orders are <strong>measured</strong> in the records; hours are <strong>projected</strong> from minutes you can change, so they are an estimate. The drawing of one order shows its path through the systems and marks in red what could not be seen and where the problem starts. Words with a dotted underline are explained in the <a href="#glossary">glossary</a>, and long lists are folded away.</p></aside>`;
+<p>The top says how many orders have a problem. Each finding below is written in the same order: what happens, in how many orders, the proof, what to do and, last, an estimate of the hours. Counts of orders are <strong>measured</strong> in the records; hours are an <strong>estimate</strong> from assumed minutes you can change. The drawing of one order shows its path through the systems and marks in red what could not be seen and where the problem starts. Words with a dotted underline are explained in the <a href="#glossary">glossary</a>, and long lists are folded away.</p></aside>`;
 }
 
 function glossary(report: AuditReport): string {

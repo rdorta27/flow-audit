@@ -29,7 +29,9 @@ export const MESSAGES = {
   gateForced: (problems: number) =>
     `gate failed: ${plural(problems, "problem")}; running anyway because of --force`,
   ruleFound: (version: string, orders: number, hoursMonth: number) =>
-    `${version} found ${plural(orders, "order")}, ${hours(hoursMonth)}`,
+    `${version} found ${plural(orders, "order")} (estimate ${
+      hours(hoursMonth)
+    } with the example rates)`,
   ruleNone: (version: string) => `${version} found nothing`,
   ruleNotEvaluable: (rule: string, reason: string) =>
     `${rule} not evaluated: ${reason}; this is not "0 findings"`,
