@@ -605,6 +605,31 @@ function firstScreen(report: AuditReport): string {
       ).join("")
     }</ol>`;
   const blind = blindSpots(report).slice(0, 3);
+  const start = top[0];
+  const when = report.period
+    ? ` Period: ${day(report.period.start)} to ${day(report.period.end)}.`
+    : "";
+  const readFirst = `<ul class="readfirst">
+<li><strong>What was audited.</strong> ${
+    num(orders)
+  } internet orders (a customer's request to get an internet service installed and switched on), read from ${
+    esc(sys.join(", ") || "no system")
+  }.${esc(when)}</li>
+<li><strong>What went wrong.</strong> ${
+    start
+      ? `${
+        num(distinctAffected(report))
+      } of them needed a person to fix something by hand. The most common problem is ${
+        esc(start.title)
+      } (${esc(start.id)}), in ${num(start.affectedOrders)} orders.`
+      : "No problem pattern was detected in these orders."
+  }</li>
+<li><strong>Where to start.</strong> ${
+    start
+      ? `<a href="#${esc(start.id)}">${esc(start.title)}</a>: ${esc(start.recommendation)}`
+      : "Nothing to fix from this audit. See what it could not see, below."
+  }</li>
+</ul>`;
   return `<section class="first" id="first" aria-labelledby="h">
 <h1 id="h">${esc(headline)}</h1>
 <p class="lead">Flow Audit read ${num(orders)} orders from ${esc(sys.join(", ") || "no system")} (${
@@ -613,9 +638,10 @@ function firstScreen(report: AuditReport): string {
     report.findings.length === 1 ? "" : "s"
   } that make people redo work by hand. ${
     term("measured")
-  }: the orders and records counted here. Hours are ${
+  }: the orders and records counted in the data. Hours are ${
     term("estimate", "an estimate")
-  } and sit in the assumptions below. Flow Audit finds and measures; fixing the cause is the operator's work.</p>
+  } that only helps rank what to fix first; they rest on the assumptions below. Flow Audit finds and measures; fixing the cause is the operator's work.</p>
+${readFirst}
 ${list ? `<h2 class="sub">Most orders affected</h2>${list}` : ""}
 ${assumptionsBox(report)}
 ${waitingBlock(report)}

@@ -39,7 +39,7 @@ th,td{border-bottom:1px solid var(--line);padding:.3rem .5rem;text-align:left;ve
 footer{max-width:60rem;margin:0 auto;padding:1rem;color:var(--muted);font-size:.85rem;overflow-wrap:anywhere}
 .first{padding:.25rem 0}.first h1{font-size:1.9rem;margin:.4rem 0}
 .lead{margin:.4rem 0}.sub{font-size:1.1rem;margin:.8rem 0 .2rem;border:0}
-.top li{margin:.2rem 0}.blind{background:var(--tint);border-radius:6px;padding:.5rem .75rem;margin:.6rem 0}
+.top li{margin:.2rem 0}.readfirst{list-style:none;padding:0;margin:.8rem 0;display:grid;gap:.5rem}.readfirst li{background:var(--tint);border-left:4px solid var(--fa);border-radius:6px;padding:.6rem .9rem}.blind{background:var(--tint);border-radius:6px;padding:.5rem .75rem;margin:.6rem 0}
 header.top{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;justify-content:space-between}
 header.top p{margin:0}
 .how{border-left:6px solid var(--fa)}.how h2{margin-top:0;border:0}

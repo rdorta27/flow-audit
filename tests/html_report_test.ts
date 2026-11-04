@@ -279,3 +279,18 @@ Deno.test("a report with a missing system shows it on the cover", () => {
   assert(cover.includes("NOT READ") && cover.includes("Activation system"));
   assertEquals(renderHtml(report) === renderHtml(copy), false);
 });
+
+Deno.test("the first screen says what was audited, what went wrong and where to start", () => {
+  const first = html.slice(
+    html.indexOf('id="first"'),
+    html.indexOf("</section>", html.indexOf('id="first"')),
+  );
+  const top = [...report.findings].filter((f) => f.status === "detected")
+    .sort((a, b) => b.affectedOrders - a.affectedOrders)[0];
+  assert(first.includes("What was audited."), "what was audited");
+  assert(first.includes("a customer's request to get an internet service"), "defines the order");
+  assert(first.includes("What went wrong."), "what went wrong");
+  assert(first.includes("Where to start."), "where to start");
+  assert(first.includes(`href="#${top.id}"`), "links the biggest finding");
+  assert(first.includes(top.recommendation.replace(/&/g, "&amp;")), "shows its recommendation");
+});
