@@ -15,6 +15,16 @@ import {
   type SystemId,
 } from "../domain/model.ts";
 import { RULES } from "../domain/rules/index.ts";
+import {
+  assessQuality,
+  type NotEvaluable,
+  notEvaluableRules,
+  type QualityReport,
+  type QualityThresholds,
+  rangeOf,
+  type ReaderFacts,
+  type SystemFacts,
+} from "../domain/quality.ts";
 import type { Order, ProcessInstance, ProvisioningAttempt, ServiceOrder } from "../domain/model.ts";
 import type { Clock } from "../ports/clock.ts";
 import type { EvidenceSource, RawRecord } from "../ports/evidence_source.ts";
@@ -50,6 +60,17 @@ export interface AuditSources {
   processes?: EvidenceSource;
   catalog?: EvidenceSource;
   mappers?: RecordMappers;
+  /** The audited period and the gate's thresholds, from the mapping (M5-08, M5-10). */
+  period?: { start: string; end: string };
+  quality?: Partial<QualityThresholds>;
+  /** The repeats the readers dropped; call after reading. Absent for the TMF sources. */
+  readerFacts?: () => Promise<ReaderFacts[]>;
+}
+
+/** Asks for the data-quality gate (M5-10); without it no gate runs. */
+export interface GateOptions {
+  /** Run the rules even when the gate fails; the answer then says it was forced. */
+  force?: boolean;
 }
 
 export interface AuditDeps {
@@ -57,6 +78,7 @@ export interface AuditDeps {
   /** The impact rates and thresholds; the caller reads them from `config.json`. */
   config?: ImpactConfig;
   clock: Clock;
+  gate?: GateOptions;
   /** Progress lines for the caller to show; the application layer prints nothing itself. */
   onProgress?: (message: string) => void;
 }
@@ -67,6 +89,8 @@ export interface AuditResult {
   findings: Finding[];
   /** The journeys the report draws (see `REPORT_JOURNEYS_MAX`), not every order. */
   journeys: OrderJourney[];
+  /** The gate's answer; absent when no gate was asked for. */
+  quality?: QualityReport;
   /** The full correlation: every order with its linked records. */
   correlation: CorrelationResult;
   /** The records as the sources served them, for callers that show the proof. */
@@ -79,6 +103,14 @@ export interface AuditResult {
     processes: RawRecord[];
     catalog: RawRecord[];
   };
+}
+
+/** The data failed the gate and `force` was not set (exit code 3). */
+export class QualityGateError extends Error {
+  constructor(readonly quality: QualityReport) {
+    super(`the data failed the quality gate: ${quality.failures.length} problem(s)`);
+    this.name = "QualityGateError";
+  }
 }
 
 export class NoEvidenceSourceError extends Error {
@@ -165,15 +197,99 @@ const SYSTEM_INFO: Record<
 };
 const SYSTEM_ORDER: SystemId[] = ["CAT", "OMS", "BPM", "PROV"];
 
+interface Prepared {
+  sources: AuditSources;
+  config: ImpactConfig;
+  rawOrders: RawRecord[];
+  rawServices: RawRecord[];
+  rawAttempts: RawRecord[];
+  rawWorkOrders: RawRecord[];
+  rawProcesses: RawRecord[];
+  rawCatalog: RawRecord[];
+  correlation: CorrelationResult;
+  quality?: QualityReport;
+}
+
+/** Facts per system for the gate, from the mapped records and what the readers dropped. */
+async function gateFacts(
+  p: Pick<Prepared, "sources" | "correlation" | "rawOrders" | "rawServices" | "rawAttempts"> & {
+    rawProcesses: RawRecord[];
+    rawCatalog: RawRecord[];
+    mapped: { orders: Order[]; serviceOrders: ServiceOrder[]; processes: ProcessInstance[] };
+    attempts: ProvisioningAttempt[];
+  },
+): Promise<SystemFacts[]> {
+  const { sources, correlation: c, mapped } = p;
+  const reader = new Map((await sources.readerFacts?.())?.map((r) => [r.system, r]));
+  const unknown = (system: SystemId) => {
+    const out: Record<string, number> = {};
+    for (const u of c.unmapped) {
+      if (u.system === system) out[u.state] = (out[u.state] ?? 0) + u.count;
+    }
+    return out;
+  };
+  const facts = (
+    system: SystemId,
+    name: string,
+    rows: number,
+    times: string[],
+    children: number,
+    orphans: number,
+    statesRead: number,
+  ): SystemFacts => ({
+    system,
+    label: name,
+    rows,
+    duplicateKeys: reader.get(system)?.duplicateKeys ?? 0,
+    exactDuplicates: reader.get(system)?.exactDuplicates ?? 0,
+    range: rangeOf(times),
+    children,
+    orphans,
+    statesRead,
+    unknownStates: unknown(system),
+  });
+  const list: SystemFacts[] = [
+    facts(
+      "OMS",
+      sources.productOrders.name,
+      p.rawOrders.length,
+      [...mapped.orders.map((o) => o.submittedAt), ...mapped.serviceOrders.map((o) => o.createdAt)],
+      mapped.serviceOrders.length,
+      c.unresolved.serviceOrders.length,
+      mapped.orders.length + mapped.serviceOrders.length,
+    ),
+  ];
+  if (sources.processes) {
+    list.push(facts(
+      "BPM",
+      sources.processes.name,
+      p.rawProcesses.length,
+      mapped.processes.map((x) => x.startedAt),
+      mapped.processes.length,
+      c.unresolved.processes.length,
+      mapped.processes.length,
+    ));
+  }
+  list.push(facts(
+    "PROV",
+    sources.activations.name,
+    p.rawAttempts.length,
+    p.attempts.map((a) => a.startedAt),
+    p.attempts.length,
+    c.unresolved.attempts.length,
+    p.attempts.length,
+  ));
+  if (sources.catalog) {
+    list.push(facts("CAT", sources.catalog.name, p.rawCatalog.length, [], 0, 0, 0));
+  }
+  return list;
+}
+
 /**
- * The only entry point of the application: reads the three TMF sources, maps them to the
- * canonical model, correlates, runs every registered rule and returns the report in memory.
- * No format and no I/O beyond the injected sources and clock.
+ * Reads the sources, maps them, correlates and, when asked, runs the data-quality gate.
+ * Rules are not run here: `checkAudit` stops at this point and `runAudit` goes on.
  */
-export async function runAudit(
-  _options: AuditOptions,
-  deps: AuditDeps,
-): Promise<AuditResult> {
+async function prepare(deps: AuditDeps): Promise<Prepared> {
   const { sources, config } = deps;
   if (!sources || !config) throw new NoEvidenceSourceError();
   const say = deps.onProgress ?? (() => {});
@@ -196,16 +312,84 @@ export async function runAudit(
     attempt: mapActivation,
   };
   const orders = rawOrders.map(map.order);
-  const correlation = correlate({
-    orders,
-    serviceOrders: rawServices.map(map.serviceOrder),
-    processes: map.process ? rawProcesses.map(map.process) : undefined,
-    attempts: rawAttempts.map(map.attempt),
-  });
+  const serviceOrders = rawServices.map(map.serviceOrder);
+  const processes = map.process ? rawProcesses.map(map.process) : undefined;
+  const attempts = rawAttempts.map(map.attempt);
+  const correlation = correlate({ orders, serviceOrders, processes, attempts });
+
+  const prepared: Prepared = {
+    sources,
+    config,
+    rawOrders,
+    rawServices,
+    rawAttempts,
+    rawWorkOrders,
+    rawProcesses,
+    rawCatalog,
+    correlation,
+  };
+  if (deps.gate) {
+    say("checking the data quality");
+    const facts = await gateFacts({
+      ...prepared,
+      mapped: { orders, serviceOrders, processes: processes ?? [] },
+      attempts,
+    });
+    const quality = assessQuality(facts, {
+      thresholds: sources.quality,
+      period: sources.period,
+    });
+    quality.notEvaluable = notEvaluableRules(quality, RULES.map((r) => r.id));
+    quality.forced = !quality.passed && deps.gate.force === true;
+    prepared.quality = quality;
+  }
+  return prepared;
+}
+
+/** Reads, maps and runs the gate, nothing more (`audit --check`). */
+export async function checkAudit(deps: AuditDeps): Promise<{
+  quality: QualityReport;
+  correlation: CorrelationResult;
+  records: AuditResult["records"];
+}> {
+  const p = await prepare({ ...deps, gate: deps.gate ?? {} });
+  return { quality: p.quality!, correlation: p.correlation, records: recordsOf(p) };
+}
+
+function recordsOf(p: Prepared): AuditResult["records"] {
+  return {
+    productOrders: p.rawOrders,
+    serviceOrders: p.rawServices,
+    activations: p.rawAttempts,
+    workOrders: p.rawWorkOrders,
+    processes: p.rawProcesses,
+    catalog: p.rawCatalog,
+  };
+}
+
+/**
+ * The only entry point of the application: reads the three TMF sources, maps them to the
+ * canonical model, correlates, runs every registered rule and returns the report in memory.
+ * No format and no I/O beyond the injected sources and clock.
+ */
+export async function runAudit(
+  _options: AuditOptions,
+  deps: AuditDeps,
+): Promise<AuditResult> {
+  const prepared = await prepare(deps);
+  const { sources, config, correlation, quality } = prepared;
+  const { rawOrders, rawServices, rawAttempts, rawWorkOrders, rawProcesses, rawCatalog } = prepared;
+  if (quality && !quality.passed && !quality.forced) throw new QualityGateError(quality);
+  const say = deps.onProgress ?? (() => {});
+  const skipped: NotEvaluable[] = quality?.notEvaluable ?? [];
 
   const findings: Finding[] = [];
   const charges: OrderCharge[] = [];
   for (const rule of RULES) {
+    if (skipped.some((n) => n.rule === rule.id)) {
+      say(`skipping ${rule.version}: not evaluable`);
+      continue;
+    }
     say(`running ${rule.version}`);
     const finding = rule.detect(correlation.orders, config);
     if (finding) {
@@ -308,14 +492,8 @@ export async function runAudit(
     report,
     findings,
     journeys,
+    quality,
     correlation,
-    records: {
-      productOrders: rawOrders,
-      serviceOrders: rawServices,
-      activations: rawAttempts,
-      workOrders: rawWorkOrders,
-      processes: rawProcesses,
-      catalog: rawCatalog,
-    },
+    records: recordsOf(prepared),
   };
 }

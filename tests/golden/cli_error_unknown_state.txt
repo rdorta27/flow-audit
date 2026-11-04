@@ -1,0 +1,4 @@
+exit 1
+err| flow-audit: error: the state "weird" is not in the attempt state table of the mapping
+err|   where: <tmp>/provisioning.jsonl:2 field "state"
+err|   next:  add the value to states.attempt in the mapping, or set on_unknown_state to "unmapped" to keep the row and see it in the gate

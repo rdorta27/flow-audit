@@ -181,6 +181,19 @@ export class OmsFile {
   async finishCoverage(): Promise<FileCoverage> {
     const parsed = await this.#load();
     this.coverage.repeatedRows = parsed.length - new Set(parsed.map((p) => p.order.id)).size;
+    // The key of the export is the service order: a second row of one is a repeat.
+    const first = new Map<string, string>();
+    this.coverage.repeatedKeys = 0;
+    this.coverage.exactRepeats = 0;
+    for (const p of parsed) {
+      const text = JSON.stringify([p.order.value, p.serviceOrder.value, p.workOrder?.value]);
+      const before = first.get(p.serviceOrder.id);
+      if (before === undefined) first.set(p.serviceOrder.id, text);
+      else {
+        this.coverage.repeatedKeys++;
+        if (before === text) this.coverage.exactRepeats++;
+      }
+    }
     return this.coverage;
   }
 }

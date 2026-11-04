@@ -1,0 +1,14 @@
+exit 0
+err| flow-audit: reading the exports in data/demo
+err| flow-audit: read 5,021 rows from data/demo/oms_orders.csv
+err| flow-audit: read 5,021 rows from data/demo/bpm_history.jsonl
+err| flow-audit: read 5,390 rows from data/demo/provisioning.jsonl
+err| flow-audit: joined 5,000 orders: 15,132 links sure, 300 inferred, 0 not joined
+err| flow-audit: gate passed
+out| Quality gate: passed
+out| Quality OMS OMS orders (file): 5,000 records · 2026-09-01 to 2026-10-01 · window covered 100%
+out| Quality BPM BPM processes (file): 5,021 records · 2026-09-01 to 2026-10-01 · window covered 99.7%
+out| Quality PROV PROV activation attempts (file): 5,390 records · 2026-09-01 to 2026-10-01 · window covered 99%
+out| Quality CAT CAT catalog (file): 7 records · no dates · window covered n/a
+err| flow-audit: wrote <tmp>/quality.json
+err| flow-audit: check finished: nothing was audited and no rule was run

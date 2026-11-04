@@ -7,7 +7,14 @@ import { readDate } from "./dates.ts";
 
 /** A bad export. The message names the file, the line and, when it is one, the field. */
 export class FileError extends Error {
-  constructor(file: string, line: number | null, field: string | null, why: string) {
+  constructor(
+    readonly file: string,
+    readonly line: number | null,
+    readonly field: string | null,
+    readonly why: string,
+    /** What went wrong, for a caller that tells the reader what to do next. */
+    readonly code: "missing_file" | "unknown_state" | "bad_row" = "bad_row",
+  ) {
     super(
       `${file}${line === null ? "" : `:${line}`}${
         field === null ? "" : ` field "${field}"`
@@ -36,7 +43,13 @@ export async function readFileText(path: string, encoding = "utf-8"): Promise<st
   try {
     bytes = await Deno.readFile(path);
   } catch (error) {
-    throw new FileError(path, null, null, `cannot read the file: ${(error as Error).message}`);
+    throw new FileError(
+      path,
+      null,
+      null,
+      `cannot read the file: ${(error as Error).message}`,
+      "missing_file",
+    );
   }
   try {
     return new TextDecoder(encoding, { fatal: true }).decode(bytes);
@@ -66,6 +79,9 @@ export interface FileCoverage {
   rows: number;
   /** Rows whose id repeated an earlier row of the same entity (dropped, not lost). */
   repeatedRows: number;
+  /** Records whose key repeated an earlier one (dropped): by key, and identical to the first. */
+  repeatedKeys: number;
+  exactRepeats: number;
   /** Rows with at least one state value the table did not know (only when `unmapped`). */
   rowsWithUnmappedState: number;
   /** Per state table: how many values were mapped and which ones were not. */
@@ -79,6 +95,8 @@ export function newCoverage(file: string, block: BlockMapping | undefined): File
     file,
     rows: 0,
     repeatedRows: 0,
+    repeatedKeys: 0,
+    exactRepeats: 0,
     rowsWithUnmappedState: 0,
     states: {},
     notObservable: block
@@ -164,6 +182,7 @@ export class RowView {
     const iso = readDate(value, {
       format: this.block.dateFormat,
       offsetMinutes: this.block.offsetMinutes,
+      zone: this.block.timeZone ?? undefined,
     });
     if (iso === null) {
       throw new FileError(
@@ -202,6 +221,7 @@ export class RowView {
         this.line,
         this.#column(field),
         `the state "${raw}" is not in the ${table} state table of the mapping`,
+        "unknown_state",
       );
     }
     entry.unmapped++;

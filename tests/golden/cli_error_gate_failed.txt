@@ -1,0 +1,10 @@
+exit 3
+out| Quality gate: FAILED
+out| Quality OMS OMS orders (file): 5,000 records · 2026-09-01 to 2026-10-01 · window covered 100%
+out| Quality BPM BPM processes (file): 5,021 records · 2026-09-01 to 2026-10-01 · window covered 99.7%
+out| Quality PROV PROV activation attempts (file): 3,691 records · 2026-09-01 to 2026-09-20 · window covered 65.5%
+out| Quality CAT CAT catalog (file): 7 records · no dates · window covered n/a
+out| Problem: PROV (PROV activation attempts (file)) covers 65.5% of the audited window 2026-09-01 to 2026-10-01: its records run 2026-09-01 to 2026-09-20; the gate needs 90%
+err| flow-audit: error: the data failed the quality gate (1 problem)
+err|   where: the Quality lines above (and quality.json with --out)
+err|   next:  fix the export and run again, or run with --force to audit it anyway (the answer says it was forced)

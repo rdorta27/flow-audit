@@ -4,15 +4,70 @@
  *
  * A file declares a `date_format` and a `time_zone`. The format is `iso8601` or a pattern of
  * `yyyy MM dd HH mm ss SSS`, with any other character literal (`dd/MM/yyyy HH:mm`). The
- * zone is `UTC` or a fixed offset (`-05:00`); named zones and daylight saving arrive with
- * M5-08. A text that already carries `Z` or an offset keeps it; the zone only fills in for
- * text that has none.
+ * zone is `UTC`, a fixed offset (`-05:00`) or a named IANA zone (`America/Bogota`,
+ * `Europe/Madrid`; M5-08), read through `Intl`, so daylight saving follows the date of each
+ * timestamp. A text that already carries `Z` or an offset keeps it; the zone only fills in for
+ * text that has none. A wall time that does not exist (the hour skipped when clocks go
+ * forward) moves forward by the gap; one that happens twice (clocks go back) is read as the
+ * first time.
  */
 
 export interface DateRule {
   format: string;
-  /** Minutes east of UTC. */
+  /** Minutes east of UTC; used when `zone` is absent. */
   offsetMinutes: number;
+  /** A named IANA zone; wins over `offsetMinutes`. */
+  zone?: string;
+}
+
+/** True when `Intl` knows the zone name. */
+export function isNamedZone(zone: string): boolean {
+  if (!/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)*$/.test(zone)) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/** Minutes east of UTC that `zone` is at, at the instant `ms`. */
+export function zoneOffsetMinutes(zone: string, ms: number): number {
+  let f = formatters.get(zone);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    });
+    formatters.set(zone, f);
+  }
+  const p: Record<string, number> = {};
+  for (const part of f.formatToParts(new Date(ms))) {
+    if (part.type !== "literal") p[part.type] = Number(part.value);
+  }
+  const wall = Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second);
+  return Math.round((wall - Math.floor(ms / 1000) * 1000) / 60_000);
+}
+
+/** The UTC instant of a wall-clock time (given as if it were UTC) in the rule's zone. */
+function wallToUtc(wallMs: number, rule: DateRule): number {
+  if (!rule.zone) return wallMs - rule.offsetMinutes * 60_000;
+  const zone = rule.zone;
+  // The offsets a day before and a day after bracket any change of clocks.
+  const candidates = [-1, 1].map((d) =>
+    wallMs - zoneOffsetMinutes(zone, wallMs + d * 86_400_000) * 60_000
+  );
+  const real = candidates.filter((t) => t + zoneOffsetMinutes(zone, t) * 60_000 === wallMs);
+  // Twice (clocks go back): the first. Never (clocks go forward): move on by the gap.
+  return real.length > 0 ? Math.min(...real) : Math.max(...candidates);
 }
 
 /** `UTC`, `Z` or `+hh:mm` / `-hh:mm` as minutes east of UTC; null when it is none of those. */
@@ -60,7 +115,7 @@ export function readDate(text: string, rule: DateRule): string | null {
     const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(value);
     const time = Date.parse(hasZone || !/T|\d:\d/.test(value) ? value : `${value}Z`);
     if (Number.isNaN(time)) return null;
-    const shifted = hasZone ? time : time - rule.offsetMinutes * 60_000;
+    const shifted = hasZone ? time : wallToUtc(time, rule);
     return new Date(shifted).toISOString();
   }
   const { regex, order } = pattern(rule.format);
@@ -73,7 +128,7 @@ export function readDate(text: string, rule: DateRule): string | null {
   const [y, mo, d] = [part("yyyy"), part("MM"), part("dd")];
   const [h, mi, s, ms] = [part("HH"), part("mm"), part("ss"), part("SSS")];
   if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59 || s > 59) return null;
-  const utc = Date.UTC(y, mo - 1, d, h, mi, s, ms) - rule.offsetMinutes * 60_000;
+  const utc = wallToUtc(Date.UTC(y, mo - 1, d, h, mi, s, ms), rule);
   const date = new Date(utc);
   // Reject 31 February and friends: the date must read back the same.
   const back = new Date(Date.UTC(y, mo - 1, d, h, mi, s, ms));
